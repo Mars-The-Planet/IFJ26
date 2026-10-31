@@ -75,15 +75,14 @@ int stack_push(stackPtr st, void *value);
 /**
  * @brief Procedura pro odstranění prvního prvku zásobníku
  * @param st ukazatel na strukturu zásobníku
- * @return Vrátí 0 při úspěchu, 1 při selhání
  */
 void stack_pop(stackPtr st);
 
 
 /**
- * @brief Procedura pro odstranění prvního prvku zásobníku
+ * @brief Procedura pro přečtení hodnoty v prvku na vrcholu zásobníku
  * @param st ukazatel na strukturu zásobníku
- * @return Vrátí 0 při úspěchu, 1 při selhání
+ * @return Vrátí ukazatel na hodnotu v prvku na vrcholu zásobníku
  */
 void *stack_top(stackPtr st);
 
