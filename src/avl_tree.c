@@ -4,7 +4,6 @@
  *
  * @brief Implementace AVL stromu pro tabulku symbolů.
  * @date 24.10.2026
- * @todo Implementace rotace v avl_insert
  */
 
 #include <stdio.h>
@@ -81,12 +80,45 @@ unsigned int max(unsigned int a, unsigned int b) {
 
 
 /**
+ * @brief Funkce provede pravou rotaci
+ * @param root List stromu, na kterém se provede operace
+ * @return Vrátí nově vyšší list stromu
+ */
+nodePtr avl_rotate_right(nodePtr root) {
+    nodePtr left = root->left;
+    root->left = left->right;
+    left->right = root;
+
+    // Oprava proměnné height
+    root->height = max(avl_node_height(root->left), avl_node_height(root->right)) + 1;
+    left->height = max(avl_node_height(left->left), avl_node_height(left->right)) + 1;
+    return left;
+}
+
+
+/**
+ * @brief Funkce provede levou rotaci
+ * @param root List stromu, na kterém se provede operace
+ * @return Vrátí nově vyšší list stromu
+ */
+nodePtr avl_rotate_left(nodePtr root) {
+    nodePtr right = root->right;
+    root->right = right->left;
+    right->left = root;
+
+    // Oprava proměnné height
+    root->height = max(avl_node_height(root->left), avl_node_height(root->right)) + 1;
+    right->height = max(avl_node_height(right->left), avl_node_height(right->right)) + 1;
+    return right;
+}
+
+
+/**
  * @brief Funkce pro vkládání/přepisování prvků stromu
  * @param root kořen stromu do kterého je vkládán nový prvek. Může být NULL.
  * @param key klíč pro přístup k hodnotě.
  * @param value hodnota uložená pod klíčem.
  * @return Vrátí pointer na vrchol stromu
- * @todo Implementace rotace
  */
 nodePtr avl_insert(nodePtr root, char *key, void *value) {
     // Strom nebo list neexistuje
@@ -102,10 +134,22 @@ nodePtr avl_insert(nodePtr root, char *key, void *value) {
     if (result<0) {
         root->left = avl_insert(root->left, key, value);
         root->height = max(avl_node_height(root->left), avl_node_height(root->right)) + 1;
+        if (avl_node_height(root->left) - avl_node_height(root->right) == 2) {
+            return avl_rotate_right(root);
+        }
+        if (avl_node_height(root->right) - avl_node_height(root->left) == 2) {
+            return avl_rotate_left(root);
+        }
         return root;
     }
     root->right = avl_insert(root->right, key, value);
     root->height = max(avl_node_height(root->left), avl_node_height(root->right)) + 1;
+    if (avl_node_height(root->left) - avl_node_height(root->right) == 2) {
+        return avl_rotate_right(root);
+    }
+    if (avl_node_height(root->right) - avl_node_height(root->left) == 2) {
+        return avl_rotate_left(root);
+    }
     return root;
 }
 
@@ -137,16 +181,16 @@ nodePtr avl_get_node(nodePtr root, char *key) {
 // TODO: REMOVE
 int main(int argc, char *argv[]) {
     nodePtr root = avl_insert(nullptr, "test1", "result1");
-    avl_insert(root, "test2", "result2");
-    avl_insert(root, "test3", "result3");
-    avl_insert(root, "test3", "result4");
-    avl_insert(root, "test0", "result0");
+    root = avl_insert(root, "test2", "result2");
+    root = avl_insert(root, "test3", "result3");
+    root = avl_insert(root, "test3", "result4");
+    root = avl_insert(root, "test0", "result0");
 
     printf("%s: %d\n%s: %d\n%s: %d\n%s: %d\n",
         root->key, root->height,
         root->left->key, root->left->height,
-        root->right->key, root->right->height,
-        root->right->right->key, root->right->right->height);
+        root->left->left->key, root->left->left->height,
+        root->right->key, root->right->height);
 
     nodePtr getTest = avl_get_node(root, "test3");
     printf("Search result: '%s'='%s' at Height: %d\n", getTest->key, getTest->value, getTest->height);

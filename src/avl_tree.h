@@ -88,4 +88,19 @@ nodePtr avl_get_node(nodePtr root, char *key);
  */
 unsigned int max(unsigned int a, unsigned int b);
 
+
+/**
+ * @brief Funkce provede pravou rotaci
+ * @param root List stromu, na kterém se provede operace
+ * @return Vrátí nově vyšší list stromu
+ */
+nodePtr avl_rotate_right(nodePtr root);
+
+/**
+ * @brief Funkce provede levou rotaci
+ * @param root List stromu, na kterém se provede operace
+ * @return Vrátí nově vyšší list stromu
+ */
+nodePtr avl_rotate_left(nodePtr root);
+
 #endif // AVL_TREE_H
