@@ -66,6 +66,14 @@ unsigned int avl_node_height(nodePtr root);
 
 
 /**
+ * @brief Funkce provede rotaci, pokud má nastat
+ * @param root List stromu, na kterém se může provést rotace
+ * @return Vrátí nový kořen, nebo původní nezměněný kořen
+ */
+nodePtr avl_node_rotate(nodePtr root);
+
+
+/**
  * @brief Funkce pro vkládání/přepisování prvků stromu
  * Implementuje rekurzivní vložení. (Poznámka: Implementace rotací chybí.)
  *
@@ -110,6 +118,12 @@ nodePtr avl_node_rotate_right(nodePtr root);
  * @return Vrátí nově vyšší list stromu
  */
 nodePtr avl_node_rotate_left(nodePtr root);
+
+
+// ===========================================================================
+// ABSTRAKCE IMPLEMENTACE AVL STROMU
+// ===========================================================================
+
 
 /**
  * @brief Konstruktor AVL stromu

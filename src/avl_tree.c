@@ -122,6 +122,22 @@ nodePtr avl_node_rotate_left(nodePtr root) {
 
 
 /**
+ * @brief Funkce provede rotaci, pokud má nastat
+ * @param root List stromu, na kterém se může provést rotace
+ * @return Vrátí nový kořen, nebo původní nezměněný kořen
+ */
+nodePtr avl_node_rotate(nodePtr root) {
+    if (avl_node_height(root->left) - avl_node_height(root->right) == 2) {
+        return avl_node_rotate_right(root);
+    }
+    if (avl_node_height(root->right) - avl_node_height(root->left) == 2) {
+        return avl_node_rotate_left(root);
+    }
+    return root;
+}
+
+
+/**
  * @brief Funkce pro vkládání/přepisování prvků stromu
  * @param root kořen stromu do kterého je vkládán nový prvek. Může být NULL.
  * @param key klíč pro přístup k hodnotě.
@@ -147,23 +163,11 @@ nodePtr avl_node_insert(nodePtr root, char *key, void *value, int *failed) {
     if (result<0) {
         root->left = avl_node_insert(root->left, key, value, failed);
         root->height = max(avl_node_height(root->left), avl_node_height(root->right)) + 1;
-        if (avl_node_height(root->left) - avl_node_height(root->right) == 2) {
-            return avl_node_rotate_right(root);
-        }
-        if (avl_node_height(root->right) - avl_node_height(root->left) == 2) {
-            return avl_node_rotate_left(root);
-        }
-        return root;
+        return avl_node_rotate(root);
     }
     root->right = avl_node_insert(root->right, key, value, failed);
     root->height = max(avl_node_height(root->left), avl_node_height(root->right)) + 1;
-    if (avl_node_height(root->left) - avl_node_height(root->right) == 2) {
-        return avl_node_rotate_right(root);
-    }
-    if (avl_node_height(root->right) - avl_node_height(root->left) == 2) {
-        return avl_node_rotate_left(root);
-    }
-    return root;
+    return avl_node_rotate(root);
 }
 
 
