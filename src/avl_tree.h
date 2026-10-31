@@ -25,6 +25,14 @@ typedef struct avl_node {
 } node, *nodePtr;
 
 
+/**
+ * @brief Struktura AVL stromu
+ */
+typedef struct avl_tree {
+    nodePtr root;
+} avl_tree, *avl_treePtr;
+
+
 // ===========================================================================
 // PROTOTYPY FUNKCÍ
 // ===========================================================================
@@ -66,7 +74,7 @@ unsigned int avl_node_height(nodePtr root);
  * @param value hodnota uložená pod klíčem.
  * @return Pointer na vrchol aktualizovaného stromu (root).
  */
-nodePtr avl_insert(nodePtr root, char *key, void *value);
+nodePtr avl_node_insert(nodePtr root, char *key, void *value);
 
 
 /**
@@ -76,7 +84,7 @@ nodePtr avl_insert(nodePtr root, char *key, void *value);
  * @param key Klíč, který se hledá.
  * @return Pointer na nalezený uzel, nebo NULL pokud klíč není přítomen.
  */
-nodePtr avl_get_node(nodePtr root, char *key);
+nodePtr avl_node_get(nodePtr root, char *key);
 
 
 /**
@@ -94,13 +102,44 @@ unsigned int max(unsigned int a, unsigned int b);
  * @param root List stromu, na kterém se provede operace
  * @return Vrátí nově vyšší list stromu
  */
-nodePtr avl_rotate_right(nodePtr root);
+nodePtr avl_node_rotate_right(nodePtr root);
 
 /**
  * @brief Funkce provede levou rotaci
  * @param root List stromu, na kterém se provede operace
  * @return Vrátí nově vyšší list stromu
  */
-nodePtr avl_rotate_left(nodePtr root);
+nodePtr avl_node_rotate_left(nodePtr root);
+
+/**
+ * @brief Konstruktor AVL stromu
+ * @return Vrátí pointer na strukturu stromu
+ */
+avl_treePtr tree_ctor();
+
+
+/**
+ * @brief Destruktor AVL stromu
+ */
+void tree_dtor(avl_treePtr tree);
+
+
+/**
+ * @brief Vyhledávání ve struktuře stromu
+ * @param tree AVL strom
+ * @param key hledaný klíč
+ * @return Vrátí pointer na nalezený prvek, může být NULL
+ */
+nodePtr tree_get(avl_treePtr tree, char *key);
+
+
+/**
+ * @brief Vkládání do struktury stromu
+ * @param tree AVL strom
+ * @param key klíč nového/přepisovaného prvku
+ * @param value hodnota nového prvku
+ * @return Vrátí 0 při úspěchu, 1 při selhání
+ */
+int tree_insert(avl_treePtr tree, char *key, void *value);
 
 #endif // AVL_TREE_H
