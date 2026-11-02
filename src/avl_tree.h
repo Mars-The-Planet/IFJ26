@@ -82,7 +82,7 @@ nodePtr avl_node_rotate(nodePtr root);
  * @param value hodnota uložená pod klíčem.
  * @return Pointer na vrchol aktualizovaného stromu (root).
  */
-nodePtr avl_node_insert(nodePtr root, char *key, void *value);
+nodePtr avl_node_insert(nodePtr root, char *key, void *value, int *failed);
 
 
 /**

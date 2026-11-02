@@ -6,29 +6,7 @@
  * @date 24.10.2026
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-
-/**
- * @brief Struktura listu stromu
- */
-typedef struct avl_node {
-    char *key;
-    void *value;
-    struct avl_node *left;
-    struct avl_node *right;
-    unsigned int height;
-} node, *nodePtr;
-
-
-/**
- * @brief Struktura AVL stromu
- */
-typedef struct avl_tree {
-    nodePtr root;
-} avl_tree, *avl_treePtr;
+#include "avl_tree.h"
 
 
 /**
@@ -48,6 +26,7 @@ nodePtr avl_node_ctor(char *key, void *value) {
     }
     return newNode;
 }
+
 
 /**
  * @brief Destruktor AVL stromu
