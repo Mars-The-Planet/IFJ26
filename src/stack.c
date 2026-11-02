@@ -6,25 +6,7 @@
  * @date 31.10.2026
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
-
-/**
- * @brief Struktura listu zásobníku
- */
-typedef struct stack_node {
-    void *value;
-    struct stack_node *next;
-} s_node, *s_nodePtr;
-
-
-/**
- * @brief Struktura zásobníku
- */
-typedef struct stack {
-    s_nodePtr top;
-} stack, *stackPtr;
+#include "stack.h"
 
 
 /**
