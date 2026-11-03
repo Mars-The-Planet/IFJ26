@@ -29,6 +29,7 @@ typedef enum ETokenType {
  */
 typedef enum EScannerState {
 	DONE,
+	ERROR,
 	START,
 	
 	OPEN_BRACKET,
