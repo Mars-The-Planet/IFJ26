@@ -4,6 +4,7 @@
  *
  * @brief Implementace lexikálního analyzátoru
  * @todo Dynamicky dlouhe řetězce
+ * @todo Zásobník na sledování odsazení
  */
 
 #include <stdio.h>
@@ -38,8 +39,9 @@ int next_token(token *token_ptr/*, stack *indent_stack_ptr*/) {
 	int ch;
 	while (1) {
 		ch = getc(target_file);
-			
+
 		switch (state) {
+
 			case START:
 				state = start_state(ch, token_ptr);
 				break;
@@ -49,7 +51,7 @@ int next_token(token *token_ptr/*, stack *indent_stack_ptr*/) {
 				break;
 			
 			default:
-				fprintf(stderr, "Neznamy stav\n");
+				fprintf(stderr, "Neznamy stav %c, ascii: %d\n", ch, ch);
 				return 1;
 				break;
 		}
@@ -58,14 +60,75 @@ int next_token(token *token_ptr/*, stack *indent_stack_ptr*/) {
 		if (state == DONE) {
 			return 0;
 		}
+		else if (state == ERROR) {
+			fprintf(stderr, "Neznamy znak %c, ascii: %d\n", ch, ch);
+			return 1;
+		}
 	}
 }
 
 
 int start_state(int ch, token *token_ptr) {
 	switch (ch) {
-		case '(':
-			return OPEN_BRACKET;
+
+		case ' ':
+			// mezera se zkonzumuje
+			return START;
+			break;
+
+		// koncové stavy bez hloubky
+		case '\n':
+			token_ptr->type = SYMBOL;
+			strcpy(token_ptr->symbol, "EOL");
+			return DONE;
+			break;
+
+		case ';':
+			token_ptr->type = SYMBOL;
+			strcpy(token_ptr->symbol, ";");
+			return DONE;
+			break;
+
+		case '+':
+			token_ptr->type = OPERATOR;
+			strcpy(token_ptr->symbol, "+");
+			return DONE;
+			break;
+
+		case '*':
+			token_ptr->type = OPERATOR;
+			strcpy(token_ptr->symbol, "*");
+			return DONE;
+			break;
+
+		case '[':
+			token_ptr->type = SYMBOL;
+			strcpy(token_ptr->symbol, "[");
+			return DONE;
+			break;
+
+		case ']':
+			token_ptr->type = SYMBOL;
+			strcpy(token_ptr->symbol, "]");
+			return DONE;
+			break;
+
+		case '.':
+			token_ptr->type = SYMBOL;
+			strcpy(token_ptr->symbol, ".");
+			return DONE;
+			break;
+
+		case ',':
+			token_ptr->type = SYMBOL;
+			strcpy(token_ptr->symbol, ",");
+			return DONE;
+			break;
+
+		case EOF:
+			token_ptr->type = SYMBOL;
+			strcpy(token_ptr->symbol, "EOF");
+			return DONE;
 			break;
 
 		case ')':
@@ -74,8 +137,20 @@ int start_state(int ch, token *token_ptr) {
 			return DONE;
 			break;
 
+		// cesty s více koncovými stavy
+		case '(':
+			return OPEN_BRACKET;
+			break;
+
+
+
+		case '\r':
+			// carriage feed se ignoruje
+			return START;
+			break;
+
 		default:
-			return -1;
+			return ERROR;
 			break;
 	}
 }
@@ -83,11 +158,10 @@ int start_state(int ch, token *token_ptr) {
 
 int open_bracket(int ch, token *token_ptr) {
 	switch (ch) {
-		case ')':
 
+		case ')':
 			token_ptr->type = UNIT;
 			strcpy(token_ptr->symbol, "()");
-
 			return DONE;
 			break;
 
@@ -96,7 +170,6 @@ int open_bracket(int ch, token *token_ptr) {
 
 			token_ptr->type = SYMBOL;
 			strcpy(token_ptr->symbol, "(");
-			
 			return DONE;
 			break;
 	}
@@ -112,5 +185,7 @@ int main(int argc, char* argv[]) {
 	while (i == 0) {
 		printf("type: %d, symbol: %s \n", tkn->type, tkn->symbol);
 		i = next_token(tkn);
+		if (strcmp(tkn->symbol, "EOF") == 0)
+			i = -1;
 	}
 }
