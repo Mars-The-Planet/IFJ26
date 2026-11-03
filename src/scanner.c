@@ -40,18 +40,18 @@ int next_token(token *token_ptr/*, stack *indent_stack_ptr*/) {
 		ch = getc(target_file);
 			
 		switch (state) {
-		case START:
-			state = start_state(ch, token_ptr);
-			break;
-		
-		case OPEN_BRACKET:
-			state = open_bracket(ch, token_ptr);
-			break;
-		
-		default:
-			fprintf(stderr, "Neznamy stav\n");
-			return 1;
-			break;
+			case START:
+				state = start_state(ch, token_ptr);
+				break;
+			
+			case OPEN_BRACKET:
+				state = open_bracket(ch, token_ptr);
+				break;
+			
+			default:
+				fprintf(stderr, "Neznamy stav\n");
+				return 1;
+				break;
 		}
 
 		// token byl úspěšně vytvořen
@@ -64,41 +64,41 @@ int next_token(token *token_ptr/*, stack *indent_stack_ptr*/) {
 
 int start_state(int ch, token *token_ptr) {
 	switch (ch) {
-	case '(':
-		return OPEN_BRACKET;
-		break;
+		case '(':
+			return OPEN_BRACKET;
+			break;
 
-	case ')':
-		token_ptr->type = SYMBOL;
-		strcpy(token_ptr->symbol, ")");
-		return DONE;
-		break;
+		case ')':
+			token_ptr->type = SYMBOL;
+			strcpy(token_ptr->symbol, ")");
+			return DONE;
+			break;
 
-	default:
-		return -1;
-		break;
+		default:
+			return -1;
+			break;
 	}
 }
 
 
 int open_bracket(int ch, token *token_ptr) {
 	switch (ch) {
-	case ')':
+		case ')':
 
-		token_ptr->type = UNIT;
-		strcpy(token_ptr->symbol, "()");
+			token_ptr->type = UNIT;
+			strcpy(token_ptr->symbol, "()");
 
-		return DONE;
-		break;
+			return DONE;
+			break;
 
-	default:
-		ungetc(ch, target_file);
+		default:
+			ungetc(ch, target_file);
 
-		token_ptr->type = SYMBOL;
-		strcpy(token_ptr->symbol, "(");
-		
-		return DONE;
-		break;
+			token_ptr->type = SYMBOL;
+			strcpy(token_ptr->symbol, "(");
+			
+			return DONE;
+			break;
 	}
 }
 
