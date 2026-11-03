@@ -30,6 +30,7 @@ typedef enum ETokenType {
 typedef enum EScannerState {
 	DONE,
 	START,
+	
 	OPEN_BRACKET,
 	LESS_THAN,
 	GREATER_THAN,
@@ -50,7 +51,7 @@ typedef struct SNode {
 typedef struct SToken {
 	tokenType type;
 	//nodePtr ptr;
-	char symbol[3];
+	char symbol[4];
 } token;
 
 
