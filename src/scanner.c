@@ -33,7 +33,7 @@ int set_target_file(char *file_name) {
 }
 
 
-int next_token(token *token_ptr/*, stack *indent_stack_ptr*/) {
+int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 	scannerState state = START;
 
 	int ch;
@@ -43,11 +43,11 @@ int next_token(token *token_ptr/*, stack *indent_stack_ptr*/) {
 		switch (state) {
 
 			case START:
-				state = start_state(ch, token_ptr);
+				state = start_state(ch, tkn_ptr);
 				break;
 			
 			case OPEN_BRACKET:
-				state = open_bracket(ch, token_ptr);
+				state = open_bracket(ch, tkn_ptr);
 				break;
 			
 			default:
@@ -68,7 +68,7 @@ int next_token(token *token_ptr/*, stack *indent_stack_ptr*/) {
 }
 
 
-int start_state(int ch, token *token_ptr) {
+int start_state(int ch, token *tkn_ptr) {
 	switch (ch) {
 
 		case ' ':
@@ -78,66 +78,66 @@ int start_state(int ch, token *token_ptr) {
 
 		// koncové stavy bez hloubky
 		case '\n':
-			token_ptr->type = SYMBOL;
-			strcpy(token_ptr->symbol, "EOL");
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, "EOL");
 			return DONE;
 			break;
 
 		case ';':
-			token_ptr->type = SYMBOL;
-			strcpy(token_ptr->symbol, ";");
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, ";");
 			return DONE;
 			break;
 
 		case '+':
-			token_ptr->type = OPERATOR;
-			strcpy(token_ptr->symbol, "+");
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "+");
 			return DONE;
 			break;
 
 		case '*':
-			token_ptr->type = OPERATOR;
-			strcpy(token_ptr->symbol, "*");
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "*");
 			return DONE;
 			break;
 
 		case '[':
-			token_ptr->type = SYMBOL;
-			strcpy(token_ptr->symbol, "[");
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, "[");
 			return DONE;
 			break;
 
 		case ']':
-			token_ptr->type = SYMBOL;
-			strcpy(token_ptr->symbol, "]");
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, "]");
 			return DONE;
 			break;
 
 		case '.':
-			token_ptr->type = SYMBOL;
-			strcpy(token_ptr->symbol, ".");
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, ".");
 			return DONE;
 			break;
 
 		case ',':
-			token_ptr->type = SYMBOL;
-			strcpy(token_ptr->symbol, ",");
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, ",");
 			return DONE;
 			break;
 
 		case EOF:
-			token_ptr->type = SYMBOL;
-			strcpy(token_ptr->symbol, "EOF");
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, "EOF");
 			return DONE;
 			break;
 
 		case ')':
-			token_ptr->type = SYMBOL;
-			strcpy(token_ptr->symbol, ")");
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, ")");
 			return DONE;
 			break;
 
-		// cesty s více koncovými stavy
+		// hrany s více koncovými stavy
 		case '(':
 			return OPEN_BRACKET;
 			break;
@@ -146,6 +146,7 @@ int start_state(int ch, token *token_ptr) {
 
 		case '\r':
 			// carriage feed se ignoruje
+			// mozna by to tady melo vratit error ale kdyz to tady i docasne je tak to zlehcuje testovani
 			return START;
 			break;
 
@@ -156,20 +157,20 @@ int start_state(int ch, token *token_ptr) {
 }
 
 
-int open_bracket(int ch, token *token_ptr) {
+int open_bracket(int ch, token *tkn_ptr) {
 	switch (ch) {
 
 		case ')':
-			token_ptr->type = UNIT;
-			strcpy(token_ptr->symbol, "()");
+			tkn_ptr->type = UNIT;
+			strcpy(tkn_ptr->symbol, "()");
 			return DONE;
 			break;
 
 		default:
 			ungetc(ch, target_file);
 
-			token_ptr->type = SYMBOL;
-			strcpy(token_ptr->symbol, "(");
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, "(");
 			return DONE;
 			break;
 	}
