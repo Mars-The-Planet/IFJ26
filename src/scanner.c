@@ -3,6 +3,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Implementace lexikálního analyzátoru
+ * @todo Dynamicky dlouhe řetězce
  */
 
 #include <stdio.h>
@@ -32,11 +33,84 @@ int set_target_file(char *file_name) {
 
 
 int next_token(token *token_ptr/*, stack *indent_stack_ptr*/) {
+	scannerState state = START;
 
+	int ch;
+	while (1) {
+		ch = getc(target_file);
+			
+		switch (state) {
+		case START:
+			state = start_state(ch, token_ptr);
+			break;
+		
+		case OPEN_BRACKET:
+			state = open_bracket(ch, token_ptr);
+			break;
+		
+		default:
+			fprintf(stderr, "Neznamy stav\n");
+			return 1;
+			break;
+		}
+
+		// token byl úspěšně vytvořen
+		if (state == DONE) {
+			return 0;
+		}
+	}
 }
+
+
+int start_state(int ch, token *token_ptr) {
+	switch (ch) {
+	case '(':
+		return OPEN_BRACKET;
+		break;
+
+	case ')':
+		token_ptr->type = SYMBOL;
+		strcpy(token_ptr->symbol, ")");
+		return DONE;
+		break;
+
+	default:
+		return -1;
+		break;
+	}
+}
+
+
+int open_bracket(int ch, token *token_ptr) {
+	switch (ch) {
+	case ')':
+
+		token_ptr->type = UNIT;
+		strcpy(token_ptr->symbol, "()");
+
+		return DONE;
+		break;
+
+	default:
+		ungetc(ch, target_file);
+
+		token_ptr->type = SYMBOL;
+		strcpy(token_ptr->symbol, "(");
+		
+		return DONE;
+		break;
+	}
+}
+
 
 // docasny main
 int main(int argc, char* argv[]) {
 	printf("hello world\n");
-	set_target_file("strings.scala");
+	set_target_file("test.txt");
+	token *tkn;
+	int i = next_token(tkn);
+	while (i == 0) {
+		printf("type: %d, symbol: %s \n", tkn->type, tkn->symbol);
+		i = next_token(tkn);
+	}
 }
