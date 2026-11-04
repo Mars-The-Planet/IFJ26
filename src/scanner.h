@@ -69,7 +69,7 @@ FILE *target_file;
 int set_target_file(char *file_name);
 
 
-int next_token(token *token_ptr/*, stack *indent_stack_ptr*/);
+int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/);
 
 
 int start_state(int ch, token *token_ptr);
