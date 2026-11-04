@@ -30,15 +30,17 @@ typedef enum ETokenType {
 typedef enum EScannerState {
 	DONE,
 	ERROR,
+
 	START,
 	
+	BAR,
+	AMPERSAND,
+
 	OPEN_BRACKET,
 	LESS_THAN,
 	GREATER_THAN,
 	EQUALS,
-	EXCLAMATION_MARK,
-	BAR,
-	AMPERSAND
+	EXCLAMATION_MARK
 } scannerState;
 
 
@@ -80,5 +82,17 @@ int bar(int ch, token *tkn_ptr);
 
 
 int open_bracket(int ch, token *token_ptr);
+
+
+int exclamation_mark(int ch, token *tkn_ptr);
+
+
+int equals(int ch, token *tkn_ptr);
+
+
+int greater_than(int ch, token *tkn_ptr);
+
+
+int less_than(int ch, token *tkn_ptr);
 
 #endif

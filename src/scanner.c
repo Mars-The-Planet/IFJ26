@@ -57,6 +57,22 @@ int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 			case OPEN_BRACKET:
 				state = open_bracket(ch, tkn_ptr);
 				break;
+
+			case EXCLAMATION_MARK:
+				state = exclamation_mark(ch, tkn_ptr);
+				break;
+
+			case EQUALS:
+				state = equals(ch, tkn_ptr);
+				break;
+
+			case GREATER_THAN:
+				state = greater_than(ch, tkn_ptr);
+				break;
+
+			case LESS_THAN:
+				state = less_than(ch, tkn_ptr);
+				break;
 			
 			default:
 				fprintf(stderr, "Neznamy stav %c, ascii: %d\n", ch, ch);
@@ -159,6 +175,21 @@ int start_state(int ch, token *tkn_ptr) {
 			return OPEN_BRACKET;
 			break;
 
+		case '!':
+			return EXCLAMATION_MARK;
+			break;
+
+		case '=':
+			return EQUALS;
+			break;
+
+		case '>':
+			return GREATER_THAN;
+			break;
+
+		case '<':
+			return LESS_THAN;
+			break;
 
 
 		case '\r':
@@ -218,6 +249,92 @@ int open_bracket(int ch, token *tkn_ptr) {
 
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, "(");
+			return DONE;
+			break;
+	}
+}
+
+
+int exclamation_mark(int ch, token *tkn_ptr) {
+	switch (ch) {
+
+		case '=':
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "!=");
+			return DONE;
+			break;
+
+		default:
+			ungetc(ch, target_file);
+
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "!");
+			return DONE;
+			break;
+	}
+}
+
+
+int equals(int ch, token *tkn_ptr) {
+	switch (ch) {
+
+		case '=':
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "==");
+			return DONE;
+			break;
+
+		default:
+			ungetc(ch, target_file);
+
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "=");
+			return DONE;
+			break;
+	}
+}
+
+
+int greater_than(int ch, token *tkn_ptr) {
+	switch (ch) {
+
+		case '=':
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, ">=");
+			return DONE;
+			break;
+
+		default:
+			ungetc(ch, target_file);
+
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, ">");
+			return DONE;
+			break;
+	}
+}
+
+
+int less_than(int ch, token *tkn_ptr) {
+	switch (ch) {
+
+		case '=':
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "<=");
+			return DONE;
+			break;
+
+		case '-':
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "<-");
+			return DONE;
+			break;
+
+		default:
+			ungetc(ch, target_file);
+
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "<");
 			return DONE;
 			break;
 	}
