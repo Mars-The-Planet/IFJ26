@@ -45,6 +45,14 @@ int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 			case START:
 				state = start_state(ch, tkn_ptr);
 				break;
+
+			case AMPERSAND:
+				state = ampersand(ch, tkn_ptr);
+				break;
+
+			case BAR:
+				state = bar(ch, tkn_ptr);
+				break;
 			
 			case OPEN_BRACKET:
 				state = open_bracket(ch, tkn_ptr);
@@ -61,7 +69,7 @@ int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 			return 0;
 		}
 		else if (state == ERROR) {
-			fprintf(stderr, "Neznamy znak %c, ascii: %d\n", ch, ch);
+			fprintf(stderr, "Neznamy token %c, ascii: %d\n", ch, ch);
 			return 1;
 		}
 	}
@@ -137,7 +145,16 @@ int start_state(int ch, token *tkn_ptr) {
 			return DONE;
 			break;
 
-		// hrany s více koncovými stavy
+		// cesty s více uzly ale pouze jedním koncovým stavem
+		case '&':
+			return AMPERSAND;
+			break;
+
+		case '|':
+			return BAR;
+			break;
+
+		// cesty s více koncovými stavy
 		case '(':
 			return OPEN_BRACKET;
 			break;
@@ -150,6 +167,36 @@ int start_state(int ch, token *tkn_ptr) {
 			return START;
 			break;
 
+		default:
+			return ERROR;
+			break;
+	}
+}
+
+
+int ampersand(int ch, token *tkn_ptr) {
+	switch (ch) {
+		case '&':
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "&&");
+			return DONE;			
+			break;
+		
+		default:
+			return ERROR;
+			break;
+	}
+}
+
+
+int bar(int ch, token *tkn_ptr) {
+	switch (ch) {
+		case '|':
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "||");
+			return DONE;			
+			break;
+		
 		default:
 			return ERROR;
 			break;
