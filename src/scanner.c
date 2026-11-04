@@ -7,12 +7,6 @@
  * @todo Zásobník na sledování odsazení
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdbool.h>
-#include <math.h>
 #include "scanner.h"
 
 /**
@@ -39,6 +33,8 @@ int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 	int ch;
 	while (1) {
 		ch = getc(target_file);
+
+		//printf("scanner: &d, %c \n", ch, ch);
 
 		switch (state) {
 
@@ -73,9 +69,38 @@ int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 			case LESS_THAN:
 				state = less_than(ch, tkn_ptr);
 				break;
+
+			case SLASH:
+				state = slash(ch, tkn_ptr);
+				break;
+
+			// komentáře
+			case SINGLE_LINE_COMMENT:
+				state = single_line_comment(ch, tkn_ptr);
+				break;
+
+			case MULTI_LINE_COMMENT_START:
+				state = multi_line_comment_start(ch);
+				break;
+
+			case SIMPLE_MULTI_LINE_COMMENT_END:
+				state = simple_multi_line_comment_end(ch);
+				break;
+
+			case MULTI_LINE_COMMENT:
+				state = multi_line_comment(ch);
+				break;
+
+			case MULTI_LINE_COMMENT_END:
+				state = mutli_line_comment_end(ch);
+				break;
+
+			case MULTI_LINE_COMMENT_TAIL:
+				state = multi_line_comment_tail(ch, tkn_ptr);
+				break;
 			
 			default:
-				fprintf(stderr, "Neznamy stav %c, ascii: %d\n", ch, ch);
+				fprintf(stderr, "Neznamy stav, stav: %d, token: %c, ascii: %d\n", state, ch, ch);
 				return 1;
 				break;
 		}
@@ -85,7 +110,7 @@ int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 			return 0;
 		}
 		else if (state == ERROR) {
-			fprintf(stderr, "Neznamy token %c, ascii: %d\n", ch, ch);
+			fprintf(stderr, "Neznamy token, stav: %d, token: %c, ascii: %d\n", state, ch, ch);
 			return 1;
 		}
 	}
@@ -191,10 +216,15 @@ int start_state(int ch, token *tkn_ptr) {
 			return LESS_THAN;
 			break;
 
+		case '/':
+			return SLASH;
+			break;
+
 
 		case '\r':
 			// carriage feed se ignoruje
 			// mozna by to tady melo vratit error ale kdyz to tady i docasne je tak to zlehcuje testovani
+			// lze se tomu vyvarovat ve vscode i na windows kdyz se v pravem dolnim rohu end of line sequence prepne CRLF na LF
 			return START;
 			break;
 
@@ -338,6 +368,135 @@ int less_than(int ch, token *tkn_ptr) {
 			return DONE;
 			break;
 	}
+}
+
+
+int slash(int ch, token *tkn_ptr) {
+	switch (ch) {
+
+		case '/':
+			return SINGLE_LINE_COMMENT;
+			break;
+
+		case '*':
+			return MULTI_LINE_COMMENT_START;
+			break;
+
+		default:
+			ungetc(ch, target_file);
+
+			tkn_ptr->type = OPERATOR;
+			strcpy(tkn_ptr->symbol, "/");
+			return DONE;
+			break;
+	}
+}
+
+
+int single_line_comment(int ch, token *tkn_ptr) {
+	if (ch == '\n') {
+		tkn_ptr->type = SYMBOL;
+		strcpy(tkn_ptr->symbol, "EOL");
+		return DONE;
+	}
+	else if (can_be_in_comments(ch)) {
+		return SINGLE_LINE_COMMENT;
+	}
+	else {
+		fprintf(stderr, "Radkovy komentar muze obsahovat pouze znaky a je ukoncen novym radkem\n");
+		return ERROR;
+	}
+}
+
+
+int multi_line_comment_start(int ch) {
+	if (ch == '*') {
+		return SIMPLE_MULTI_LINE_COMMENT_END;
+	}
+	else if (ch == '\n') {
+		return MULTI_LINE_COMMENT;
+	}
+	else if (can_be_in_comments(ch)) {
+		return MULTI_LINE_COMMENT_START;
+	}
+	else {
+		fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
+		return ERROR;
+	}
+}
+
+
+int simple_multi_line_comment_end(int ch) {
+	switch (ch) {
+
+		case '/':
+			return START;
+			break;
+
+		default:
+			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
+			return ERROR;
+			break;
+	}	
+}
+
+
+int multi_line_comment(int ch) {
+	if (ch == '*') {
+		return MULTI_LINE_COMMENT_END;
+	}
+	else if (ch == '\n' || can_be_in_comments(ch)) {
+		return MULTI_LINE_COMMENT;
+	}
+	else {
+		fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
+		return ERROR;
+	}	
+}
+
+
+int mutli_line_comment_end(int ch) {
+	switch (ch) {
+
+		case '/':
+			return MULTI_LINE_COMMENT_TAIL;
+			break;
+
+		default:
+			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
+			return ERROR;
+			break;
+	}		
+}
+
+
+int multi_line_comment_tail(int ch, token *tkn_ptr) {
+	switch (ch) {
+
+		case ' ':
+			return MULTI_LINE_COMMENT_TAIL;
+			break;
+
+		case '\n':
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, "EOL");
+			return DONE;
+			break;
+
+		default:
+			fprintf(stderr, "Po nekolika radkovem blokovem komentari mohou nasledovat pouze bile znaky a znak noveho radku \n");
+			return ERROR;
+			break;
+	}
+}
+
+
+bool can_be_in_comments(int ch) {
+	if (ch >= 32 && ch <= 125) {
+		return true;
+	}
+
+	return false;
 }
 
 
