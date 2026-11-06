@@ -98,7 +98,6 @@ int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 			default:
 				fprintf(stderr, "Neznamy stav, stav: %d, token: %c, ascii: %d\n", state, ch, ch);
 				return 1;
-				break;
 		}
 
 		// token byl úspěšně vytvořen
@@ -119,104 +118,85 @@ int start_state(int ch, token *tkn_ptr) {
 		case ' ':
 			// mezera se zkonzumuje
 			return START;
-			break;
 
 		// koncové stavy bez hloubky
 		case '\n':
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, "EOL");
 			return DONE;
-			break;
 
 		case ';':
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, ";");
 			return DONE;
-			break;
 
 		case '+':
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "+");
 			return DONE;
-			break;
 
 		case '*':
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "*");
 			return DONE;
-			break;
 
 		case '[':
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, "[");
 			return DONE;
-			break;
 
 		case ']':
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, "]");
 			return DONE;
-			break;
 
 		case '.':
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, ".");
 			return DONE;
-			break;
 
 		case ',':
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, ",");
 			return DONE;
-			break;
 
 		case EOF:
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, "EOF");
 			return DONE;
-			break;
 
 		case ')':
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, ")");
 			return DONE;
-			break;
 
 		case '(':
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, "(");
 			return DONE;
-			break;
 
 		// cesty s více uzly ale pouze jedním koncovým stavem
 		case '&':
 			return AMPERSAND;
-			break;
 
 		case '|':
 			return BAR;
-			break;
 
 		// cesty s více koncovými stavy
 		case '!':
 			return EXCLAMATION_MARK;
-			break;
 
 		case '=':
 			return EQUALS;
-			break;
 
 		case '>':
 			return GREATER_THAN;
-			break;
 
 		case '<':
 			return LESS_THAN;
-			break;
 
 		case '/':
 			return SLASH;
-			break;
 
 
 		case '\r':
@@ -224,11 +204,9 @@ int start_state(int ch, token *tkn_ptr) {
 			// mozna by to tady melo vratit error ale kdyz to tady i docasne je tak to zlehcuje testovani
 			// lze se tomu vyvarovat ve vscode i na windows kdyz se v pravem dolnim rohu end of line sequence prepne CRLF na LF
 			return START;
-			break;
 
 		default:
 			return ERROR;
-			break;
 	}
 }
 
@@ -239,11 +217,9 @@ int ampersand(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "&&");
 			return DONE;			
-			break;
 		
 		default:
 			return ERROR;
-			break;
 	}
 }
 
@@ -254,11 +230,9 @@ int bar(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "||");
 			return DONE;			
-			break;
 		
 		default:
 			return ERROR;
-			break;
 	}
 }
 
@@ -270,7 +244,6 @@ int exclamation_mark(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "!=");
 			return DONE;
-			break;
 
 		default:
 			ungetc(ch, target_file);
@@ -278,7 +251,6 @@ int exclamation_mark(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "!");
 			return DONE;
-			break;
 	}
 }
 
@@ -290,7 +262,6 @@ int equals(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "==");
 			return DONE;
-			break;
 
 		default:
 			ungetc(ch, target_file);
@@ -298,7 +269,6 @@ int equals(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "=");
 			return DONE;
-			break;
 	}
 }
 
@@ -310,7 +280,6 @@ int greater_than(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, ">=");
 			return DONE;
-			break;
 
 		default:
 			ungetc(ch, target_file);
@@ -318,7 +287,6 @@ int greater_than(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, ">");
 			return DONE;
-			break;
 	}
 }
 
@@ -330,13 +298,11 @@ int less_than(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "<=");
 			return DONE;
-			break;
 
 		case '-':
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "<-");
 			return DONE;
-			break;
 
 		default:
 			ungetc(ch, target_file);
@@ -344,7 +310,6 @@ int less_than(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "<");
 			return DONE;
-			break;
 	}
 }
 
@@ -354,11 +319,9 @@ int slash(int ch, token *tkn_ptr) {
 
 		case '/':
 			return SINGLE_LINE_COMMENT;
-			break;
 
 		case '*':
 			return MULTI_LINE_COMMENT_START;
-			break;
 
 		default:
 			ungetc(ch, target_file);
@@ -366,7 +329,6 @@ int slash(int ch, token *tkn_ptr) {
 			tkn_ptr->type = OPERATOR;
 			strcpy(tkn_ptr->symbol, "/");
 			return DONE;
-			break;
 	}
 }
 
@@ -409,12 +371,10 @@ int simple_multi_line_comment_end(int ch) {
 
 		case '/':
 			return START;
-			break;
 
 		default:
 			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
 			return ERROR;
-			break;
 	}	
 }
 
@@ -438,12 +398,10 @@ int mutli_line_comment_end(int ch) {
 
 		case '/':
 			return MULTI_LINE_COMMENT_TAIL;
-			break;
 
 		default:
 			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
 			return ERROR;
-			break;
 	}		
 }
 
@@ -453,18 +411,15 @@ int multi_line_comment_tail(int ch, token *tkn_ptr) {
 
 		case ' ':
 			return MULTI_LINE_COMMENT_TAIL;
-			break;
 
 		case '\n':
 			tkn_ptr->type = SYMBOL;
 			strcpy(tkn_ptr->symbol, "EOL");
 			return DONE;
-			break;
 
 		default:
 			fprintf(stderr, "Po nekolika radkovem blokovem komentari mohou nasledovat pouze bile znaky a znak noveho radku \n");
 			return ERROR;
-			break;
 	}
 }
 
