@@ -49,10 +49,6 @@ int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 			case BAR:
 				state = bar(ch, tkn_ptr);
 				break;
-			
-			case OPEN_BRACKET:
-				state = open_bracket(ch, tkn_ptr);
-				break;
 
 			case EXCLAMATION_MARK:
 				state = exclamation_mark(ch, tkn_ptr);
@@ -186,6 +182,12 @@ int start_state(int ch, token *tkn_ptr) {
 			return DONE;
 			break;
 
+		case '(':
+			tkn_ptr->type = SYMBOL;
+			strcpy(tkn_ptr->symbol, "(");
+			return DONE;
+			break;
+
 		// cesty s více uzly ale pouze jedním koncovým stavem
 		case '&':
 			return AMPERSAND;
@@ -196,10 +198,6 @@ int start_state(int ch, token *tkn_ptr) {
 			break;
 
 		// cesty s více koncovými stavy
-		case '(':
-			return OPEN_BRACKET;
-			break;
-
 		case '!':
 			return EXCLAMATION_MARK;
 			break;
@@ -260,26 +258,6 @@ int bar(int ch, token *tkn_ptr) {
 		
 		default:
 			return ERROR;
-			break;
-	}
-}
-
-
-int open_bracket(int ch, token *tkn_ptr) {
-	switch (ch) {
-
-		case ')':
-			tkn_ptr->type = UNIT;
-			strcpy(tkn_ptr->symbol, "()");
-			return DONE;
-			break;
-
-		default:
-			ungetc(ch, target_file);
-
-			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, "(");
-			return DONE;
 			break;
 	}
 }
