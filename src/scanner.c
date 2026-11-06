@@ -9,6 +9,18 @@
 
 #include "scanner.h"
 
+FILE *targetFile;
+
+
+int indentTotalCount = 0;
+
+
+int indentLineCount = 0;
+
+
+bool lastTokenWasEOL = false;
+
+
 /**
  * @brief Nastaví soubor ze kterého čte LA
  * @param file_name název souboru který chceme nastavit
@@ -39,40 +51,40 @@ int next_token(token *tkn_ptr, stackPtr indent_stack_ptr) {
 		switch (state) {
 
 			case START:
-				state = start_state(ch, tkn_ptr);
+				state = start_state(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			case AMPERSAND:
-				state = ampersand(ch, tkn_ptr);
+				state = ampersand(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			case BAR:
-				state = bar(ch, tkn_ptr);
+				state = bar(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			case EXCLAMATION_MARK:
-				state = exclamation_mark(ch, tkn_ptr);
+				state = exclamation_mark(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			case EQUALS:
-				state = equals(ch, tkn_ptr);
+				state = equals(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			case GREATER_THAN:
-				state = greater_than(ch, tkn_ptr);
+				state = greater_than(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			case LESS_THAN:
-				state = less_than(ch, tkn_ptr);
+				state = less_than(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			case SLASH:
-				state = slash(ch, tkn_ptr);
+				state = slash(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			// komentáře
 			case SINGLE_LINE_COMMENT:
-				state = single_line_comment(ch, tkn_ptr);
+				state = single_line_comment(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			case MULTI_LINE_COMMENT_START:
@@ -92,7 +104,7 @@ int next_token(token *tkn_ptr, stackPtr indent_stack_ptr) {
 				break;
 
 			case MULTI_LINE_COMMENT_TAIL:
-				state = multi_line_comment_tail(ch, tkn_ptr);
+				state = multi_line_comment_tail(ch, tkn_ptr, indent_stack_ptr);
 				break;
 			
 			default:
@@ -112,7 +124,55 @@ int next_token(token *tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int create_token(token *tkn_ptr, scannerState state, char* value) {
+int sum_stack(stackPtr stack_ptr) {
+	int sum = 0;
+	stackPtr tempStackPtr = stack_ctor();
+
+	while (stack_ptr->top != NULL) {
+		void *val_ptr = stack_top(stack_ptr);
+        int val = (int)(intptr_t)val_ptr;
+
+		sum += val;
+
+		stack_push(tempStackPtr, val_ptr);
+        stack_pop(stack_ptr);
+	}
+
+	while (tempStackPtr->top != NULL) {
+        void *val_ptr = stack_top(tempStackPtr);
+        stack_push(stack_ptr, val_ptr);
+        stack_pop(tempStackPtr);
+    }
+
+	stack_dtor(tempStackPtr);
+
+	return sum;
+}
+
+
+int create_token(token *tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value) {
+	if (lastTokenWasEOL && 0 != strcmp(value, "EOL")) {
+		// snažíme se klesnout na aktualní odsazení
+		if (indentLineCount < sum_stack(indent_stack_ptr)) {
+			while (sum_stack(indent_stack_ptr) > indentLineCount) {
+				stack_pop(indent_stack_ptr);
+			}
+		}
+
+		// dorovnání v případě že jsme odsatili dál nebo klesli příliš hluboko
+		if (indentLineCount > sum_stack(indent_stack_ptr)) {
+			stack_push(indent_stack_ptr, indentLineCount - sum_stack(indent_stack_ptr));
+		}
+	}
+
+	if (0 == strcmp(value, "EOL")) {
+		lastTokenWasEOL = true;
+	}
+	else {
+		lastTokenWasEOL = false;
+	}
+	indentLineCount = 0;
+
 	tkn_ptr->type = state;
 	tkn_ptr->value = value;
 
@@ -120,56 +180,59 @@ int create_token(token *tkn_ptr, scannerState state, char* value) {
 }
 
 
-int start_state(int ch, token *tkn_ptr) {
+int start_state(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case ' ':
-			// mezera se zkonzumuje
+			// mezera se využije pouze pro vypočítání odsazení
+			if (lastTokenWasEOL) {
+				indentLineCount++;
+			}
 			return START;
 
 		// koncové stavy bez hloubky
 		case '\n':
-			create_token(tkn_ptr, SYMBOL, "EOL");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
 			return DONE;
 
 		case ';':
-			create_token(tkn_ptr, SYMBOL, ";");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ";");
 			return DONE;
 
 		case '+':
-			create_token(tkn_ptr, OPERATOR, "+");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "+");
 			return DONE;
 
 		case '*':
-			create_token(tkn_ptr, OPERATOR, "*");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "*");
 			return DONE;
 
 		case '[':
-			create_token(tkn_ptr, SYMBOL, "[");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "[");
 			return DONE;
 
 		case ']':
-			create_token(tkn_ptr, SYMBOL, "]");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "]");
 			return DONE;
 
 		case '.':
-			create_token(tkn_ptr, SYMBOL, ".");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ".");
 			return DONE;
 
 		case ',':
-			create_token(tkn_ptr, SYMBOL, ",");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ",");
 			return DONE;
 
 		case EOF:
-			create_token(tkn_ptr, SYMBOL, "EOF");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOF");
 			return DONE;
 
 		case ')':
-			create_token(tkn_ptr, SYMBOL, ")");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ")");
 			return DONE;
 
 		case '(':
-			create_token(tkn_ptr, SYMBOL, "(");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "(");
 			return DONE;
 
 		// cesty s více uzly ale pouze jedním koncovým stavem
@@ -208,10 +271,10 @@ int start_state(int ch, token *tkn_ptr) {
 }
 
 
-int ampersand(int ch, token *tkn_ptr) {
+int ampersand(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '&':
-			create_token(tkn_ptr, OPERATOR, "&&");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "&&");
 			return DONE;			
 		
 		default:
@@ -220,10 +283,10 @@ int ampersand(int ch, token *tkn_ptr) {
 }
 
 
-int bar(int ch, token *tkn_ptr) {
+int bar(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '|':
-			create_token(tkn_ptr, OPERATOR, "||");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "||");
 			return DONE;			
 		
 		default:
@@ -232,75 +295,75 @@ int bar(int ch, token *tkn_ptr) {
 }
 
 
-int exclamation_mark(int ch, token *tkn_ptr) {
+int exclamation_mark(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
-			create_token(tkn_ptr, OPERATOR, "!=");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "!=");
 			return DONE;
 
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, OPERATOR, "!");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "!");
 			return DONE;
 	}
 }
 
 
-int equals(int ch, token *tkn_ptr) {
+int equals(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
-			create_token(tkn_ptr, OPERATOR, "==");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "==");
 			return DONE;
 
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, OPERATOR, "=");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "=");
 			return DONE;
 	}
 }
 
 
-int greater_than(int ch, token *tkn_ptr) {
+int greater_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
-			create_token(tkn_ptr, OPERATOR, ">=");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, ">=");
 			return DONE;
 
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, OPERATOR, ">");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, ">");
 			return DONE;
 	}
 }
 
 
-int less_than(int ch, token *tkn_ptr) {
+int less_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
-			create_token(tkn_ptr, OPERATOR, "<=");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "<=");
 			return DONE;
 
 		case '-':
-			create_token(tkn_ptr, OPERATOR, "<-");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "<-");
 			return DONE;
 
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, OPERATOR, "<");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "<");
 			return DONE;
 	}
 }
 
 
-int slash(int ch, token *tkn_ptr) {
+int slash(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '/':
@@ -312,15 +375,15 @@ int slash(int ch, token *tkn_ptr) {
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, OPERATOR, "/");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "/");
 			return DONE;
 	}
 }
 
 
-int single_line_comment(int ch, token *tkn_ptr) {
+int single_line_comment(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	if (ch == '\n') {
-		create_token(tkn_ptr, SYMBOL, "EOL");
+		create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
 		return DONE;
 	}
 	else if (can_be_in_comments(ch)) {
@@ -390,14 +453,14 @@ int mutli_line_comment_end(int ch) {
 }
 
 
-int multi_line_comment_tail(int ch, token *tkn_ptr) {
+int multi_line_comment_tail(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case ' ':
 			return MULTI_LINE_COMMENT_TAIL;
 
 		case '\n':
-			create_token(tkn_ptr, SYMBOL, "EOL");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
 			return DONE;
 
 		default:
@@ -425,7 +488,7 @@ int main(int argc, char* argv[]) {
 	int i = 0;
 	while (i == 0) {
 		i = next_token(tkn, stack_indent);
-		printf("type: %d, symbol: %s \n", tkn->type, tkn->value);
+		printf("TOKEN: type: %d, symbol: %s, stack sum: %d\n", tkn->type, tkn->value, sum_stack(stack_indent));
 		if (strcmp(tkn->value, "EOF") == 0)
 			i = -1;
 	}

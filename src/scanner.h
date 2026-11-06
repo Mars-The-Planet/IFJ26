@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include <stdint.h>
 #include "stack.h"
 
 /**
@@ -64,18 +65,6 @@ typedef struct SToken {
 } token;
 
 
-FILE *targetFile;
-
-
-bool lastTokenWasEOL;
-
-
-int indent_total_count;
-
-
-int indent_line_count;
-
-
 /**
  * @brief Nastaví soubor ze kterého čte LA
  * @param file_name název souboru který chceme nastavit
@@ -84,41 +73,44 @@ int indent_line_count;
 int set_target_file(char *file_name);
 
 
-int create_token(token *tkn_ptr, scannerState state, char* value);
+int next_token(token *tkn_ptr, stackPtr indent_stack_ptr);
+
+
+int sum_stack(stackPtr stack_ptr);
+
+
+int create_token(token *tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value);
 
 
 // pozor akceptuje i hvezdicku '*'
 bool can_be_in_comments(int ch);
 
 
-int next_token(token *tkn_ptr, stackPtr indent_stack_ptr);
+int start_state(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int start_state(int ch, token *token_ptr);
+int ampersand(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int ampersand(int ch, token *tkn_ptr);
+int bar(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int bar(int ch, token *tkn_ptr);
+int exclamation_mark(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int exclamation_mark(int ch, token *tkn_ptr);
+int equals(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int equals(int ch, token *tkn_ptr);
+int greater_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int greater_than(int ch, token *tkn_ptr);
+int less_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int less_than(int ch, token *tkn_ptr);
+int slash(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int slash(int ch, token *tkn_ptr);
-
-
-int single_line_comment(int ch, token *tkn_ptr);
+int single_line_comment(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
 int multi_line_comment_start(int ch);
@@ -133,6 +125,6 @@ int multi_line_comment(int ch);
 int mutli_line_comment_end(int ch);
 
 
-int multi_line_comment_tail(int ch, token *tkn_ptr);
+int multi_line_comment_tail(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
 
 #endif
