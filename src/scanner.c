@@ -22,17 +22,17 @@ int set_target_file(char *file_name) {
 		return 1;
 	}
 	
-	target_file = file;
+	targetFile = file;
 	return 0;
 }
 
 
-int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
+int next_token(token *tkn_ptr, stackPtr indent_stack_ptr) {
 	scannerState state = START;
 
 	int ch;
 	while (1) {
-		ch = getc(target_file);
+		ch = getc(targetFile);
 
 		//printf("scanner: &d, %c \n", ch, ch);
 
@@ -112,6 +112,14 @@ int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/) {
 }
 
 
+int create_token(token *tkn_ptr, scannerState state, char* value) {
+	tkn_ptr->type = state;
+	tkn_ptr->value = value;
+
+	return 0;
+}
+
+
 int start_state(int ch, token *tkn_ptr) {
 	switch (ch) {
 
@@ -121,58 +129,47 @@ int start_state(int ch, token *tkn_ptr) {
 
 		// koncové stavy bez hloubky
 		case '\n':
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = "EOL";
+			create_token(tkn_ptr, SYMBOL, "EOL");
 			return DONE;
 
 		case ';':
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = ";";
+			create_token(tkn_ptr, SYMBOL, ";");
 			return DONE;
 
 		case '+':
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "+";
+			create_token(tkn_ptr, OPERATOR, "+");
 			return DONE;
 
 		case '*':
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "*";
+			create_token(tkn_ptr, OPERATOR, "*");
 			return DONE;
 
 		case '[':
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = "[";
+			create_token(tkn_ptr, SYMBOL, "[");
 			return DONE;
 
 		case ']':
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = "]";
+			create_token(tkn_ptr, SYMBOL, "]");
 			return DONE;
 
 		case '.':
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = ".";
+			create_token(tkn_ptr, SYMBOL, ".");
 			return DONE;
 
 		case ',':
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = ",";
+			create_token(tkn_ptr, SYMBOL, ",");
 			return DONE;
 
 		case EOF:
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = "EOF";
+			create_token(tkn_ptr, SYMBOL, "EOF");
 			return DONE;
 
 		case ')':
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = ")";
+			create_token(tkn_ptr, SYMBOL, ")");
 			return DONE;
 
 		case '(':
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = "(";
+			create_token(tkn_ptr, SYMBOL, "(");
 			return DONE;
 
 		// cesty s více uzly ale pouze jedním koncovým stavem
@@ -214,8 +211,7 @@ int start_state(int ch, token *tkn_ptr) {
 int ampersand(int ch, token *tkn_ptr) {
 	switch (ch) {
 		case '&':
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "&&";
+			create_token(tkn_ptr, OPERATOR, "&&");
 			return DONE;			
 		
 		default:
@@ -227,8 +223,7 @@ int ampersand(int ch, token *tkn_ptr) {
 int bar(int ch, token *tkn_ptr) {
 	switch (ch) {
 		case '|':
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "||";
+			create_token(tkn_ptr, OPERATOR, "||");
 			return DONE;			
 		
 		default:
@@ -241,15 +236,13 @@ int exclamation_mark(int ch, token *tkn_ptr) {
 	switch (ch) {
 
 		case '=':
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "!=";
+			create_token(tkn_ptr, OPERATOR, "!=");
 			return DONE;
 
 		default:
-			ungetc(ch, target_file);
+			ungetc(ch, targetFile);
 
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "!";
+			create_token(tkn_ptr, OPERATOR, "!");
 			return DONE;
 	}
 }
@@ -259,15 +252,13 @@ int equals(int ch, token *tkn_ptr) {
 	switch (ch) {
 
 		case '=':
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "==";
+			create_token(tkn_ptr, OPERATOR, "==");
 			return DONE;
 
 		default:
-			ungetc(ch, target_file);
+			ungetc(ch, targetFile);
 
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "=";
+			create_token(tkn_ptr, OPERATOR, "=");
 			return DONE;
 	}
 }
@@ -277,15 +268,13 @@ int greater_than(int ch, token *tkn_ptr) {
 	switch (ch) {
 
 		case '=':
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = ">=";
+			create_token(tkn_ptr, OPERATOR, ">=");
 			return DONE;
 
 		default:
-			ungetc(ch, target_file);
+			ungetc(ch, targetFile);
 
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = ">";
+			create_token(tkn_ptr, OPERATOR, ">");
 			return DONE;
 	}
 }
@@ -295,20 +284,17 @@ int less_than(int ch, token *tkn_ptr) {
 	switch (ch) {
 
 		case '=':
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "<=";
+			create_token(tkn_ptr, OPERATOR, "<=");
 			return DONE;
 
 		case '-':
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "<-";
+			create_token(tkn_ptr, OPERATOR, "<-");
 			return DONE;
 
 		default:
-			ungetc(ch, target_file);
+			ungetc(ch, targetFile);
 
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "<";
+			create_token(tkn_ptr, OPERATOR, "<");
 			return DONE;
 	}
 }
@@ -324,10 +310,9 @@ int slash(int ch, token *tkn_ptr) {
 			return MULTI_LINE_COMMENT_START;
 
 		default:
-			ungetc(ch, target_file);
+			ungetc(ch, targetFile);
 
-			tkn_ptr->type = OPERATOR;
-			tkn_ptr->value = "/";
+			create_token(tkn_ptr, OPERATOR, "/");
 			return DONE;
 	}
 }
@@ -335,8 +320,7 @@ int slash(int ch, token *tkn_ptr) {
 
 int single_line_comment(int ch, token *tkn_ptr) {
 	if (ch == '\n') {
-		tkn_ptr->type = SYMBOL;
-		tkn_ptr->value = "EOL";
+		create_token(tkn_ptr, SYMBOL, "EOL");
 		return DONE;
 	}
 	else if (can_be_in_comments(ch)) {
@@ -413,8 +397,7 @@ int multi_line_comment_tail(int ch, token *tkn_ptr) {
 			return MULTI_LINE_COMMENT_TAIL;
 
 		case '\n':
-			tkn_ptr->type = SYMBOL;
-			tkn_ptr->value = "EOL";
+			create_token(tkn_ptr, SYMBOL, "EOL");
 			return DONE;
 
 		default:
@@ -438,9 +421,10 @@ int main(int argc, char* argv[]) {
 	printf("hello world\n");
 	set_target_file("test.txt");
 	token *tkn;
+	stackPtr stack_indent = stack_ctor();
 	int i = 0;
 	while (i == 0) {
-		i = next_token(tkn);
+		i = next_token(tkn, stack_indent);
 		printf("type: %d, symbol: %s \n", tkn->type, tkn->value);
 		if (strcmp(tkn->value, "EOF") == 0)
 			i = -1;

@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include "stack.h"
 
 /**
  * @brief Struktura typů tokenu
@@ -63,7 +64,16 @@ typedef struct SToken {
 } token;
 
 
-FILE *target_file;
+FILE *targetFile;
+
+
+bool lastTokenWasEOL;
+
+
+int indent_total_count;
+
+
+int indent_line_count;
 
 
 /**
@@ -74,11 +84,14 @@ FILE *target_file;
 int set_target_file(char *file_name);
 
 
+int create_token(token *tkn_ptr, scannerState state, char* value);
+
+
 // pozor akceptuje i hvezdicku '*'
 bool can_be_in_comments(int ch);
 
 
-int next_token(token *tkn_ptr/*, stack *indent_stack_ptr*/);
+int next_token(token *tkn_ptr, stackPtr indent_stack_ptr);
 
 
 int start_state(int ch, token *token_ptr);
