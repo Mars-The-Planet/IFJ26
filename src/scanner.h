@@ -28,7 +28,6 @@ typedef enum ETokenType {
 	STRING,
 	INT,
 	DOUBLE,
-	UNIT, 
 } tokenType;
 
 /**
@@ -43,7 +42,6 @@ typedef enum EScannerState {
 	BAR,
 	AMPERSAND,
 
-	OPEN_BRACKET,
 	LESS_THAN,
 	GREATER_THAN,
 	EQUALS,
@@ -98,9 +96,6 @@ int ampersand(int ch, token *tkn_ptr);
 
 
 int bar(int ch, token *tkn_ptr);
-
-
-int open_bracket(int ch, token *token_ptr);
 
 
 int exclamation_mark(int ch, token *tkn_ptr);
