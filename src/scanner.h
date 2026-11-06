@@ -57,17 +57,9 @@ typedef enum EScannerState {
 } scannerState;
 
 
-// docasna node
-typedef struct SNode {
-	struct SNode *next;
-	void *value;
-} node, *nodePtr;
-
-
 typedef struct SToken {
 	tokenType type;
-	//nodePtr ptr;
-	char symbol[4];
+	char *value;
 } token;
 
 

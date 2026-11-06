@@ -122,57 +122,57 @@ int start_state(int ch, token *tkn_ptr) {
 		// koncové stavy bez hloubky
 		case '\n':
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, "EOL");
+			tkn_ptr->value = "EOL";
 			return DONE;
 
 		case ';':
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, ";");
+			tkn_ptr->value = ";";
 			return DONE;
 
 		case '+':
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "+");
+			tkn_ptr->value = "+";
 			return DONE;
 
 		case '*':
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "*");
+			tkn_ptr->value = "*";
 			return DONE;
 
 		case '[':
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, "[");
+			tkn_ptr->value = "[";
 			return DONE;
 
 		case ']':
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, "]");
+			tkn_ptr->value = "]";
 			return DONE;
 
 		case '.':
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, ".");
+			tkn_ptr->value = ".";
 			return DONE;
 
 		case ',':
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, ",");
+			tkn_ptr->value = ",";
 			return DONE;
 
 		case EOF:
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, "EOF");
+			tkn_ptr->value = "EOF";
 			return DONE;
 
 		case ')':
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, ")");
+			tkn_ptr->value = ")";
 			return DONE;
 
 		case '(':
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, "(");
+			tkn_ptr->value = "(";
 			return DONE;
 
 		// cesty s více uzly ale pouze jedním koncovým stavem
@@ -215,7 +215,7 @@ int ampersand(int ch, token *tkn_ptr) {
 	switch (ch) {
 		case '&':
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "&&");
+			tkn_ptr->value = "&&";
 			return DONE;			
 		
 		default:
@@ -228,7 +228,7 @@ int bar(int ch, token *tkn_ptr) {
 	switch (ch) {
 		case '|':
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "||");
+			tkn_ptr->value = "||";
 			return DONE;			
 		
 		default:
@@ -242,14 +242,14 @@ int exclamation_mark(int ch, token *tkn_ptr) {
 
 		case '=':
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "!=");
+			tkn_ptr->value = "!=";
 			return DONE;
 
 		default:
 			ungetc(ch, target_file);
 
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "!");
+			tkn_ptr->value = "!";
 			return DONE;
 	}
 }
@@ -260,14 +260,14 @@ int equals(int ch, token *tkn_ptr) {
 
 		case '=':
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "==");
+			tkn_ptr->value = "==";
 			return DONE;
 
 		default:
 			ungetc(ch, target_file);
 
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "=");
+			tkn_ptr->value = "=";
 			return DONE;
 	}
 }
@@ -278,14 +278,14 @@ int greater_than(int ch, token *tkn_ptr) {
 
 		case '=':
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, ">=");
+			tkn_ptr->value = ">=";
 			return DONE;
 
 		default:
 			ungetc(ch, target_file);
 
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, ">");
+			tkn_ptr->value = ">";
 			return DONE;
 	}
 }
@@ -296,19 +296,19 @@ int less_than(int ch, token *tkn_ptr) {
 
 		case '=':
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "<=");
+			tkn_ptr->value = "<=";
 			return DONE;
 
 		case '-':
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "<-");
+			tkn_ptr->value = "<-";
 			return DONE;
 
 		default:
 			ungetc(ch, target_file);
 
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "<");
+			tkn_ptr->value = "<";
 			return DONE;
 	}
 }
@@ -327,7 +327,7 @@ int slash(int ch, token *tkn_ptr) {
 			ungetc(ch, target_file);
 
 			tkn_ptr->type = OPERATOR;
-			strcpy(tkn_ptr->symbol, "/");
+			tkn_ptr->value = "/";
 			return DONE;
 	}
 }
@@ -336,7 +336,7 @@ int slash(int ch, token *tkn_ptr) {
 int single_line_comment(int ch, token *tkn_ptr) {
 	if (ch == '\n') {
 		tkn_ptr->type = SYMBOL;
-		strcpy(tkn_ptr->symbol, "EOL");
+		tkn_ptr->value = "EOL";
 		return DONE;
 	}
 	else if (can_be_in_comments(ch)) {
@@ -414,7 +414,7 @@ int multi_line_comment_tail(int ch, token *tkn_ptr) {
 
 		case '\n':
 			tkn_ptr->type = SYMBOL;
-			strcpy(tkn_ptr->symbol, "EOL");
+			tkn_ptr->value = "EOL";
 			return DONE;
 
 		default:
@@ -438,11 +438,11 @@ int main(int argc, char* argv[]) {
 	printf("hello world\n");
 	set_target_file("test.txt");
 	token *tkn;
-	int i = next_token(tkn);
+	int i = 0;
 	while (i == 0) {
-		printf("type: %d, symbol: %s \n", tkn->type, tkn->symbol);
 		i = next_token(tkn);
-		if (strcmp(tkn->symbol, "EOF") == 0)
+		printf("type: %d, symbol: %s \n", tkn->type, tkn->value);
+		if (strcmp(tkn->value, "EOF") == 0)
 			i = -1;
 	}
 }
