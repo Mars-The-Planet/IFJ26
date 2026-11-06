@@ -4,7 +4,7 @@
  *
  * @brief Implementace lexikálního analyzátoru
  * @todo Dynamicky dlouhe řetězce
- * @todo Zásobník na sledování odsazení
+ * @todo Nápomocné error zprávy
  */
 
 #include "scanner.h"
@@ -145,6 +145,8 @@ int sum_stack(stackPtr stack_ptr) {
     }
 
 	stack_dtor(tempStackPtr);
+	// mozna by melo byt i 
+	// free(tempStackPtr);
 
 	return sum;
 }
