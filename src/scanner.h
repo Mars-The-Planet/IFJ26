@@ -56,7 +56,9 @@ typedef enum EScannerState {
 	SIMPLE_MULTI_LINE_COMMENT_END,
 	MULTI_LINE_COMMENT,
 	MULTI_LINE_COMMENT_END,
-	MULTI_LINE_COMMENT_TAIL
+	MULTI_LINE_COMMENT_TAIL,
+
+	AT
 } scannerState;
 
 
@@ -80,7 +82,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 int sum_stack(stackPtr stack_ptr);
 
 
-int clear_token(tokenPtr token_ptr);
+int clear_token(tokenPtr tkn_ptr);
 
 
 int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value);
@@ -88,6 +90,12 @@ int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state
 
 // pozor akceptuje i hvezdicku '*'
 bool can_be_in_comments(int ch);
+
+
+bool can_be_in_IDs_keywords(int ch);
+
+
+bool can_be_in_IDs_keywords(int ch);
 
 
 int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
@@ -130,5 +138,8 @@ int mutli_line_comment_end(int ch);
 
 
 int multi_line_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
+
+
+int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr token_str);
 
 #endif
