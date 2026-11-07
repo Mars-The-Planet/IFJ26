@@ -121,25 +121,3 @@ char *get_symbol(scoped_symtablePtr symtable, char *symbol) {
         return result->value;
     return nullptr;
 }
-
-
-// TODO: REMOVE
-int main() {
-    scoped_symtablePtr symtable = symbol_table_ctor();
-    insert_symbol(symtable, "Test1", "Value1");
-    insert_symbol(symtable, "Test2", "Value2");
-    printf("Test1 (%u): %s\n", get_scope_id(symtable), get_symbol(symtable, "Test1"));
-    printf("Test2 (%u): %s\n", get_scope_id(symtable), get_symbol(symtable, "Test2"));
-
-    scope_enter(symtable);
-        insert_symbol(symtable, "Test3", "Value3");
-        printf("Test3 (%u): %s\n", get_scope_id(symtable), get_symbol(symtable, "Test3"));
-        insert_symbol(symtable, "Test2", "Value4");
-        printf("Test2 (%u): %s\n", get_scope_id(symtable), get_symbol(symtable, "Test2"));
-    scope_leave(symtable);
-
-    printf("Test2 (%u): %s\n", get_scope_id(symtable), get_symbol(symtable, "Test2"));
-    printf("Test3 (%u): %s\n", get_scope_id(symtable), get_symbol(symtable, "Test3"));
-    printf("Test4 (%u): %s\n", get_scope_id(symtable), get_symbol(symtable, "Test4"));
-    symbol_table_dtor(symtable);
-}
