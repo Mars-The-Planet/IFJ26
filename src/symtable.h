@@ -3,7 +3,7 @@
  * @author Radek Večeřa (xvecerr01)
  *
  * @brief Hlavička kódu pro Implementaci tabulky symbolů pomocí zásobníku a AVL stromů
- * @date 24.10.2026
+ * @date 7.11.2026
  */
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
