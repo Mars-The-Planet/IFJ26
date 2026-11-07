@@ -197,6 +197,7 @@ avl_treePtr tree_ctor() {
  */
 void tree_dtor(avl_treePtr tree) {
     avl_node_dtor(tree->root);
+    free(tree);
 }
 
 

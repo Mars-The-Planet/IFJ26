@@ -55,6 +55,7 @@ stackPtr stack_ctor() {
  */
 void stack_dtor(stackPtr st) {
     s_node_dtor(st->top);
+    free(st);
 }
 
 

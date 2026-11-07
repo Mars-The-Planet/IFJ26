@@ -1,6 +1,6 @@
 /**
 * @file stack.h
- * @brief Implementace zásobníku pomocí listů
+ * @brief Hlavička kódu pro implementaci zásobníku pomocí listů
  * @author Radek Večeřa (xvecerr01)
  * @date 31.10.2026
  */

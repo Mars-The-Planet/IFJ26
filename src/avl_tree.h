@@ -1,5 +1,5 @@
 /**
-* @file avl_tree.c
+* @file avl_tree.h
  * @author Radek Večeřa (xvecerr01)
  *
  * @brief Hlavička kódu pro implementaci AVL stromu pro tabulku symbolů.
