@@ -19,7 +19,7 @@
 #include "stack.h"
 
 /**
- * @brief Struktura typů tokenu
+ * @brief Výčet typů tokenů
  */
 typedef enum ETokenType {
 	KEYWORD,
@@ -62,7 +62,7 @@ typedef enum EScannerState {
 typedef struct SToken {
 	tokenType type;
 	char *value;
-} token;
+} token, *tokenPtr;
 
 
 /**
@@ -73,44 +73,47 @@ typedef struct SToken {
 int set_target_file(char *file_name);
 
 
-int next_token(token *tkn_ptr, stackPtr indent_stack_ptr);
+int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
 int sum_stack(stackPtr stack_ptr);
 
 
-int create_token(token *tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value);
+int clear_token(tokenPtr token_ptr);
+
+
+int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value);
 
 
 // pozor akceptuje i hvezdicku '*'
 bool can_be_in_comments(int ch);
 
 
-int start_state(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int ampersand(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int bar(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int bar(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int exclamation_mark(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int equals(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int greater_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int greater_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int less_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int less_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int slash(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int single_line_comment(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int single_line_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
 int multi_line_comment_start(int ch);
@@ -125,6 +128,6 @@ int multi_line_comment(int ch);
 int mutli_line_comment_end(int ch);
 
 
-int multi_line_comment_tail(int ch, token *tkn_ptr, stackPtr indent_stack_ptr);
+int multi_line_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 #endif

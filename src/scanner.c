@@ -39,7 +39,7 @@ int set_target_file(char *file_name) {
 }
 
 
-int next_token(token *tkn_ptr, stackPtr indent_stack_ptr) {
+int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	scannerState state = START;
 
 	int ch;
@@ -152,7 +152,7 @@ int sum_stack(stackPtr stack_ptr) {
 }
 
 
-int create_token(token *tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value) {
+int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value) {
 	if (lastTokenWasEOL && 0 != strcmp(value, "EOL")) {
 		// snažíme se klesnout na aktualní odsazení
 		if (indentLineCount < sum_stack(indent_stack_ptr)) {
@@ -161,9 +161,9 @@ int create_token(token *tkn_ptr, stackPtr indent_stack_ptr, scannerState state, 
 			}
 		}
 
-		// dorovnání v případě že jsme odsatili dál nebo klesli příliš hluboko
+		// dorovnání v případě že jsme odsadili dál nebo klesli příliš hluboko
 		if (indentLineCount > sum_stack(indent_stack_ptr)) {
-			stack_push(indent_stack_ptr, indentLineCount - sum_stack(indent_stack_ptr));
+			stack_push(indent_stack_ptr, (void *)(uintptr_t)(indentLineCount - sum_stack(indent_stack_ptr)));
 		}
 	}
 
@@ -182,7 +182,7 @@ int create_token(token *tkn_ptr, stackPtr indent_stack_ptr, scannerState state, 
 }
 
 
-int start_state(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case ' ':
@@ -273,7 +273,7 @@ int start_state(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int ampersand(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '&':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "&&");
@@ -285,7 +285,7 @@ int ampersand(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int bar(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int bar(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '|':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "||");
@@ -297,7 +297,7 @@ int bar(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int exclamation_mark(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
@@ -313,7 +313,7 @@ int exclamation_mark(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int equals(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
@@ -329,7 +329,7 @@ int equals(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int greater_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int greater_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
@@ -345,7 +345,7 @@ int greater_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int less_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int less_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
@@ -365,7 +365,7 @@ int less_than(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int slash(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '/':
@@ -383,7 +383,7 @@ int slash(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int single_line_comment(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int single_line_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	if (ch == '\n') {
 		create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
 		return DONE;
@@ -455,7 +455,7 @@ int mutli_line_comment_end(int ch) {
 }
 
 
-int multi_line_comment_tail(int ch, token *tkn_ptr, stackPtr indent_stack_ptr) {
+int multi_line_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case ' ':
@@ -485,7 +485,7 @@ bool can_be_in_comments(int ch) {
 int main(int argc, char* argv[]) {
 	printf("hello world\n");
 	set_target_file("test.txt");
-	token *tkn;
+	tokenPtr tkn;
 	stackPtr stack_indent = stack_ctor();
 	int i = 0;
 	while (i == 0) {
