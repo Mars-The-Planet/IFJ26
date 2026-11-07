@@ -2,7 +2,7 @@
  * @file scanner.h
  * @author Matěj Růžička (xruzicm00)
  *
- * @brief Implementace lexikálního analyzátoru
+ * @brief Hlavičkový soubor lexikálního analyzátoru
  * @todo Zbytek stavů fsm
  */
 
@@ -17,6 +17,7 @@
 #include <math.h>
 #include <stdint.h>
 #include "stack.h"
+#include "dynamic_string.h"
 
 /**
  * @brief Výčet typů tokenů

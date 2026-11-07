@@ -117,6 +117,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			return 0;
 		}
 		else if (state == ERROR) {
+			// TODO: free string
 			fprintf(stderr, "Neznamy token, stav: %d, token: %c, ascii: %d\n", state, ch, ch);
 			return 1;
 		}
