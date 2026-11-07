@@ -22,6 +22,31 @@ int indentLineCount = 0;
 bool lastTokenWasEOL = false;
 
 
+int const keywords_len = 18;
+
+
+const char *keywords[] = {
+	"def",
+	"do",
+	"Double",
+	"else",
+	"if",
+	"import",
+	"Int",
+	"return",
+	"String",
+	"then",
+	"Unit",
+	"val",
+	"var",
+	"while",
+	"Boolean",
+	"List",
+	"for",
+	"@main"
+};
+
+
 /**
  * @brief Nastaví soubor ze kterého čte LA
  * @param file_name název souboru který chceme nastavit
@@ -41,11 +66,8 @@ int set_target_file(char *file_name) {
 
 
 int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
-	//printf("ahooj next token\n");
 	scannerState state = START;
 	clear_token(tkn_ptr);
-
-	//printf("ahooj fresh token\n");
 
 	dynamic_string token_str_struct;
     dynamic_string_ptr token_str = &token_str_struct;
@@ -60,7 +82,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 		switch (state) {
 
 			case START:
-				state = start_state(ch, tkn_ptr, indent_stack_ptr);
+				state = start_state(ch, tkn_ptr, indent_stack_ptr, token_str);
 				break;
 
 			case AMPERSAND:
@@ -129,6 +151,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 		// token byl úspěšně vytvořen
 		if (state == DONE) {
 			tokenType type = tkn_ptr->type;
+			// nafukovací řetězec nebyl využit je potřeba ho uvolnit již tady
 			if (!(type == KEYWORD || type == ID || type == LIST_PROPERTY || type == STRING)) {
 				destoy_dynamic_string(token_str);
 			}
@@ -210,7 +233,7 @@ int clear_token(tokenPtr tkn_ptr) {
 }
 
 
-int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
+int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr token_str) {
 	switch (ch) {
 
 		case ' ':
@@ -290,6 +313,7 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 		// cesty využívající nafukovací řetězec
 		case '@':
+			insert_last(token_str, ch);
 			return AT;
 
 
@@ -509,15 +533,16 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr t
 		insert_last(token_str, ch);
 		return AT;
 	}
-	else if (isspace(ch)){
+	else if (isspace(ch)) {
 		ungetc(ch, targetFile);
-		create_token(tkn_ptr, indent_stack_ptr, KEYWORD, token_str->val_ptr);
 
-		return DONE;
+		if (is_keyword(token_str->val_ptr)) {
+			create_token(tkn_ptr, indent_stack_ptr, KEYWORD, token_str->val_ptr);
+			return DONE;
+		}
 	}
-	else {
-		return ERROR;
-	}
+
+	return ERROR;
 }
 
 
@@ -541,6 +566,17 @@ bool can_be_in_IDs_keywords(int ch) {
 }
 
 
+bool is_keyword(char* word) {
+	for (int i = 0; i < keywords_len; i++) {
+		if (strcmp(word, keywords[i]) == 0) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 // docasny main
 int main(int argc, char* argv[]) {
 	printf("hello world\n");
@@ -554,12 +590,10 @@ int main(int argc, char* argv[]) {
 	int i = 0;
 	while (i == 0) {
 		i = next_token(tkn, stack_indent);
-		printf("TOKEN: type: %d, symbol: %s, stack sum: %d\n", tkn->type, tkn->value, sum_stack(stack_indent));
+		printf("TOKEN: type: %d, symbol: %s, stack sum: %d, return: %d\n", tkn->type, tkn->value, sum_stack(stack_indent), i);
 		if (tkn->type == SYMBOL && strcmp(tkn->value, "EOF") == 0) {
 			i = -1;
 		}
-			
-		//printf("konec while v mainu\n");
 	}
 
 	stack_dtor(stack_indent);

@@ -98,7 +98,10 @@ bool can_be_in_IDs_keywords(int ch);
 bool can_be_in_IDs_keywords(int ch);
 
 
-int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
+bool is_keyword(char* word);
+
+
+int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr token_str);
 
 
 int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
