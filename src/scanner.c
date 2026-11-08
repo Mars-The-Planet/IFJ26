@@ -148,6 +148,14 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 				state = string_open(ch, tkn_str);
 				break;
 
+			case STRING_CHAR:
+				state = string_char(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+				break;
+
+			case STRING_ESCAPE_SEQUENCE:
+				state = string_escape_sequence(ch, tkn_str);
+				break;
+
 			case MULTILINE_STRING_OPEN:
 				state = multiline_string_open(ch);
 				break;
@@ -581,10 +589,56 @@ int string_open(int ch, dynamic_string_ptr tkn_str) {
 	}
 	else if (isprint(ch)) {
 		insert_last(tkn_str, ch);
-		return STRING;
+		return STRING_CHAR;
 	}
 
 	return ERROR;
+}
+
+
+int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
+	if (ch == '\\') {
+		return STRING_ESCAPE_SEQUENCE;
+	}
+	if (ch == '"') {
+		create_token(tkn_ptr, indent_stack_ptr, STRING, tkn_str->val_ptr);
+		return DONE;
+	}
+	else if (isprint(ch)) {
+		insert_last(tkn_str, ch);
+		return STRING_CHAR;
+	}
+
+	return ERROR;
+}
+
+
+int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
+	switch (ch) {
+
+		case '\\':
+			insert_last(tkn_str, '\\');
+			return STRING_CHAR;
+
+		case '"':
+			insert_last(tkn_str, '\"');
+			return STRING_CHAR;
+
+		case 'n':
+			insert_last(tkn_str, '\n');
+			return STRING_CHAR;
+
+		case 'r':
+			insert_last(tkn_str, '\r');
+			return STRING_CHAR;
+
+		case 't':
+			insert_last(tkn_str, '\t');
+			return STRING_CHAR;
+
+		default:
+			return ERROR;
+	}
 }
 
 

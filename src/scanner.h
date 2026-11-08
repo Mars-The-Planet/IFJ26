@@ -151,6 +151,12 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr t
 int string_open(int ch, dynamic_string_ptr tkn_str);
 
 
+int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
+
+
+int string_escape_sequence(int ch, dynamic_string_ptr tkn_str);
+
+
 int multiline_string_open(int ch);
 
 
