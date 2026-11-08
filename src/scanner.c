@@ -138,7 +138,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 				state = multiline_comment_tail(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
-			// anotace (jenom main @main)
+			// anotace (jenom @main)
 			case AT:
 				state = at(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
@@ -539,6 +539,11 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) 
 			return MULTILINE_COMMENT_TAIL;
 
 		case '\n':
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
+			return DONE;
+
+		case EOF:
+			ungetc(ch, targetFile);
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
 			return DONE;
 
