@@ -51,14 +51,23 @@ typedef enum EScannerState {
 	EXCLAMATION_MARK,
 
 	SLASH,
-	SINGLE_LINE_COMMENT,
-	MULTI_LINE_COMMENT_START,
-	SIMPLE_MULTI_LINE_COMMENT_END,
-	MULTI_LINE_COMMENT,
-	MULTI_LINE_COMMENT_END,
-	MULTI_LINE_COMMENT_TAIL,
+	SINGLELINE_COMMENT,
+	MULTILINE_COMMENT_START,
+	SIMPLE_MULTILINE_COMMENT_END,
+	MULTILINE_COMMENT,
+	MULTILINE_COMMENT_END,
+	MULTILINE_COMMENT_TAIL,
 
-	AT
+	AT,
+
+	//řetězce
+	STRING_OPEN,
+	STRING_CHAR,
+	STRING_ESCAPE_SEQUENCE,
+	MULTILINE_STRING_OPEN,
+	MULTILINE_STRING,
+	MULTILINE_STRING_CLOSING,
+	MULTILINE_STRING_END
 } scannerState;
 
 
@@ -88,20 +97,13 @@ int clear_token(tokenPtr tkn_ptr);
 int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value);
 
 
-// pozor akceptuje i hvezdicku '*'
-bool can_be_in_comments(int ch);
-
-
-bool can_be_in_IDs_keywords(int ch);
-
-
 bool can_be_in_IDs_keywords(int ch);
 
 
 bool is_keyword(char* word);
 
 
-int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr token_str);
+int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
 
 
 int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
@@ -125,24 +127,39 @@ int less_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int single_line_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
+int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int multi_line_comment_start(int ch);
+int multiline_comment_start(int ch);
 
 
-int simple_multi_line_comment_end(int ch);
+int simple_multiline_comment_end(int ch);
 
 
-int multi_line_comment(int ch);
+int multiline_comment(int ch);
 
 
-int mutli_line_comment_end(int ch);
+int multiline_comment_end(int ch);
 
 
-int multi_line_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
+int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 
-int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr token_str);
+int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
+
+
+int string_open(int ch, dynamic_string_ptr tkn_str);
+
+
+int multiline_string_open(int ch);
+
+
+int multiline_string(int ch, dynamic_string_ptr tkn_str);
+
+
+int multiline_string_closing(int ch);
+
+
+int multiline_string_end(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
 
 #endif

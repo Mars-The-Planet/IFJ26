@@ -69,9 +69,9 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	scannerState state = START;
 	clear_token(tkn_ptr);
 
-	dynamic_string token_str_struct;
-    dynamic_string_ptr token_str = &token_str_struct;
-	init_dynamic_string(token_str, 8);
+	dynamic_string tkn_str_struct;
+    dynamic_string_ptr tkn_str = &tkn_str_struct;
+	init_dynamic_string(tkn_str, 8);
 
 	int ch;
 	while (1) {
@@ -82,7 +82,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 		switch (state) {
 
 			case START:
-				state = start_state(ch, tkn_ptr, indent_stack_ptr, token_str);
+				state = start_state(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 
 			case AMPERSAND:
@@ -114,33 +114,54 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 				break;
 
 			// komentáře
-			case SINGLE_LINE_COMMENT:
-				state = single_line_comment(ch, tkn_ptr, indent_stack_ptr);
+			case SINGLELINE_COMMENT:
+				state = singleline_comment(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
-			case MULTI_LINE_COMMENT_START:
-				state = multi_line_comment_start(ch);
+			case MULTILINE_COMMENT_START:
+				state = multiline_comment_start(ch);
 				break;
 
-			case SIMPLE_MULTI_LINE_COMMENT_END:
-				state = simple_multi_line_comment_end(ch);
+			case SIMPLE_MULTILINE_COMMENT_END:
+				state = simple_multiline_comment_end(ch);
 				break;
 
-			case MULTI_LINE_COMMENT:
-				state = multi_line_comment(ch);
+			case MULTILINE_COMMENT:
+				state = multiline_comment(ch);
 				break;
 
-			case MULTI_LINE_COMMENT_END:
-				state = mutli_line_comment_end(ch);
+			case MULTILINE_COMMENT_END:
+				state = multiline_comment_end(ch);
 				break;
 
-			case MULTI_LINE_COMMENT_TAIL:
-				state = multi_line_comment_tail(ch, tkn_ptr, indent_stack_ptr);
+			case MULTILINE_COMMENT_TAIL:
+				state = multiline_comment_tail(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			// anotace (jenom main @main)
 			case AT:
-				state = at(ch, tkn_ptr, indent_stack_ptr, token_str);
+				state = at(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+				break;
+
+			// řetězce
+			case STRING_OPEN:
+				state = string_open(ch, tkn_str);
+				break;
+
+			case MULTILINE_STRING_OPEN:
+				state = multiline_string_open(ch);
+				break;
+			
+			case MULTILINE_STRING:
+				state = multiline_string(ch, tkn_str);
+				break;
+
+			case MULTILINE_STRING_CLOSING:
+				state = multiline_string_closing(ch);
+				break;
+
+			case MULTILINE_STRING_END:
+				state = multiline_string_end(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 			
 			default:
@@ -153,12 +174,12 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			tokenType type = tkn_ptr->type;
 			// nafukovací řetězec nebyl využit je potřeba ho uvolnit již tady
 			if (!(type == KEYWORD || type == ID || type == LIST_PROPERTY || type == STRING)) {
-				destoy_dynamic_string(token_str);
+				destoy_dynamic_string(tkn_str);
 			}
 			return 0;
 		}
 		else if (state == ERROR) {
-			destoy_dynamic_string(token_str);
+			destoy_dynamic_string(tkn_str);
 			fprintf(stderr, "Neznamy token, stav: %d, token: %c, ascii: %d\n", state, ch, ch);
 			return 1;
 		}
@@ -233,7 +254,7 @@ int clear_token(tokenPtr tkn_ptr) {
 }
 
 
-int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr token_str) {
+int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	switch (ch) {
 
 		case ' ':
@@ -313,8 +334,11 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 
 		// cesty využívající nafukovací řetězec
 		case '@':
-			insert_last(token_str, ch);
+			insert_last(tkn_str, ch);
 			return AT;
+
+		case '"':
+			return STRING_OPEN;
 
 
 		case '\r':
@@ -425,10 +449,10 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '/':
-			return SINGLE_LINE_COMMENT;
+			return SINGLELINE_COMMENT;
 
 		case '*':
-			return MULTI_LINE_COMMENT_START;
+			return MULTILINE_COMMENT_START;
 
 		default:
 			ungetc(ch, targetFile);
@@ -439,39 +463,37 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
-int single_line_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
+int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	if (ch == '\n') {
 		create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
 		return DONE;
 	}
-	else if (can_be_in_comments(ch)) {
-		return SINGLE_LINE_COMMENT;
+	else if (isprint(ch)) {
+		return SINGLELINE_COMMENT;
 	}
-	else {
-		fprintf(stderr, "Radkovy komentar muze obsahovat pouze znaky a je ukoncen novym radkem\n");
-		return ERROR;
-	}
+
+	fprintf(stderr, "Radkovy komentar muze obsahovat pouze znaky a je ukoncen novym radkem\n");
+	return ERROR;
 }
 
 
-int multi_line_comment_start(int ch) {
+int multiline_comment_start(int ch) {
 	if (ch == '*') {
-		return SIMPLE_MULTI_LINE_COMMENT_END;
+		return SIMPLE_MULTILINE_COMMENT_END;
 	}
 	else if (ch == '\n') {
-		return MULTI_LINE_COMMENT;
+		return MULTILINE_COMMENT;
 	}
-	else if (can_be_in_comments(ch)) {
-		return MULTI_LINE_COMMENT_START;
+	else if (isprint(ch)) {
+		return MULTILINE_COMMENT_START;
 	}
-	else {
-		fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
-		return ERROR;
-	}
+
+	fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
+	return ERROR;
 }
 
 
-int simple_multi_line_comment_end(int ch) {
+int simple_multiline_comment_end(int ch) {
 	switch (ch) {
 
 		case '/':
@@ -484,25 +506,24 @@ int simple_multi_line_comment_end(int ch) {
 }
 
 
-int multi_line_comment(int ch) {
+int multiline_comment(int ch) {
 	if (ch == '*') {
-		return MULTI_LINE_COMMENT_END;
+		return MULTILINE_COMMENT_END;
 	}
-	else if (ch == '\n' || can_be_in_comments(ch)) {
-		return MULTI_LINE_COMMENT;
+	else if (ch == '\n' || isprint(ch)) {
+		return MULTILINE_COMMENT;
 	}
-	else {
-		fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
-		return ERROR;
-	}	
+	
+	fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
+	return ERROR;
 }
 
 
-int mutli_line_comment_end(int ch) {
+int multiline_comment_end(int ch) {
 	switch (ch) {
 
 		case '/':
-			return MULTI_LINE_COMMENT_TAIL;
+			return MULTILINE_COMMENT_TAIL;
 
 		default:
 			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
@@ -511,11 +532,11 @@ int mutli_line_comment_end(int ch) {
 }
 
 
-int multi_line_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
+int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case ' ':
-			return MULTI_LINE_COMMENT_TAIL;
+			return MULTILINE_COMMENT_TAIL;
 
 		case '\n':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
@@ -528,16 +549,16 @@ int multi_line_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr)
 }
 
 
-int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr token_str) {
+int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (can_be_in_IDs_keywords(ch)) {
-		insert_last(token_str, ch);
+		insert_last(tkn_str, ch);
 		return AT;
 	}
-	else if (isspace(ch)) {
+	else {
 		ungetc(ch, targetFile);
 
-		if (is_keyword(token_str->val_ptr)) {
-			create_token(tkn_ptr, indent_stack_ptr, KEYWORD, token_str->val_ptr);
+		if (is_keyword(tkn_str->val_ptr)) {
+			create_token(tkn_ptr, indent_stack_ptr, KEYWORD, tkn_str->val_ptr);
 			return DONE;
 		}
 	}
@@ -546,19 +567,65 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr t
 }
 
 
-bool can_be_in_comments(int ch) {
-	// znaky mezi space a }
-	if (ch >= 32 && ch <= 125) {
-		return true;
+int string_open(int ch, dynamic_string_ptr tkn_str) {
+	if (ch == '"') {
+		return MULTILINE_STRING_OPEN;
+	}
+	else if (ch == '\\') { 
+		return STRING_ESCAPE_SEQUENCE;
+	}
+	else if (isprint(ch)) {
+		insert_last(tkn_str, ch);
+		return STRING;
 	}
 
-	return false;
+	return ERROR;
+}
+
+
+int multiline_string_open(int ch) {
+	if (ch == '"') {
+		return MULTILINE_STRING;
+	}
+
+	return ERROR;
+}
+
+
+int multiline_string(int ch, dynamic_string_ptr tkn_str) {
+	if (ch == '"') {
+		return MULTILINE_STRING_CLOSING;
+	}
+	else if (isprint(ch) || ch == '\n') {
+		insert_last(tkn_str, ch);
+		return MULTILINE_STRING;
+	}
+
+	return ERROR;
+}
+
+
+int multiline_string_closing(int ch) {
+	if (ch == '"') {
+		return MULTILINE_STRING_END;
+	}
+
+	return ERROR;
+}
+
+
+int multiline_string_end(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
+	if (ch == '"') {
+		create_token(tkn_ptr, indent_stack_ptr, STRING, tkn_str->val_ptr);
+		return DONE;
+	}
+
+	return ERROR;	
 }
 
 
 bool can_be_in_IDs_keywords(int ch) {
-	// 95 = podržítko
-	if (isalnum(ch) || ch == 95) {
+	if (isalnum(ch) || ch == '_') {
 		return true;
 	}
 
@@ -566,6 +633,7 @@ bool can_be_in_IDs_keywords(int ch) {
 }
 
 
+// mozna z toho udelat proste generic funkci na kontrolovani pritomnosti stringu v poli stringu
 bool is_keyword(char* word) {
 	for (int i = 0; i < keywords_len; i++) {
 		if (strcmp(word, keywords[i]) == 0) {
