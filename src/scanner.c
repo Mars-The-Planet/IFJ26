@@ -193,6 +193,10 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			case IDENTIFIER_STATE:
 				state = identifier(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
+
+			case NON_ZERO_INTEGER_STATE:
+				state = non_zero_integer(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+				break;
 			
 				
 			default:
@@ -204,7 +208,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 		if (state == DONE_STATE) {
 			tokenType type = tkn_ptr->type;
 			// nafukovací řetězec nebyl využit je potřeba ho uvolnit již tady
-			if (!(type == KEYWORD || type == ID || type == LIST_PROPERTY || type == STRING)) {
+			if (!(type == KEYWORD_TYPE || type == ID_TYPE || type == LIST_PROPERTY_TYPE || type == STRING_TYPE || type == INT_TYPE || type == DOUBLE_TYPE)) {
 				destoy_dynamic_string(tkn_str);
 			}
 			return 0;
@@ -278,7 +282,7 @@ int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state
 
 int clear_token(tokenPtr tkn_ptr) {
 	tokenType type = tkn_ptr->type;
-	if (type == KEYWORD || type == ID || type == LIST_PROPERTY || type == STRING) {
+	if (type == KEYWORD_TYPE || type == ID_TYPE || type == LIST_PROPERTY_TYPE || type == STRING_TYPE || type == INT_TYPE || type == DOUBLE_TYPE) {
 		free(tkn_ptr->value);
 		//destoy_dynamic_string(token_ptr->value);
 	}
@@ -297,47 +301,47 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 
 		// koncové stavy bez hloubky
 		case '\n':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOL");
 			return DONE_STATE;
 
 		case ';':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ";");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ";");
 			return DONE_STATE;
 
 		case '+':
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "+");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "+");
 			return DONE_STATE;
 
 		case '*':
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "*");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "*");
 			return DONE_STATE;
 
 		case '[':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "[");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "[");
 			return DONE_STATE;
 
 		case ']':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "]");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "]");
 			return DONE_STATE;
 
 		case '.':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ".");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ".");
 			return DONE_STATE;
 
 		case ',':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ",");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ",");
 			return DONE_STATE;
 
 		case EOF:
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOF");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOF");
 			return DONE_STATE;
 
 		case ')':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ")");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ")");
 			return DONE_STATE;
 
 		case '(':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "(");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "(");
 			return DONE_STATE;
 
 		// cesty s více uzly ale pouze jedním koncovým stavem
@@ -384,6 +388,10 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 			insert_last(tkn_str, ch);
 			return IDENTIFIER_STATE;
 
+		case 49 ... 57:
+			insert_last(tkn_str, ch);
+			return NON_ZERO_INTEGER_STATE;
+
 
 		case '\r':
 			// carriage feed se ignoruje
@@ -400,7 +408,7 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '&':
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "&&");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "&&");
 			return DONE_STATE;			
 		
 		default:
@@ -412,7 +420,7 @@ int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 int bar(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '|':
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "||");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "||");
 			return DONE_STATE;			
 		
 		default:
@@ -425,13 +433,13 @@ int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "!=");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "!=");
 			return DONE_STATE;
 
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "!");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "!");
 			return DONE_STATE;
 	}
 }
@@ -441,13 +449,13 @@ int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "==");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "==");
 			return DONE_STATE;
 
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "=");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "=");
 			return DONE_STATE;
 	}
 }
@@ -457,13 +465,13 @@ int greater_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, ">=");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, ">=");
 			return DONE_STATE;
 
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, ">");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, ">");
 			return DONE_STATE;
 	}
 }
@@ -473,17 +481,17 @@ int less_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '=':
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "<=");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "<=");
 			return DONE_STATE;
 
 		case '-':
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "<-");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "<-");
 			return DONE_STATE;
 
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "<");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "<");
 			return DONE_STATE;
 	}
 }
@@ -501,7 +509,7 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 		default:
 			ungetc(ch, targetFile);
 
-			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "/");
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "/");
 			return DONE_STATE;
 	}
 }
@@ -509,7 +517,7 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	if (ch == '\n') {
-		create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
+		create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOL");
 		return DONE_STATE;
 	}
 	else if (isprint(ch)) {
@@ -579,16 +587,17 @@ int multiline_comment_end(int ch) {
 int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
+		// kontrolujeme zda za komentarem neni dalsi token
 		case ' ':
 			return MULTILINE_COMMENT_TAIL_STATE;
 
 		case '\n':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOL");
 			return DONE_STATE;
 
 		case EOF:
 			ungetc(ch, targetFile);
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOL");
 			return DONE_STATE;
 
 		default:
@@ -607,7 +616,7 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr t
 		ungetc(ch, targetFile);
 
 		if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
-			create_token(tkn_ptr, indent_stack_ptr, KEYWORD, tkn_str->val_ptr);
+			create_token(tkn_ptr, indent_stack_ptr, KEYWORD_TYPE, tkn_str->val_ptr);
 			return DONE_STATE;
 		}
 	}
@@ -637,7 +646,7 @@ int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 		return STRING_ESCAPE_SEQUENCE_STATE;
 	}
 	if (ch == '"') {
-		create_token(tkn_ptr, indent_stack_ptr, STRING, tkn_str->val_ptr);
+		create_token(tkn_ptr, indent_stack_ptr, STRING_TYPE, tkn_str->val_ptr);
 		return DONE_STATE;
 	}
 	else if (isprint(ch)) {
@@ -711,7 +720,7 @@ int multiline_string_closing(int ch) {
 
 int multiline_string_end(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
-		create_token(tkn_ptr, indent_stack_ptr, STRING, tkn_str->val_ptr);
+		create_token(tkn_ptr, indent_stack_ptr, STRING_TYPE, tkn_str->val_ptr);
 		return DONE_STATE;
 	}
 
@@ -722,7 +731,7 @@ int multiline_string_end(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dy
 int underscore(int ch, dynamic_string_ptr tkn_str) {
 	if (can_be_in_IDs_keywords(ch)) {
 		insert_last(tkn_str, ch);
-		return ID;
+		return ID_TYPE;
 	}
 
 	return ERROR_STATE;
@@ -737,13 +746,37 @@ int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_stri
 		ungetc(ch, targetFile);
 
 		if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
-			create_token(tkn_ptr, indent_stack_ptr, KEYWORD, tkn_str->val_ptr);
+			create_token(tkn_ptr, indent_stack_ptr, KEYWORD_TYPE, tkn_str->val_ptr);
 			return DONE_STATE;
 		}
 
-		create_token(tkn_ptr, indent_stack_ptr, ID, tkn_str->val_ptr);
+		create_token(tkn_ptr, indent_stack_ptr, ID_TYPE, tkn_str->val_ptr);
 		return DONE_STATE;
 	}
+}
+
+
+int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
+	if (ch >= 48 && 57 >= ch) {
+		insert_last(tkn_str, ch);
+		return NON_ZERO_INTEGER_STATE;
+	}
+	// podržítko se konzumuje
+	else if (ch == '_') {
+		return NON_ZERO_INTEGER_STATE;
+	}
+	else if (ch == '.') {
+		insert_last(tkn_str, ch);
+		return RADIX_POINT_STATE;
+	}
+	else if (ch == 'e' || ch == 'E') {
+		insert_last(tkn_str, ch);
+		return EXPONENT_STATE;
+	}
+
+	ungetc(ch, targetFile);
+	create_token(tkn_ptr, indent_stack_ptr, INT_TYPE, tkn_str->val_ptr);
+	return DONE_STATE;
 }
 
 
@@ -781,7 +814,7 @@ int main(int argc, char* argv[]) {
 	while (i == 0) {
 		i = next_token(tkn, stack_indent);
 		printf("TOKEN: type: %d, symbol: %s, stack sum: %d, return: %d\n", tkn->type, tkn->value, sum_stack(stack_indent), i);
-		if (tkn->type == SYMBOL && strcmp(tkn->value, "EOF") == 0) {
+		if (tkn->type == SYMBOL_TYPE && strcmp(tkn->value, "EOF") == 0) {
 			i = -1;
 		}
 	}

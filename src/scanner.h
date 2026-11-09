@@ -23,14 +23,14 @@
  * @brief Výčet typů tokenů
  */
 typedef enum ETokenType {
-	KEYWORD,
-	ID,
-	LIST_PROPERTY,
-	SYMBOL,
-	OPERATOR,
-	STRING,
-	INT,
-	DOUBLE,
+	KEYWORD_TYPE,
+	ID_TYPE,
+	LIST_PROPERTY_TYPE,
+	SYMBOL_TYPE,
+	OPERATOR_TYPE,
+	STRING_TYPE,
+	INT_TYPE,
+	DOUBLE_TYPE,
 } tokenType;
 
 /**
@@ -71,7 +71,15 @@ typedef enum EScannerState {
 
 	// IDs
 	UNDERSCORE_STATE,
-	IDENTIFIER_STATE
+	IDENTIFIER_STATE,
+
+	// číselné literály
+	NON_ZERO_INTEGER_STATE,
+	INT_ZERO_STATE,
+
+	NON_ZERO_STATE,
+	RADIX_POINT_STATE,
+	EXPONENT_STATE
 } scannerState;
 
 
@@ -177,5 +185,8 @@ int underscore(int ch, dynamic_string_ptr tkn_str);
 
 
 int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
+
+
+int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
 
 #endif
