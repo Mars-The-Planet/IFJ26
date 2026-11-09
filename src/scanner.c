@@ -3,7 +3,6 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Implementace lexikálního analyzátoru
- * @todo Dynamicky dlouhe řetězce
  * @todo Nápomocné error zprávy
  * @todo vyresit tab - whitespace
  */
@@ -50,7 +49,6 @@ const char *keywords[] = {
 int const list_properties_len = 10;
 
 
-// to/until jsou syntaktické generátory
 const char *list_properties[] = {
 	"drop",
 	"take",
@@ -59,10 +57,7 @@ const char *list_properties[] = {
 	"tail",
 	"toString",
 	"range",
-	"toList",
-
-	"to",
-	"until"
+	"toList"
 };
 
 
@@ -761,7 +756,6 @@ bool can_be_in_IDs_keywords(int ch) {
 }
 
 
-// mozna z toho udelat proste generic funkci na kontrolovani pritomnosti stringu v poli stringu
 bool is_word_in_list(char* word, const char **list, int len) {
 	for (int i = 0; i < len; i++) {
 		if (strcmp(word, list[i]) == 0) {
