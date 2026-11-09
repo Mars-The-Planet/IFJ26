@@ -201,6 +201,14 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			case INT_ZERO_STATE:
 				state = int_zero(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
+
+			case RADIX_POINT_STATE:
+				state = radix_point(ch, tkn_str);
+				break;
+			
+			case DOUBLE_SIMPLE_STATE:
+				state = double_simple(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+				break;
 			
 				
 			default:
@@ -809,6 +817,40 @@ int int_zero(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_strin
 
 	ungetc(ch, targetFile);
 	create_token(tkn_ptr, indent_stack_ptr, INT_TYPE, tkn_str->val_ptr);
+	return DONE_STATE;
+}
+
+
+int radix_point(int ch, dynamic_string_ptr tkn_str) {
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return DOUBLE_SIMPLE_STATE;
+	}
+
+	return ERROR_STATE;
+}
+
+
+int double_simple(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return DOUBLE_SIMPLE_STATE;
+	}
+	// podržítko se konzumuje
+	else if (ch == '_') {
+		return DOUBLE_SIMPLE_STATE;
+	}
+	else if (ch == 'e' || ch == 'E') {
+		insert_last(tkn_str, ch);
+		return EXPONENT_STATE;
+	}
+	else if (ch == 'd' || ch == 'D') {
+		insert_last(tkn_str, ch);
+		return DOUBLE_D_STATE;
+	}
+
+	ungetc(ch, targetFile);
+	create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
 	return DONE_STATE;
 }
 
