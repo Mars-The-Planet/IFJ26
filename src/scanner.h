@@ -1,4 +1,5 @@
 /**
+ * IFJ26 - Implementace překladače imperativního jazyka IFJ26
  * @file scanner.h
  * @author Matěj Růžička (xruzicm00)
  *
@@ -14,7 +15,6 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdbool.h>
-#include <math.h>
 #include <stdint.h>
 #include "stack.h"
 #include "dynamic_string.h"

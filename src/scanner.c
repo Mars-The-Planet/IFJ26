@@ -1,4 +1,5 @@
 /**
+ * IFJ26 - Implementace překladače imperativního jazyka IFJ26
  * @file scanner.c
  * @author Matěj Růžička (xruzicm00)
  *

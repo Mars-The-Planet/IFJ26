@@ -1,4 +1,5 @@
 /**
+ * IFJ26 - Implementace překladače imperativního jazyka IFJ26
  * @file dynamic_string.h
  * @author Matěj Růžička (xruzicm00)
  *
