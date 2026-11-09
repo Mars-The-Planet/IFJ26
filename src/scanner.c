@@ -168,8 +168,8 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 				state = string_escape_sequence(ch, tkn_str);
 				break;
 
-			case MULTILINE_STRING_OPEN_STATE:
-				state = multiline_string_open(ch);
+			case STRING_DONE_STATE:
+				state = string_done(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 			
 			case MULTILINE_STRING_STATE:
@@ -338,6 +338,10 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "+");
 			return DONE_STATE;
 
+		case '-':
+			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "-");
+			return DONE_STATE;
+
 		case '*':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "*");
 			return DONE_STATE;
@@ -367,6 +371,10 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 
 		case '(':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "(");
+			return DONE_STATE;
+
+		case ':':
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ":");
 			return DONE_STATE;
 
 		// cesty s více uzly ale pouze jedním koncovým stavem
@@ -656,7 +664,7 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr t
 
 int string_open(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
-		return MULTILINE_STRING_OPEN_STATE;
+		return STRING_DONE_STATE;
 	}
 	else if (ch == '\\') { 
 		return STRING_ESCAPE_SEQUENCE_STATE;
@@ -716,12 +724,13 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
-int multiline_string_open(int ch) {
+int string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_STATE;
 	}
 
-	return ERROR_STATE;
+	create_token(tkn_ptr, indent_stack_ptr, STRING_TYPE, tkn_str->val_ptr);
+	return DONE_STATE;
 }
 
 

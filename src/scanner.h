@@ -64,10 +64,10 @@ typedef enum EScannerState {
 	STRING_OPEN_STATE,
 	STRING_CHAR_STATE,
 	STRING_ESCAPE_SEQUENCE_STATE,
-	MULTILINE_STRING_OPEN_STATE,
 	MULTILINE_STRING_STATE,
 	MULTILINE_STRING_CLOSING_STATE,
 	MULTILINE_STRING_END_STATE,
+	STRING_DONE_STATE,
 
 	// IDs
 	UNDERSCORE_STATE,
@@ -172,7 +172,10 @@ int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 int string_escape_sequence(int ch, dynamic_string_ptr tkn_str);
 
 
-int multiline_string_open(int ch);
+int string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
+
+
+//int multiline_string_open(int ch);
 
 
 int multiline_string(int ch, dynamic_string_ptr tkn_str);
