@@ -85,7 +85,7 @@ int set_target_file(char *file_name) {
 
 
 int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
-	scannerState state = START;
+	scannerState state = START_STATE;
 	clear_token(tkn_ptr);
 
 	dynamic_string tkn_str_struct;
@@ -100,102 +100,102 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 		switch (state) {
 
-			case START:
+			case START_STATE:
 				state = start_state(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 
-			case AMPERSAND:
+			case AMPERSAND_STATE:
 				state = ampersand(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
-			case BAR:
+			case BAR_STATE:
 				state = bar(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
-			case EXCLAMATION_MARK:
+			case EXCLAMATION_MARK_STATE:
 				state = exclamation_mark(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
-			case EQUALS:
+			case EQUALS_STATE:
 				state = equals(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
-			case GREATER_THAN:
+			case GREATER_THAN_STATE:
 				state = greater_than(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
-			case LESS_THAN:
+			case LESS_THAN_STATE:
 				state = less_than(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
-			case SLASH:
+			case SLASH_STATE:
 				state = slash(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			// komentáře
-			case SINGLELINE_COMMENT:
+			case SINGLELINE_COMMENT_STATE:
 				state = singleline_comment(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
-			case MULTILINE_COMMENT_START:
+			case MULTILINE_COMMENT_START_STATE:
 				state = multiline_comment_start(ch);
 				break;
 
-			case SIMPLE_MULTILINE_COMMENT_END:
+			case SIMPLE_MULTILINE_COMMENT_END_STATE:
 				state = simple_multiline_comment_end(ch);
 				break;
 
-			case MULTILINE_COMMENT:
+			case MULTILINE_COMMENT_STATE:
 				state = multiline_comment(ch);
 				break;
 
-			case MULTILINE_COMMENT_END:
+			case MULTILINE_COMMENT_END_STATE:
 				state = multiline_comment_end(ch);
 				break;
 
-			case MULTILINE_COMMENT_TAIL:
+			case MULTILINE_COMMENT_TAIL_STATE:
 				state = multiline_comment_tail(ch, tkn_ptr, indent_stack_ptr);
 				break;
 
 			// anotace (jenom @main)
-			case AT:
+			case AT_STATE:
 				state = at(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 
 			// řetězce
-			case STRING_OPEN:
+			case STRING_OPEN_STATE:
 				state = string_open(ch, tkn_str);
 				break;
 
-			case STRING_CHAR:
+			case STRING_CHAR_STATE:
 				state = string_char(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 
-			case STRING_ESCAPE_SEQUENCE:
+			case STRING_ESCAPE_SEQUENCE_STATE:
 				state = string_escape_sequence(ch, tkn_str);
 				break;
 
-			case MULTILINE_STRING_OPEN:
+			case MULTILINE_STRING_OPEN_STATE:
 				state = multiline_string_open(ch);
 				break;
 			
-			case MULTILINE_STRING:
+			case MULTILINE_STRING_STATE:
 				state = multiline_string(ch, tkn_str);
 				break;
 
-			case MULTILINE_STRING_CLOSING:
+			case MULTILINE_STRING_CLOSING_STATE:
 				state = multiline_string_closing(ch);
 				break;
 
-			case MULTILINE_STRING_END:
+			case MULTILINE_STRING_END_STATE:
 				state = multiline_string_end(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 
-			case UNDERSCORE:
+			case UNDERSCORE_STATE:
 				state = underscore(ch, tkn_str);
 				break;
 
-			case IDENTIFIER:
+			case IDENTIFIER_STATE:
 				state = identifier(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 			
@@ -206,7 +206,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 		}
 
 		// token byl úspěšně vytvořen
-		if (state == DONE) {
+		if (state == DONE_STATE) {
 			tokenType type = tkn_ptr->type;
 			// nafukovací řetězec nebyl využit je potřeba ho uvolnit již tady
 			if (!(type == KEYWORD || type == ID || type == LIST_PROPERTY || type == STRING)) {
@@ -214,7 +214,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			}
 			return 0;
 		}
-		else if (state == ERROR) {
+		else if (state == ERROR_STATE) {
 			destoy_dynamic_string(tkn_str);
 			fprintf(stderr, "Neznamy token, stav: %d, token: %c, ascii: %d\n", state, ch, ch);
 			return 1;
@@ -298,106 +298,106 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 			if (lastTokenWasEOL) {
 				indentLineCount++;
 			}
-			return START;
+			return START_STATE;
 
 		// koncové stavy bez hloubky
 		case '\n':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
-			return DONE;
+			return DONE_STATE;
 
 		case ';':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ";");
-			return DONE;
+			return DONE_STATE;
 
 		case '+':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "+");
-			return DONE;
+			return DONE_STATE;
 
 		case '*':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "*");
-			return DONE;
+			return DONE_STATE;
 
 		case '[':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "[");
-			return DONE;
+			return DONE_STATE;
 
 		case ']':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "]");
-			return DONE;
+			return DONE_STATE;
 
 		case '.':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ".");
-			return DONE;
+			return DONE_STATE;
 
 		case ',':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ",");
-			return DONE;
+			return DONE_STATE;
 
 		case EOF:
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOF");
-			return DONE;
+			return DONE_STATE;
 
 		case ')':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, ")");
-			return DONE;
+			return DONE_STATE;
 
 		case '(':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "(");
-			return DONE;
+			return DONE_STATE;
 
 		// cesty s více uzly ale pouze jedním koncovým stavem
 		case '&':
-			return AMPERSAND;
+			return AMPERSAND_STATE;
 
 		case '|':
-			return BAR;
+			return BAR_STATE;
 
 		// cesty s více koncovými stavy
 		case '!':
-			return EXCLAMATION_MARK;
+			return EXCLAMATION_MARK_STATE;
 
 		case '=':
-			return EQUALS;
+			return EQUALS_STATE;
 
 		case '>':
-			return GREATER_THAN;
+			return GREATER_THAN_STATE;
 
 		case '<':
-			return LESS_THAN;
+			return LESS_THAN_STATE;
 
 		case '/':
-			return SLASH;
+			return SLASH_STATE;
 
 		// cesty využívající nafukovací řetězec
 		case '@':
 			insert_last(tkn_str, ch);
-			return AT;
+			return AT_STATE;
 
 		case '"':
-			return STRING_OPEN;
+			return STRING_OPEN_STATE;
 
 		case '_':
 			insert_last(tkn_str, ch);
-			return UNDERSCORE;
+			return UNDERSCORE_STATE;
 
 		// tohle ne každý překladač vezme
 		case 65 ... 90:
 			insert_last(tkn_str, ch);
-			return IDENTIFIER;
+			return IDENTIFIER_STATE;
 
 		case 97 ... 122:
 			insert_last(tkn_str, ch);
-			return IDENTIFIER;
+			return IDENTIFIER_STATE;
 
 
 		case '\r':
 			// carriage feed se ignoruje
 			// mozna by to tady melo vratit error ale kdyz to tady i docasne je tak to zlehcuje testovani
 			// lze se tomu vyvarovat ve vscode i na windows kdyz se v pravem dolnim rohu end of line sequence prepne CRLF na LF
-			return START;
+			return START_STATE;
 
 		default:
-			return ERROR;
+			return ERROR_STATE;
 	}
 }
 
@@ -406,10 +406,10 @@ int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '&':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "&&");
-			return DONE;			
+			return DONE_STATE;			
 		
 		default:
-			return ERROR;
+			return ERROR_STATE;
 	}
 }
 
@@ -418,10 +418,10 @@ int bar(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '|':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "||");
-			return DONE;			
+			return DONE_STATE;			
 		
 		default:
-			return ERROR;
+			return ERROR_STATE;
 	}
 }
 
@@ -431,13 +431,13 @@ int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 		case '=':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "!=");
-			return DONE;
+			return DONE_STATE;
 
 		default:
 			ungetc(ch, targetFile);
 
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "!");
-			return DONE;
+			return DONE_STATE;
 	}
 }
 
@@ -447,13 +447,13 @@ int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 		case '=':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "==");
-			return DONE;
+			return DONE_STATE;
 
 		default:
 			ungetc(ch, targetFile);
 
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "=");
-			return DONE;
+			return DONE_STATE;
 	}
 }
 
@@ -463,13 +463,13 @@ int greater_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 		case '=':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, ">=");
-			return DONE;
+			return DONE_STATE;
 
 		default:
 			ungetc(ch, targetFile);
 
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, ">");
-			return DONE;
+			return DONE_STATE;
 	}
 }
 
@@ -479,17 +479,17 @@ int less_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 		case '=':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "<=");
-			return DONE;
+			return DONE_STATE;
 
 		case '-':
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "<-");
-			return DONE;
+			return DONE_STATE;
 
 		default:
 			ungetc(ch, targetFile);
 
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "<");
-			return DONE;
+			return DONE_STATE;
 	}
 }
 
@@ -498,16 +498,16 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
 		case '/':
-			return SINGLELINE_COMMENT;
+			return SINGLELINE_COMMENT_STATE;
 
 		case '*':
-			return MULTILINE_COMMENT_START;
+			return MULTILINE_COMMENT_START_STATE;
 
 		default:
 			ungetc(ch, targetFile);
 
 			create_token(tkn_ptr, indent_stack_ptr, OPERATOR, "/");
-			return DONE;
+			return DONE_STATE;
 	}
 }
 
@@ -515,30 +515,30 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	if (ch == '\n') {
 		create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
-		return DONE;
+		return DONE_STATE;
 	}
 	else if (isprint(ch)) {
-		return SINGLELINE_COMMENT;
+		return SINGLELINE_COMMENT_STATE;
 	}
 
 	fprintf(stderr, "Radkovy komentar muze obsahovat pouze znaky a je ukoncen novym radkem\n");
-	return ERROR;
+	return ERROR_STATE;
 }
 
 
 int multiline_comment_start(int ch) {
 	if (ch == '*') {
-		return SIMPLE_MULTILINE_COMMENT_END;
+		return SIMPLE_MULTILINE_COMMENT_END_STATE;
 	}
 	else if (ch == '\n') {
-		return MULTILINE_COMMENT;
+		return MULTILINE_COMMENT_STATE;
 	}
 	else if (isprint(ch)) {
-		return MULTILINE_COMMENT_START;
+		return MULTILINE_COMMENT_START_STATE;
 	}
 
 	fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
-	return ERROR;
+	return ERROR_STATE;
 }
 
 
@@ -546,25 +546,25 @@ int simple_multiline_comment_end(int ch) {
 	switch (ch) {
 
 		case '/':
-			return START;
+			return START_STATE;
 
 		default:
 			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
-			return ERROR;
+			return ERROR_STATE;
 	}	
 }
 
 
 int multiline_comment(int ch) {
 	if (ch == '*') {
-		return MULTILINE_COMMENT_END;
+		return MULTILINE_COMMENT_END_STATE;
 	}
 	else if (ch == '\n' || isprint(ch)) {
-		return MULTILINE_COMMENT;
+		return MULTILINE_COMMENT_STATE;
 	}
 	
 	fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
-	return ERROR;
+	return ERROR_STATE;
 }
 
 
@@ -572,11 +572,11 @@ int multiline_comment_end(int ch) {
 	switch (ch) {
 
 		case '/':
-			return MULTILINE_COMMENT_TAIL;
+			return MULTILINE_COMMENT_TAIL_STATE;
 
 		default:
 			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
-			return ERROR;
+			return ERROR_STATE;
 	}		
 }
 
@@ -585,20 +585,20 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) 
 	switch (ch) {
 
 		case ' ':
-			return MULTILINE_COMMENT_TAIL;
+			return MULTILINE_COMMENT_TAIL_STATE;
 
 		case '\n':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
-			return DONE;
+			return DONE_STATE;
 
 		case EOF:
 			ungetc(ch, targetFile);
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL, "EOL");
-			return DONE;
+			return DONE_STATE;
 
 		default:
 			fprintf(stderr, "Po nekolika radkovem blokovem komentari mohou nasledovat pouze bile znaky a znak noveho radku \n");
-			return ERROR;
+			return ERROR_STATE;
 	}
 }
 
@@ -606,51 +606,51 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) 
 int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (can_be_in_IDs_keywords(ch)) {
 		insert_last(tkn_str, ch);
-		return AT;
+		return AT_STATE;
 	}
 	else {
 		ungetc(ch, targetFile);
 
 		if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
 			create_token(tkn_ptr, indent_stack_ptr, KEYWORD, tkn_str->val_ptr);
-			return DONE;
+			return DONE_STATE;
 		}
 	}
 
-	return ERROR;
+	return ERROR_STATE;
 }
 
 
 int string_open(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
-		return MULTILINE_STRING_OPEN;
+		return MULTILINE_STRING_OPEN_STATE;
 	}
 	else if (ch == '\\') { 
-		return STRING_ESCAPE_SEQUENCE;
+		return STRING_ESCAPE_SEQUENCE_STATE;
 	}
 	else if (isprint(ch)) {
 		insert_last(tkn_str, ch);
-		return STRING_CHAR;
+		return STRING_CHAR_STATE;
 	}
 
-	return ERROR;
+	return ERROR_STATE;
 }
 
 
 int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (ch == '\\') {
-		return STRING_ESCAPE_SEQUENCE;
+		return STRING_ESCAPE_SEQUENCE_STATE;
 	}
 	if (ch == '"') {
 		create_token(tkn_ptr, indent_stack_ptr, STRING, tkn_str->val_ptr);
-		return DONE;
+		return DONE_STATE;
 	}
 	else if (isprint(ch)) {
 		insert_last(tkn_str, ch);
-		return STRING_CHAR;
+		return STRING_CHAR_STATE;
 	}
 
-	return ERROR;
+	return ERROR_STATE;
 }
 
 
@@ -659,68 +659,68 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
 
 		case '\\':
 			insert_last(tkn_str, '\\');
-			return STRING_CHAR;
+			return STRING_CHAR_STATE;
 
 		case '"':
 			insert_last(tkn_str, '\"');
-			return STRING_CHAR;
+			return STRING_CHAR_STATE;
 
 		case 'n':
 			insert_last(tkn_str, '\n');
-			return STRING_CHAR;
+			return STRING_CHAR_STATE;
 
 		case 'r':
 			insert_last(tkn_str, '\r');
-			return STRING_CHAR;
+			return STRING_CHAR_STATE;
 
 		case 't':
 			insert_last(tkn_str, '\t');
-			return STRING_CHAR;
+			return STRING_CHAR_STATE;
 
 		default:
-			return ERROR;
+			return ERROR_STATE;
 	}
 }
 
 
 int multiline_string_open(int ch) {
 	if (ch == '"') {
-		return MULTILINE_STRING;
+		return MULTILINE_STRING_STATE;
 	}
 
-	return ERROR;
+	return ERROR_STATE;
 }
 
 
 int multiline_string(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
-		return MULTILINE_STRING_CLOSING;
+		return MULTILINE_STRING_CLOSING_STATE;
 	}
 	else if (isprint(ch) || ch == '\n') {
 		insert_last(tkn_str, ch);
-		return MULTILINE_STRING;
+		return MULTILINE_STRING_STATE;
 	}
 
-	return ERROR;
+	return ERROR_STATE;
 }
 
 
 int multiline_string_closing(int ch) {
 	if (ch == '"') {
-		return MULTILINE_STRING_END;
+		return MULTILINE_STRING_END_STATE;
 	}
 
-	return ERROR;
+	return ERROR_STATE;
 }
 
 
 int multiline_string_end(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		create_token(tkn_ptr, indent_stack_ptr, STRING, tkn_str->val_ptr);
-		return DONE;
+		return DONE_STATE;
 	}
 
-	return ERROR;	
+	return ERROR_STATE;	
 }
 
 
@@ -730,24 +730,24 @@ int underscore(int ch, dynamic_string_ptr tkn_str) {
 		return ID;
 	}
 
-	return ERROR;
+	return ERROR_STATE;
 }
 
 int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (can_be_in_IDs_keywords(ch)) {
 		insert_last(tkn_str, ch);
-		return IDENTIFIER;
+		return IDENTIFIER_STATE;
 	}
 	else {
 		ungetc(ch, targetFile);
 
 		if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
 			create_token(tkn_ptr, indent_stack_ptr, KEYWORD, tkn_str->val_ptr);
-			return DONE;
+			return DONE_STATE;
 		}
 
 		create_token(tkn_ptr, indent_stack_ptr, ID, tkn_str->val_ptr);
-		return DONE;
+		return DONE_STATE;
 	}
 }
 
