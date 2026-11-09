@@ -269,8 +269,6 @@ int sum_stack(stackPtr stack_ptr) {
     }
 
 	stack_dtor(tempStackPtr);
-	// mozna by melo byt i 
-	// free(tempStackPtr);
 
 	return sum;
 }
@@ -868,13 +866,11 @@ int double_simple(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_
 		insert_last(tkn_str, ch);
 		return EXPONENT_STATE;
 	}
-	else if (ch == 'd' || ch == 'D') {
-		insert_last(tkn_str, ch);
-		create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
-		return DONE_STATE;
+	// nepovinné d/D na konci double se ignoruje
+	else if (!(ch == 'd' || ch == 'D')) {
+		ungetc(ch, targetFile);
 	}
-
-	ungetc(ch, targetFile);
+	
 	create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
 	return DONE_STATE;
 }
@@ -934,13 +930,11 @@ int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynami
 	else if (ch == '_') {
 		return DOUBLE_EXPONENT_STATE;
 	}
-	else if (ch == 'd' || ch == 'D') {
-		insert_last(tkn_str, ch);
-		create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
-		return DONE_STATE;
+	// nepovinné d/D na konci double se ignoruje
+	else if (!(ch == 'd' || ch == 'D')) {
+		ungetc(ch, targetFile);
 	}
 
-	ungetc(ch, targetFile);
 	create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
 	return DONE_STATE;
 }

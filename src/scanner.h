@@ -216,5 +216,4 @@ int exponent_sign(int ch, dynamic_string_ptr tkn_str);
 
 int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
 
-
 #endif
