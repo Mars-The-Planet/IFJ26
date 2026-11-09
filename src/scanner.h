@@ -60,14 +60,18 @@ typedef enum EScannerState {
 
 	AT,
 
-	//řetězce
+	// řetězce
 	STRING_OPEN,
 	STRING_CHAR,
 	STRING_ESCAPE_SEQUENCE,
 	MULTILINE_STRING_OPEN,
 	MULTILINE_STRING,
 	MULTILINE_STRING_CLOSING,
-	MULTILINE_STRING_END
+	MULTILINE_STRING_END,
+
+	// IDs
+	UNDERSCORE,
+	IDENTIFIER
 } scannerState;
 
 
@@ -100,7 +104,7 @@ int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state
 bool can_be_in_IDs_keywords(int ch);
 
 
-bool is_keyword(char* word);
+bool is_word_in_list(char* word, const char **list, int len);
 
 
 int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
@@ -167,5 +171,11 @@ int multiline_string_closing(int ch);
 
 
 int multiline_string_end(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
+
+
+int underscore(int ch, dynamic_string_ptr tkn_str);
+
+
+int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
 
 #endif

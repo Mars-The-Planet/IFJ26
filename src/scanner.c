@@ -47,6 +47,25 @@ const char *keywords[] = {
 };
 
 
+int const list_properties_len = 10;
+
+
+// to/until jsou syntaktické generátory
+const char *list_properties[] = {
+	"drop",
+	"take",
+	"slice",
+	"head",
+	"tail",
+	"toString",
+	"range",
+	"toList",
+
+	"to",
+	"until"
+};
+
+
 /**
  * @brief Nastaví soubor ze kterého čte LA
  * @param file_name název souboru který chceme nastavit
@@ -77,7 +96,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	while (1) {
 		ch = getc(targetFile);
 
-		//printf("scanner: %d, %c \n", ch, ch);
+		// printf("scanner: %d, %c, state: %d \n", ch, ch, state);
 
 		switch (state) {
 
@@ -171,7 +190,16 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			case MULTILINE_STRING_END:
 				state = multiline_string_end(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
+
+			case UNDERSCORE:
+				state = underscore(ch, tkn_str);
+				break;
+
+			case IDENTIFIER:
+				state = identifier(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+				break;
 			
+				
 			default:
 				fprintf(stderr, "Neznamy stav, stav: %d, token: %c, ascii: %d\n", state, ch, ch);
 				return 1;
@@ -347,6 +375,19 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 
 		case '"':
 			return STRING_OPEN;
+
+		case '_':
+			insert_last(tkn_str, ch);
+			return UNDERSCORE;
+
+		// tohle ne každý překladač vezme
+		case 65 ... 90:
+			insert_last(tkn_str, ch);
+			return IDENTIFIER;
+
+		case 97 ... 122:
+			insert_last(tkn_str, ch);
+			return IDENTIFIER;
 
 
 		case '\r':
@@ -570,7 +611,7 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr t
 	else {
 		ungetc(ch, targetFile);
 
-		if (is_keyword(tkn_str->val_ptr)) {
+		if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
 			create_token(tkn_ptr, indent_stack_ptr, KEYWORD, tkn_str->val_ptr);
 			return DONE;
 		}
@@ -683,6 +724,34 @@ int multiline_string_end(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dy
 }
 
 
+int underscore(int ch, dynamic_string_ptr tkn_str) {
+	if (can_be_in_IDs_keywords(ch)) {
+		insert_last(tkn_str, ch);
+		return ID;
+	}
+
+	return ERROR;
+}
+
+int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
+	if (can_be_in_IDs_keywords(ch)) {
+		insert_last(tkn_str, ch);
+		return IDENTIFIER;
+	}
+	else {
+		ungetc(ch, targetFile);
+
+		if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
+			create_token(tkn_ptr, indent_stack_ptr, KEYWORD, tkn_str->val_ptr);
+			return DONE;
+		}
+
+		create_token(tkn_ptr, indent_stack_ptr, ID, tkn_str->val_ptr);
+		return DONE;
+	}
+}
+
+
 bool can_be_in_IDs_keywords(int ch) {
 	if (isalnum(ch) || ch == '_') {
 		return true;
@@ -693,9 +762,9 @@ bool can_be_in_IDs_keywords(int ch) {
 
 
 // mozna z toho udelat proste generic funkci na kontrolovani pritomnosti stringu v poli stringu
-bool is_keyword(char* word) {
-	for (int i = 0; i < keywords_len; i++) {
-		if (strcmp(word, keywords[i]) == 0) {
+bool is_word_in_list(char* word, const char **list, int len) {
+	for (int i = 0; i < len; i++) {
+		if (strcmp(word, list[i]) == 0) {
 			return true;
 		}
 	}
