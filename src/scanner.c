@@ -197,6 +197,10 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			case NON_ZERO_INTEGER_STATE:
 				state = non_zero_integer(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
+
+			case INT_ZERO_STATE:
+				state = int_zero(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+				break;
 			
 				
 			default:
@@ -391,6 +395,10 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 		case 49 ... 57:
 			insert_last(tkn_str, ch);
 			return NON_ZERO_INTEGER_STATE;
+
+		case '0':
+			insert_last(tkn_str, ch);
+			return INT_ZERO_STATE;
 
 
 		case '\r':
@@ -737,6 +745,7 @@ int underscore(int ch, dynamic_string_ptr tkn_str) {
 	return ERROR_STATE;
 }
 
+
 int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (can_be_in_IDs_keywords(ch)) {
 		insert_last(tkn_str, ch);
@@ -757,13 +766,37 @@ int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_stri
 
 
 int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
-	if (ch >= 48 && 57 >= ch) {
+	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
 		return NON_ZERO_INTEGER_STATE;
 	}
 	// podržítko se konzumuje
 	else if (ch == '_') {
 		return NON_ZERO_INTEGER_STATE;
+	}
+	else if (ch == '.') {
+		insert_last(tkn_str, ch);
+		return RADIX_POINT_STATE;
+	}
+	else if (ch == 'e' || ch == 'E') {
+		insert_last(tkn_str, ch);
+		return EXPONENT_STATE;
+	}
+
+	ungetc(ch, targetFile);
+	create_token(tkn_ptr, indent_stack_ptr, INT_TYPE, tkn_str->val_ptr);
+	return DONE_STATE;
+}
+
+
+int int_zero(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return NON_ZERO_STATE;
+	}
+	// podržítko se konzumuje
+	else if (ch == '_') {
+		return NON_ZERO_STATE;
 	}
 	else if (ch == '.') {
 		insert_last(tkn_str, ch);
