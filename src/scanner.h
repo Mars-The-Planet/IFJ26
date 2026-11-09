@@ -80,9 +80,9 @@ typedef enum EScannerState {
 	NON_ZERO_STATE,
 	RADIX_POINT_STATE,
 	EXPONENT_STATE,
+	EXPONENT_SIGN_STATE,
 	DOUBLE_SIMPLE_STATE,
-	DOUBLE_EXPONENT_STATE,
-	DOUBLE_D_STATE
+	DOUBLE_EXPONENT_STATE
 } scannerState;
 
 
@@ -196,9 +196,22 @@ int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynam
 int int_zero(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
 
 
-int radix_point(int ch, dynamic_string_ptr tkn_str);
+int radix_point(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
 
 
 int double_simple(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
+
+
+int non_zero(int ch, dynamic_string_ptr tkn_str);
+
+
+int exponent(int ch, dynamic_string_ptr tkn_str);
+
+
+int exponent_sign(int ch, dynamic_string_ptr tkn_str);
+
+
+int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
+
 
 #endif

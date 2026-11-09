@@ -91,8 +91,6 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	while (1) {
 		ch = getc(targetFile);
 
-		// printf("scanner: %d, %c, state: %d \n", ch, ch, state);
-
 		switch (state) {
 
 			case START_STATE:
@@ -203,11 +201,27 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 				break;
 
 			case RADIX_POINT_STATE:
-				state = radix_point(ch, tkn_str);
+				state = radix_point(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 			
 			case DOUBLE_SIMPLE_STATE:
 				state = double_simple(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+				break;
+
+			case NON_ZERO_STATE:
+				state = non_zero(ch, tkn_str);
+				break;
+
+			case EXPONENT_STATE:
+				state = exponent(ch, tkn_str);
+				break;
+
+			case EXPONENT_SIGN_STATE:
+				state = exponent_sign(ch, tkn_str);
+				break;
+
+			case DOUBLE_EXPONENT_STATE:
+				state = double_exponent(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 			
 				
@@ -337,8 +351,7 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 			return DONE_STATE;
 
 		case '.':
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ".");
-			return DONE_STATE;
+			return RADIX_POINT_STATE;
 
 		case ',':
 			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ",");
@@ -783,7 +796,6 @@ int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynam
 		return NON_ZERO_INTEGER_STATE;
 	}
 	else if (ch == '.') {
-		insert_last(tkn_str, ch);
 		return RADIX_POINT_STATE;
 	}
 	else if (ch == 'e' || ch == 'E') {
@@ -807,7 +819,6 @@ int int_zero(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_strin
 		return NON_ZERO_STATE;
 	}
 	else if (ch == '.') {
-		insert_last(tkn_str, ch);
 		return RADIX_POINT_STATE;
 	}
 	else if (ch == 'e' || ch == 'E') {
@@ -821,13 +832,17 @@ int int_zero(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_strin
 }
 
 
-int radix_point(int ch, dynamic_string_ptr tkn_str) {
+int radix_point(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (isdigit(ch)) {
+		// vloží se tečka až zde aby se nekomplikovalo uvolňování paměti
+		insert_last(tkn_str, '.');
 		insert_last(tkn_str, ch);
 		return DOUBLE_SIMPLE_STATE;
 	}
 
-	return ERROR_STATE;
+	ungetc(ch, targetFile);
+	create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ".");
+	return DONE_STATE;
 }
 
 
@@ -846,7 +861,74 @@ int double_simple(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_
 	}
 	else if (ch == 'd' || ch == 'D') {
 		insert_last(tkn_str, ch);
-		return DOUBLE_D_STATE;
+		create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
+		return DONE_STATE;
+	}
+
+	ungetc(ch, targetFile);
+	create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
+	return DONE_STATE;
+}
+
+
+int non_zero(int ch, dynamic_string_ptr tkn_str) {
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return NON_ZERO_STATE;
+	}
+	// podržítko se konzumuje
+	else if (ch == '_') {
+		return NON_ZERO_STATE;
+	}
+	else if (ch == 'e' || ch == 'E') {
+		insert_last(tkn_str, ch);
+		return EXPONENT_STATE;
+	}
+	else if (ch == '.') {
+		return RADIX_POINT_STATE;
+	}
+
+	return ERROR_STATE;
+}
+
+
+int exponent(int ch, dynamic_string_ptr tkn_str) {
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return DOUBLE_EXPONENT_STATE;
+	}
+	else if (ch == '-' || ch == '+') {
+		insert_last(tkn_str, ch);
+		return EXPONENT_SIGN_STATE;
+	}
+
+	return ERROR_STATE;
+}
+
+
+int exponent_sign(int ch, dynamic_string_ptr tkn_str) {
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return DOUBLE_EXPONENT_STATE;
+	}
+
+	return ERROR_STATE;
+}
+
+
+int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return DOUBLE_EXPONENT_STATE;
+	}
+	// podržítko se konzumuje
+	else if (ch == '_') {
+		return DOUBLE_EXPONENT_STATE;
+	}
+	else if (ch == 'd' || ch == 'D') {
+		insert_last(tkn_str, ch);
+		create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
+		return DONE_STATE;
 	}
 
 	ungetc(ch, targetFile);
