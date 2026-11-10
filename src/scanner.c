@@ -47,7 +47,7 @@ const char *keywords[] = {
 };
 
 
-int const list_properties_len = 10;
+int const list_properties_len = 8;
 
 
 const char *list_properties[] = {
