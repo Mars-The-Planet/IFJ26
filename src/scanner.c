@@ -80,6 +80,11 @@ int set_target_file(char *file_name) {
 }
 
 
+/** 
+ * @brief Hlavní funkce LA, která čte z cílového souboru a postupně vrací tokeny a odsazení z něj
+ * @param tkn_ptr ukazatel na token který bude využit na předání nasledujícího tokenu
+ * @param indent_stack_ptr ukazatal na zásobnik určující odsazení aktuálního řádku
+*/
 int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	scannerState state = START_STATE;
 	clear_token(tkn_ptr);
@@ -253,6 +258,11 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
+/**
+ * @brief Sčítá členy zásobníku, měl by být volán pouze nad zásobníkem naplňeným inty
+ * @param stack_ptr ukazatel na zásobník jehož členové mají být posčítáni 
+ * @return hodnota součtu všech prvků v zásobníku
+ */
 int sum_stack(stackPtr stack_ptr) {
 	int sum = 0;
 	stackPtr tempStackPtr = stack_ctor();
@@ -279,7 +289,14 @@ int sum_stack(stackPtr stack_ptr) {
 }
 
 
-int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value) {
+/**
+ * @brief Funkce tvořící navratové hodnoty LA, vytvoří token a nastaví odsazení
+ * @param tkn_ptr token do kterého nastavíme příslušný tokenType a řetězec reprezentují jeho hodnotu
+ * @param indent_stack_ptr zásobník do kterého je uloženo aktualní odsazení které se také vypočítá v této funkci
+ * @param state stav který nastavíme tokenu
+ * @param value řetězec držící hodnotu kterou uložíme do tokenu
+ */
+void create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, tokenType state, char *value) {
 	if (lastTokenWasEOL && 0 != strcmp(value, "EOL")) {
 		// snažíme se klesnout na aktualní odsazení
 		if (indentLineCount < sum_stack(indent_stack_ptr)) {
@@ -304,11 +321,13 @@ int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state
 
 	tkn_ptr->type = state;
 	tkn_ptr->value = value;
-
-	return 0;
 }
 
 
+/**
+ * @brief Uvolní paměť drženou pro řetězec v tokenu v případě že jsme využívali nafukovací řetězec
+ * @param tkn_ptr token ze kterého získame ukazatel na místo v paměti s řetězcem
+ */
 void clear_token(tokenPtr tkn_ptr) {
 	tokenType type = tkn_ptr->type;
 	if (type == KEYWORD_TYPE || type == ID_TYPE || type == LIST_PROPERTY_TYPE || type == STRING_TYPE || type == INT_TYPE || type == DOUBLE_TYPE) {
@@ -317,6 +336,14 @@ void clear_token(tokenPtr tkn_ptr) {
 }
 
 
+/**
+ * @brief FUnkce počátečního stavu KA. LA.
+ * @param ch načtený znak se kterým vstupjeme do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž potencíalně budeme ukládat hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	switch (ch) {
 
@@ -444,6 +471,14 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 }
 
 
+/**
+ * @brief Funkce rozhodující do kterého stavu KA se půjde po načtení jednoho &
+ * tento stav očekává další & jinak vrací error stav
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '&':
@@ -456,6 +491,14 @@ int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
+/**
+ * @brief Funkce rozhodující do kterého stavu KA se půjde po načtení jednoho |
+ * tento stav očekává další | jinak vrací error stav
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int bar(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 		case '|':
@@ -664,7 +707,7 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) 
 
 
 int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
-	if (can_be_in_IDs_keywords(ch)) {
+	if (can_be_in_IDs(ch)) {
 		insert_last(tkn_str, ch);
 		return AT_STATE;
 	}
@@ -811,7 +854,7 @@ int mutliline_string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, d
 
 
 int underscore(int ch, dynamic_string_ptr tkn_str) {
-	if (can_be_in_IDs_keywords(ch)) {
+	if (can_be_in_IDs(ch)) {
 		insert_last(tkn_str, ch);
 		return ID_TYPE;
 	}
@@ -821,7 +864,7 @@ int underscore(int ch, dynamic_string_ptr tkn_str) {
 
 
 int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
-	if (can_be_in_IDs_keywords(ch)) {
+	if (can_be_in_IDs(ch)) {
 		insert_last(tkn_str, ch);
 		return IDENTIFIER_STATE;
 	}
@@ -986,7 +1029,12 @@ int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynami
 }
 
 
-bool can_be_in_IDs_keywords(int ch) {
+/**
+ * @brief Funkce zjišťující zda znak může být součástí id (alfanumerické znaky a podržítko)
+ * @param ch znak který kontrolujeme
+ * @return true pokud může, false pokud ne
+ */
+bool can_be_in_IDs(int ch) {
 	if (isalnum(ch) || ch == '_') {
 		return true;
 	}
@@ -995,6 +1043,13 @@ bool can_be_in_IDs_keywords(int ch) {
 }
 
 
+/**
+ * @brief Funkce zjišťující zda řetězec je součástí pole řetězců
+ * @param word řetězec jehož přítomnost kontrolujeme
+ * @param list pole řetězců ve kterém word hledáme
+ * @param len délka pole řetězců jenž prohledáváme
+ * @return true pokud word najdeme, false pokud ne
+ */
 bool is_word_in_list(char* word, const char **list, int len) {
 	for (int i = 0; i < len; i++) {
 		if (strcmp(word, list[i]) == 0) {
