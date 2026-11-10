@@ -586,7 +586,17 @@ int simple_multiline_comment_end(int ch) {
 		case '/':
 			return START_STATE;
 
+		case '*':
+			return SIMPLE_MULTILINE_COMMENT_END_STATE;
+
+		case '\n':
+			return MULTILINE_STRING_STATE;
+
 		default:
+			// další hrana KA
+			if (isprint(ch)) {
+				return MULTILINE_COMMENT_START_STATE;
+			}
 			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
 			return ERROR_STATE;
 	}	
@@ -607,15 +617,18 @@ int multiline_comment(int ch) {
 
 
 int multiline_comment_end(int ch) {
-	switch (ch) {
+	if (ch == '/') {
+		return MULTILINE_COMMENT_TAIL_STATE;
+	}
+	else if (ch == '*') {
+		return MULTILINE_COMMENT_END_STATE;
+	}
+	else if (isprint(ch) && ch == '\n') {
+		return MULTILINE_STRING_STATE;
+	}
 
-		case '/':
-			return MULTILINE_COMMENT_TAIL_STATE;
-
-		default:
-			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
-			return ERROR_STATE;
-	}		
+	fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
+	return ERROR_STATE;	
 }
 
 
