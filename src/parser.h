@@ -13,24 +13,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-
-/**
- * @brief Výčet tokenů (smaže se při spojování větví)
- */
-typedef enum tokenType {
-
-    KEYWORD,
-    ID,
-    LIST_PROPERTY, 
-    SYMBOL, 
-    OPERATOR, 
-    STRING,
-    INT,
-    DOUBLE,
-    UNIT, // void
-
-} tokenType;
-
+#include "scanner.h"
 
 /**
  * 
@@ -87,23 +70,18 @@ typedef enum ASTNodeType {
 
 } NodeType;
 
+
 /**
  * 
- * @brief struktura pro předané tokeny ze scanneru
+ * @brief struktura spojového seznamu
  */
-typedef struct SToken {
+typedef struct ListParam {
 
-    tokenType type;
-    union {
+    struct ListParam *next;
+    dataType type;
+    char *param_name;
 
-        int int_value;
-        double double_value;
-        bool bool_value;
-        char *string_value;
-
-    } valueType;
-
-} token;
+} ListParam;
 
 /**
  * 
@@ -111,20 +89,8 @@ typedef struct SToken {
  */
 typedef struct SHead {
 
-    nodePtr first;
+    ListParam *first;
 } head; 
-
-/**
- * 
- * @brief struktura spojového seznamu
- */
-typedef struct SNode {
-
-    nodePtr next;
-    dataType type;
-    char *param_name;
-
-} node, *nodePtr;
 
 /**
  * 
