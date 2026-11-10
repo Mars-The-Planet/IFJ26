@@ -562,6 +562,10 @@ int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	else if (isprint(ch)) {
 		return SINGLELINE_COMMENT_STATE;
 	}
+	if (ch == EOF) {
+		create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOF");
+		return DONE_STATE;
+	}
 
 	fprintf(stderr, "Radkovy komentar muze obsahovat pouze znaky a je ukoncen novym radkem\n");
 	return ERROR_STATE;
