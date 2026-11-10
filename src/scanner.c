@@ -305,11 +305,10 @@ int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state
 }
 
 
-int clear_token(tokenPtr tkn_ptr) {
+void clear_token(tokenPtr tkn_ptr) {
 	tokenType type = tkn_ptr->type;
 	if (type == KEYWORD_TYPE || type == ID_TYPE || type == LIST_PROPERTY_TYPE || type == STRING_TYPE || type == INT_TYPE || type == DOUBLE_TYPE) {
 		free(tkn_ptr->value);
-		//destoy_dynamic_string(token_ptr->value);
 	}
 }
 

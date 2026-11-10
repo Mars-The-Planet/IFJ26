@@ -106,7 +106,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 int sum_stack(stackPtr stack_ptr);
 
 
-int clear_token(tokenPtr tkn_ptr);
+void clear_token(tokenPtr tkn_ptr);
 
 
 int create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, scannerState state, char* value);
@@ -173,9 +173,6 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str);
 
 
 int string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
-
-
-//int multiline_string_open(int ch);
 
 
 int multiline_string(int ch, dynamic_string_ptr tkn_str);
