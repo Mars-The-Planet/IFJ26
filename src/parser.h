@@ -36,12 +36,12 @@ typedef enum tokenType {
  */
 typedef enum dataType {
 
-    INT,
-    DOUBLE,
-    STRING,
-    UNIT,
-    BOOL,
-    LIST,
+    TYPE_INT,
+    TYPE_DOUBLE,
+    TYPE_STRING,
+    TYPE_UNIT,
+    TYPE_BOOL,
+    TYPE_LIST,
 
 } dataType;
 
@@ -89,6 +89,7 @@ typedef struct AST_Node AST_Node;
 struct AST_Node {
 
     NodeType type;
+    AST_Node *next;
     union {
         // část pro binární operace
         struct {
@@ -134,6 +135,37 @@ struct AST_Node {
 
         } funData;
 
+        // část pro volání funkce 
+        struct {
+
+            char *call_fun_name;
+            AST_Node *fun_args;
+
+
+        } callFunData;
+
+
+        // část se kterou budu většinou ukončovat AST strom 
+        struct {
+
+            dataType type;
+            union {
+
+                int int_value;
+                double double_value;
+                bool bool_value;
+                char *string_value;
+
+            } valueType;
+
+        } elemData;
+
+        // část pro situaci kdy se používá proměná mimo deklaraci
+        struct {
+
+            char *id_name;
+
+        } idVarData;
 
 
     } nodeData;
