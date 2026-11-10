@@ -142,7 +142,7 @@ struct AST_Node {
         struct {
 
             char *fun_name;
-            head param_list;
+            head *param_list;
             dataType return_type;      
             AST_Node *body;
 
