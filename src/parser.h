@@ -30,14 +30,40 @@ typedef enum tokenType {
 
 } tokenType;
 
+
+/**
+ * @brief Výčet datových typů
+ */
+typedef enum dataType {
+
+    INT,
+    DOUBLE,
+    STRING,
+    UNIT,
+    BOOL,
+    LIST,
+
+} dataType;
+
 /**
  * @brief Výčet všech uzlů které můžou nastat
  */
-
 typedef enum ASTNodeType {
 
-    BINOP,
-    UNOP,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    LESS,
+    EQUALS,
+    LESS_EQUAL,
+    GREATER,
+    GREATER_EQUEAL,
+    AND,
+    OR,
+    UMINUS,
+    UPLUS,
+    NOT,
     IF,
     WHILE,
     FOR,
@@ -58,7 +84,61 @@ typedef enum ASTNodeType {
 
 } NodeType;
 
+typedef struct AST_Node AST_Node;
 
+struct AST_Node {
+
+    NodeType type;
+    union {
+        // část pro binární operace
+        struct {
+
+            AST_Node *left;
+            AST_Node *right;
+
+        } biData;
+        
+        // část pro unární operace 
+        struct {
+
+            AST_Node *single;
+
+        }uData;
+
+        // část pro if podmínku 
+        struct {
+
+            AST_Node  *condition;
+            AST_Node  *then_part;
+            AST_Node  *else_part; 
+
+        } ifData;
+        
+        //část pro data proměnné
+        struct {
+
+            bool isvar;
+            char *var_name;
+            tokenType *Datatype;
+            AST_Node *expresion;
+
+        } varData;
+
+        // část pro data funkce
+        struct {
+
+            char *fun_name;
+            head param_list;
+            dataType return_type;      
+            AST_Node *body;
+
+        } funData;
+
+
+
+    } nodeData;
+
+};
 
 typedef struct SToken {
 
