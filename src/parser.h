@@ -77,9 +77,9 @@ typedef enum ASTNodeType {
  */
 typedef struct ListParam {
 
-    struct ListParam *next;
     dataType type;
     char *param_name;
+    struct ListParam *next;
 
 } ListParam;
 
