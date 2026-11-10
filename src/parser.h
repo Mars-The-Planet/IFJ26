@@ -2,7 +2,7 @@
 * @file parser.h
 * @author Jonáš Vávra (x273960)
 *
-* @brief Imlementace syntaxtického analyzátoru
+* @brief Imlementace syntaktického analyzátoru
 */
 
 #ifndef PARSER_H
@@ -11,10 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 
 /**
- * @brief Výčet tokenů
+ * @brief Výčet tokenů (smaže se při spojování větví)
  */
 typedef enum tokenType {
 
@@ -32,6 +33,7 @@ typedef enum tokenType {
 
 
 /**
+ * 
  * @brief Výčet datových typů
  */
 typedef enum dataType {
@@ -46,6 +48,7 @@ typedef enum dataType {
 } dataType;
 
 /**
+ * 
  * @brief Výčet všech uzlů které můžou nastat
  */
 typedef enum ASTNodeType {
@@ -59,20 +62,20 @@ typedef enum ASTNodeType {
     LESS_EQUAL,
     GREATER,
     GREATER_EQUEAL,
-    AND,
-    OR,
+    AND_N,
+    OR_N,
     UMINUS,
     UPLUS,
     NOT,
-    IF,
-    WHILE,
-    FOR,
+    IF_N,
+    WHILE_N,
+    FOR_N,
     IDENT,
     LIST,
     DOT_ACCESS,
     BLOCK, // pro posloupnost příkazů
     ASSIGN,
-    VAR_DEF, // TODO: bool kde budu rozohodovat jestli se jedná od VAL(true) nebo VAR(false)
+    VAR_DEF, 
     FUN_DEF,
     FUN_CALL,
     LITERAL_INT,
@@ -84,14 +87,58 @@ typedef enum ASTNodeType {
 
 } NodeType;
 
-typedef struct AST_Node AST_Node;
+/**
+ * 
+ * @brief struktura pro předané tokeny ze scanneru
+ */
+typedef struct SToken {
 
+    tokenType type;
+    union {
+
+        int int_value;
+        double double_value;
+        bool bool_value;
+        char *string_value;
+
+    } valueType;
+
+} token;
+
+/**
+ * 
+ * @brief struktura pro zaznačení začátku spojového seznamu
+ */
+typedef struct SHead {
+
+    nodePtr first;
+} head; 
+
+/**
+ * 
+ * @brief struktura spojového seznamu
+ */
+typedef struct SNode {
+
+    nodePtr next;
+    dataType type;
+    char *param_name;
+
+} node, *nodePtr;
+
+/**
+ * 
+ * @brief struktura abstraktního derivačního stromu
+ * @param isvar bool rozeznávající proměnou (1) a konstantu (0)
+ */
+typedef struct AST_Node AST_Node;
 struct AST_Node {
 
     NodeType type;
     AST_Node *next;
+    dataType result;
     union {
-        // část pro binární operace
+        // scénář pro binární operace
         struct {
 
             AST_Node *left;
@@ -99,14 +146,14 @@ struct AST_Node {
 
         } biData;
         
-        // část pro unární operace 
+        // scénář pro unární operace
         struct {
 
             AST_Node *single;
 
         }uData;
 
-        // část pro if podmínku 
+        // scénář pro if podmínku
         struct {
 
             AST_Node  *condition;
@@ -115,7 +162,7 @@ struct AST_Node {
 
         } ifData;
         
-        //část pro data proměnné
+        // scénář pro proměnou
         struct {
 
             bool isvar;
@@ -125,7 +172,7 @@ struct AST_Node {
 
         } varData;
 
-        // část pro data funkce
+        // scénář pro data funkce
         struct {
 
             char *fun_name;
@@ -135,7 +182,7 @@ struct AST_Node {
 
         } funData;
 
-        // část pro volání funkce 
+        // scénář pro volání funkce 
         struct {
 
             char *call_fun_name;
@@ -145,10 +192,9 @@ struct AST_Node {
         } callFunData;
 
 
-        // část se kterou budu většinou ukončovat AST strom 
+        // scénář pro poslední část AST stromu 
         struct {
 
-            dataType type;
             union {
 
                 int int_value;
@@ -160,37 +206,14 @@ struct AST_Node {
 
         } elemData;
 
-        // část pro situaci kdy se používá proměná mimo deklaraci
+        // scénář když se používá proměnná mimo deklaraci
         struct {
 
             char *id_name;
 
         } idVarData;
-
-
     } nodeData;
 
 };
-
-typedef struct SToken {
-
-    tokenType;
-    nodePtr ptr;
-
-} token;
-
-typedef struct SNode {
-
-    nodePtr next;
-    void *value;
-
-} node, *nodePtr;
-
-typedef struct SHead {
-
-    nodePtr first;
-} head; 
-
-
 
 #endif // PARSER_H
