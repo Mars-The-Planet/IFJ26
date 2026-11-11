@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-
+#include "generator.h"
 static int actual_label_number = 0;
 
 /**
