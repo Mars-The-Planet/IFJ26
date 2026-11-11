@@ -248,13 +248,65 @@ void logical_or(){
 }
 
 /**
- * @brief struktura pro inarní plus
+ * @brief funkce pro inarní plus
  * @param node ukazatel na uzelk ass
  */
 void unar_plus(Node *node){
   generate_node(node->single);
 }
 
+/**
+ * @brief funkce pro sčítání a kokatenaci řetězců
+ * @param node ukazatel na uzel
+ */
+void add(Node *node){
+  get_operands(node);
+
+  //stačí jeden, sémantika zkontroluj epředtím;
+  if (node->left->type == TYPE_STRING){
+    printf("POPS GF@$t2\n");
+    printf("POPS GF@$t1\n");
+
+    //concat nemá zásobníkovou verzi
+    printf("CONCAT GF@$t1 GF@$t1 GF@$t2\n");
+    printf("PUSHS GF@$t1\n");
+  };
+
+  else
+    printf("ADDS\n");
+}
+/**
+ * @brief funkce pro odečítání
+ * @param node ukazatel na uzel
+ */
+void sub(Node *node){
+  printf("SUBS\n")
+}
+/**
+ * @brief funkce pro násobení
+ * @param node ukazatel na uzel
+ */
+void mul(Node *node){
+  get_operands(node);
+
+  printf("MULS\n");
+}
+
+/**
+ * @brief fuknce pro dělení
+ * tady jsem s ai konzultoval zda převádět na float nebo ne, ai mě přesvědčilo že chování scaly odpovídá
+ * nepřevádět na float a použít funkci DIVS
+ * @param node ukazatel na uzel
+ */
+void div(Node *node){
+  get_operands(node);
+
+  if (node->left->type == TYPE_FLOAT){
+    printf("DIVS\n");
+  }
+  else
+    printf("IDIVS\n");
+}
 /**
  * @brief generátor kódu pro jednotlivé uzly AST
  *  používá switch a prokaždý uzel podle jeho typu zavolá funkci která vygeneruje kód pro daný uzel
@@ -308,21 +360,20 @@ generate_node(Node *node){
     case UPLUS:
       printf("Today is Saturday");
       break;     
-      //todo: doplnit další uzly AST
-
+      
     case ADD:
-      printf("Today is Saturday");
-    break;
+      add(node);
+      break;
     case SUB:
-      printf("Today is Saturday");
-    break;
+      sub(node);
+      break;
     case MUL:
-      printf("Today is Saturday");
-    break;
+      mul(node);
+      break;
     case DIV:
-      printf("Today is Saturday");
-    break;
-
+      div(node);
+      break;
+//todo: doplnit další uzly AST
 
 
  

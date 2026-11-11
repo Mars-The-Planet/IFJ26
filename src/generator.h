@@ -160,6 +160,12 @@ void unar_minus(Node *node);
 void add(Node *node);
 
 /**
+ * @brief funkce pro odečítání
+ * @param node ukazatel na uzel
+ */
+void sub(Node *node);
+
+/**
  * @brief Generátor pro násobení
  * @param node Ukazatel na uzel AST
  */
