@@ -5,26 +5,45 @@
  *
  * @brief Implementace lexikálního analyzátoru
  * @todo Nápomocné error zprávy
- * @todo vyresit tab - whitespace
+ * @todo vyresit tab - lex. chyba
  */
 
 #include "scanner.h"
 
+
+/**
+ * @brief Soubor ze kterého scanner čerpá jednotlivé znaky
+ */
 FILE *targetFile;
 
 
+/**
+ * @brief Počítadlo odsazení
+ */
 int indentTotalCount = 0;
 
 
+/**
+ * @brief Počítadlo odsazení na aktuálním řádku
+ */
 int indentLineCount = 0;
 
 
+/**
+ * @brief Sleduje zda poslední token byl EOL pro výpočet odsazení
+ */
 bool lastTokenWasEOL = false;
 
 
+/**
+ * @brief Délka seznamu klíčových slov
+ */
 int const keywords_len = 18;
 
 
+/**
+ * @brief Seznam klíčových slov
+ */
 const char *keywords[] = {
 	"def",
 	"do",
@@ -47,9 +66,15 @@ const char *keywords[] = {
 };
 
 
+/**
+ * @brief Délka seznamu funkcí pole
+ */
 int const list_properties_len = 8;
 
 
+/**
+ * @brief Seznam funkcí pole
+ */
 const char *list_properties[] = {
 	"drop",
 	"take",
@@ -235,19 +260,19 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 				state = double_exponent(ch, tkn_ptr, indent_stack_ptr, tkn_str);
 				break;
 
-			case INT_UNDERSCORE:
+			case INT_UNDERSCORE_STATE:
 				state = int_underscore(ch, tkn_str);
 				break;
 
-			case ZERO_UNDERSCORE:
+			case ZERO_UNDERSCORE_STATE:
 				state = zero_underscore(ch, tkn_str);
 				break;
 
-			case EXPONENT_UNDERSCORE:
+			case EXPONENT_UNDERSCORE_STATE:
 				state = exponent_underscore(ch, tkn_str);
 				break;
 
-			case RADIX_UNDERSCORE:
+			case RADIX_UNDERSCORE_STATE:
 				state = radix_underscore(ch, tkn_str);
 				break;
 			
@@ -351,6 +376,41 @@ void clear_token(tokenPtr tkn_ptr) {
 		free(tkn_ptr->value);
 	}
 }
+
+
+/**
+ * @brief Funkce zjišťující zda znak může být součástí id (alfanumerické znaky a podržítko)
+ * @param ch znak který kontrolujeme
+ * @return true pokud může, false pokud ne
+ */
+bool can_be_in_IDs(int ch) {
+	if (isalnum(ch) || ch == '_') {
+		return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief Funkce zjišťující zda řetězec je součástí pole řetězců
+ * @param word řetězec jehož přítomnost kontrolujeme
+ * @param list pole řetězců ve kterém word hledáme
+ * @param len délka pole řetězců jenž prohledáváme
+ * @return true pokud word najdeme, false pokud ne
+ */
+bool is_word_in_list(char* word, const char **list, int len) {
+	for (int i = 0; i < len; i++) {
+		if (strcmp(word, list[i]) == 0) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+// ============================== FUNKCE STAVŮ ==============================
 
 
 /**
@@ -528,6 +588,14 @@ int bar(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
+/**
+ * @brief Funkce rozhodující do kterého stavu KA se půjde po načtení jednoho !
+ * z tohoto stavu můžeme získat operátory != a nebo !
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
@@ -544,6 +612,14 @@ int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
+/**
+ * @brief Funkce rozhodující do kterého stavu KA se půjde po načtení jednoho =
+ * z tohoto stavu můžeme získat operátory == a nebo =
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
@@ -560,6 +636,14 @@ int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
+/**
+ * @brief Funkce rozhodující do kterého stavu KA se půjde po načtení jednoho >
+ * z tohoto stavu můžeme získat operátory >= a nebo >
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int greater_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
@@ -576,6 +660,14 @@ int greater_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
+/**
+ * @brief Funkce rozhodující do kterého stavu KA se půjde po načtení jednoho znaku <
+ * z tohoto stavu můžeme nakonec dostat operátory: <=, <- a nebo prostě <
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int less_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
@@ -596,6 +688,14 @@ int less_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
+/**
+ * @brief Funkce rozhodující do kterého stavu KA se půjde po načtení jednoho znaku /
+ * z tohoto stavu můžeme nakonec dostat operátor / a nebo přejít do začátku komentáře
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
@@ -614,6 +714,15 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav konzumace obsahu jednořátkového komentáře
+ * tisknutelný znak konzumujeme, LF ukončí řádek s komentářem
+ * jednořátkový komentář nakonec vracíme jako symbol EOL
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	if (ch == '\n') {
 		create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOL");
@@ -632,6 +741,14 @@ int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav začátku několikařádkového komentáře
+ * * přejdeme do stavu ukočnování jednoduchého několikařádkového komentáře
+ * LF značí že se bude jednat o několikařádkový komentář, který bude doopravdy na několik řádků
+ * tisknutelný znak konzumujeme
+ * @param ch načtený znak do automatu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int multiline_comment_start(int ch) {
 	if (ch == '*') {
 		return SIMPLE_MULTILINE_COMMENT_END_STATE;
@@ -648,6 +765,15 @@ int multiline_comment_start(int ch) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav KA připraveného ukončit jednoduchý několikařádkový komentář
+ * / značí konec jednoduchého několikařádkového komentáře - scanner to bere jako whitespace
+ * LF značí že se bude jednat o několikařádkový komentář, který bude doopravdy na několik řádků
+ * tisknutelný znak konzumujeme
+ * * vracíme se zpátky do stavu obsahu jednoduchého několikařádkového komentáře, * je součástí komentáře
+ * @param ch načtený znak do automatu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int simple_multiline_comment_end(int ch) {
 	switch (ch) {
 
@@ -671,6 +797,13 @@ int simple_multiline_comment_end(int ch) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav obsha několikařádkového komentáře
+ * * nás připraví na případné ukočnení komentáře
+ * LF a tisknutelné znaky konzumujeme
+ * @param ch načtený znak do automatu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int multiline_comment(int ch) {
 	if (ch == '*') {
 		return MULTILINE_COMMENT_END_STATE;
@@ -684,6 +817,13 @@ int multiline_comment(int ch) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav těsně před ukončením několikařádkového komentáře kontrolující zda * je součástí komentáře a nebo jej ukočnuje
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int multiline_comment_end(int ch) {
 	if (ch == '/') {
 		return MULTILINE_COMMENT_TAIL_STATE;
@@ -700,6 +840,15 @@ int multiline_comment_end(int ch) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav ukončení několikařádkového komentáře
+ * kontruljeme že za takovýmto komentářem není další token
+ * a čím je řádek ukončen
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	switch (ch) {
 
@@ -713,7 +862,7 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) 
 
 		case EOF:
 			ungetc(ch, targetFile);
-			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOL");
+			create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOF");
 			return DONE_STATE;
 
 		default:
@@ -723,6 +872,14 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) 
 }
 
 
+/**
+ * @brief Funkce reprezentující stav začátku anotace
+ * využívá se pouze pro označní main funkce s @main
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (can_be_in_IDs(ch)) {
 		insert_last(tkn_str, ch);
@@ -741,6 +898,13 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr t
 }
 
 
+/**
+ * @brief Funkce reprezentující stav začátku řetězce
+ * zjišťujeme zda se bude jednat o jednoduchý řetězec a nebo prazdný (to také může znamenat začátek více řádkového řetězce)
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int string_open(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return EMPTY_STRING_STATE;
@@ -757,6 +921,15 @@ int string_open(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav prázdného řetězce
+ * zjišťujeme zda se vskutku jedná a prázdný řetězec nebo o začátek několikařádkového
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int empty_string(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_STATE;
@@ -768,6 +941,15 @@ int empty_string(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_st
 }
 
 
+/**
+ * @brief Funkce reprezentující stav obsahuje jedoduchého řetězce
+ * \ značí začátek escape sekvence, " značí konec řetězce
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (ch == '\\') {
 		return STRING_ESCAPE_SEQUENCE_STATE;
@@ -785,6 +967,15 @@ int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 }
 
 
+/**
+ * @brief Funkce reprezentující stav escape sekvence v jedoduchém řetězci
+ * platné escape sekvence jsou: \\, \", \n, \r a \t
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
 	switch (ch) {
 
@@ -814,6 +1005,13 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující obsah víceřádkového řetězce
+ * " by mohli znamenat jeho ukončení, ostatní tisknutelné znaky jednoduše vkládame do hodnoty tokenu
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int multiline_string(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_CLOSING_STATE;
@@ -827,6 +1025,13 @@ int multiline_string(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav prvních potenciálně ukončovacích " několikařádkového komentáře
+ * v případě že se ukáže že " nejsou ukončovací budou do řetězce vloženy
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_END_STATE;
@@ -842,6 +1047,13 @@ int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav druhých potenciálně ukončovacích " několikařádkového komentáře
+ * v případě že se ukáže že " nejsou ukončovací budou do řetězce vloženy
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_DONE_STATE;
@@ -858,6 +1070,16 @@ int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav třetích potenciálně ukončovacích " několikařádkového komentáře
+ * v případě že se ukáže že " nejsou ukončovací budou do řetězce vloženy
+ * po třech " už nemůže následovat jiný znak
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int mutliline_string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		insert_last(tkn_str, '"');
@@ -870,6 +1092,13 @@ int mutliline_string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, d
 }
 
 
+/**
+ * @brief Funkce reprezentující stav jednoho podržítka
+ * jedno samostatné podřžítko nemůže tvořit ID samo o sobě ale může být jeho začátkem
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int underscore(int ch, dynamic_string_ptr tkn_str) {
 	if (can_be_in_IDs(ch)) {
 		insert_last(tkn_str, ch);
@@ -880,6 +1109,14 @@ int underscore(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav ID ve kterém čteme celý jeho název
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (can_be_in_IDs(ch)) {
 		insert_last(tkn_str, ch);
@@ -899,6 +1136,14 @@ int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_stri
 }
 
 
+/**
+ * @brief Funkce reprezentující stav ve kterém čteme celou hodnotu nenulového celočíselného literálu
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -906,7 +1151,7 @@ int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynam
 	}
 	// podržítko se konzumuje
 	else if (ch == '_') {
-		return INT_UNDERSCORE;
+		return INT_UNDERSCORE_STATE;
 	}
 	else if (ch == '.') {
 		return RADIX_POINT_STATE;
@@ -922,9 +1167,15 @@ int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynam
 }
 
 
+/**
+ * @brief Funkce reprezentující stav konzumující _ mezi číslicemi nenulového celočíselného literálu
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int int_underscore(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '_') {
-		return INT_UNDERSCORE;
+		return INT_UNDERSCORE_STATE;
 	}
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -935,6 +1186,15 @@ int int_underscore(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav celočíselného literálu 0 
+ * zjišťujeme zda se nejdná o začátek desetinného literálu
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int int_zero(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -942,7 +1202,7 @@ int int_zero(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_strin
 	}
 	// podržítko se konzumuje
 	else if (ch == '_') {
-		return NON_ZERO_STATE;
+		return ZERO_UNDERSCORE_STATE;
 	}
 	else if (ch == '.') {
 		return RADIX_POINT_STATE;
@@ -958,6 +1218,15 @@ int int_zero(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_strin
 }
 
 
+/**
+ * @brief Funkce reprezentující stav tečky
+ * zjišťujeme zda se nejdná o symbol . a nebo začátek desetinného literálu
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int radix_point(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (isdigit(ch)) {
 		// vloží se tečka až zde aby se nekomplikovalo uvolňování paměti
@@ -972,6 +1241,14 @@ int radix_point(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_st
 }
 
 
+/**
+ * @brief Funkce reprezentující stav desetinného literálu bez exponentu či ukončujícího D/d
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int double_simple(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -979,7 +1256,7 @@ int double_simple(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_
 	}
 	// podržítko se konzumuje
 	else if (ch == '_') {
-		return RADIX_UNDERSCORE;
+		return RADIX_UNDERSCORE_STATE;
 	}
 	else if (ch == 'e' || ch == 'E') {
 		insert_last(tkn_str, ch);
@@ -995,9 +1272,15 @@ int double_simple(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_
 }
 
 
+/**
+ * @brief Funkce reprezentující stav konzumující _ mezi číslicemi jednoduchého desetinného literálu bez exponentu či ukončujícího D/d
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int radix_underscore(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '_') {
-		return RADIX_UNDERSCORE;
+		return RADIX_UNDERSCORE_STATE;
 	}
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -1008,6 +1291,12 @@ int radix_underscore(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav kdy je načtené číslo začínající nulou ale není ještě jasné zda se z něj stane desetinný literál
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int non_zero(int ch, dynamic_string_ptr tkn_str) {
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -1015,7 +1304,7 @@ int non_zero(int ch, dynamic_string_ptr tkn_str) {
 	}
 	// podržítko se konzumuje
 	else if (ch == '_') {
-		return NON_ZERO_STATE;
+		return ZERO_UNDERSCORE_STATE;
 	}
 	else if (ch == 'e' || ch == 'E') {
 		insert_last(tkn_str, ch);
@@ -1029,9 +1318,15 @@ int non_zero(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav konzumující _ mezi číslicemi čísla začínajících nulou
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int zero_underscore(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '_') {
-		return ZERO_UNDERSCORE;
+		return ZERO_UNDERSCORE_STATE;
 	}
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -1042,6 +1337,13 @@ int zero_underscore(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav po přečtení E/e v desetinném literálu
+ * může po něm následovat +/-
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int exponent(int ch, dynamic_string_ptr tkn_str) {
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -1056,6 +1358,12 @@ int exponent(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav určující znaménko exponentu
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int exponent_sign(int ch, dynamic_string_ptr tkn_str) {
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -1066,6 +1374,15 @@ int exponent_sign(int ch, dynamic_string_ptr tkn_str) {
 }
 
 
+/**
+ * @brief Funkce reprezentující stav desetinného literálu s exponentem
+ * sleduje zda nekončí na D/d a čte všechny číslice jeho exponentu
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str) {
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -1073,7 +1390,7 @@ int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynami
 	}
 	// podržítko se konzumuje
 	else if (ch == '_') {
-		return EXPONENT_UNDERSCORE;
+		return EXPONENT_UNDERSCORE_STATE;
 	}
 	// nepovinné d/D na konci double se ignoruje
 	else if (!(ch == 'd' || ch == 'D')) {
@@ -1085,9 +1402,15 @@ int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynami
 }
 
 
+/**
+ * @brief Funkce reprezentující stav konzumující _ mezi číslicemi jednoduchého desetinného literálu s exponentem
+ * @param ch načtený znak do automatu
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState 
+ */
 int exponent_underscore(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '_') {
-		return EXPONENT_UNDERSCORE;
+		return EXPONENT_UNDERSCORE_STATE;
 	}
 	if (isdigit(ch)) {
 		insert_last(tkn_str, ch);
@@ -1095,38 +1418,6 @@ int exponent_underscore(int ch, dynamic_string_ptr tkn_str) {
 	}
 
 	return ERROR_STATE;
-}
-
-
-/**
- * @brief Funkce zjišťující zda znak může být součástí id (alfanumerické znaky a podržítko)
- * @param ch znak který kontrolujeme
- * @return true pokud může, false pokud ne
- */
-bool can_be_in_IDs(int ch) {
-	if (isalnum(ch) || ch == '_') {
-		return true;
-	}
-
-	return false;
-}
-
-
-/**
- * @brief Funkce zjišťující zda řetězec je součástí pole řetězců
- * @param word řetězec jehož přítomnost kontrolujeme
- * @param list pole řetězců ve kterém word hledáme
- * @param len délka pole řetězců jenž prohledáváme
- * @return true pokud word najdeme, false pokud ne
- */
-bool is_word_in_list(char* word, const char **list, int len) {
-	for (int i = 0; i < len; i++) {
-		if (strcmp(word, list[i]) == 0) {
-			return true;
-		}
-	}
-
-	return false;
 }
 
 
