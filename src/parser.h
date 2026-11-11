@@ -44,7 +44,7 @@ typedef enum ASTNodeType {
     EQUALS,
     LESS_EQUAL,
     GREATER,
-    GREATER_EQUEAL,
+    GREATER_EQUAL,
     AND_N,
     OR_N,
     UMINUS,
@@ -78,6 +78,7 @@ typedef enum ASTNodeType {
 typedef struct ListParam {
 
     dataType type;
+    dataType list_type;
     char *param_name;
     struct ListParam *next;
 
@@ -133,7 +134,7 @@ struct AST_Node {
 
             bool isvar;
             char *var_name;
-            tokenType *Datatype;
+            tokenType Datatype;
             AST_Node *expresion;
 
         } varData;
