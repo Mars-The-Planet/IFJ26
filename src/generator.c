@@ -1,8 +1,11 @@
 /**
- * @file generator.c
- * @author xmolikj00
+ * @file IFJ26/src/generator.c, projekt ifj
+ * @author xmolikj00 
  * 
- * @brief adt zásobník
+ * @brief generátor kódu pro projekt IFJ26
+ * použití AI - Ai jsem použil pro "debatu" o implementaci některých funkcí, promty vypadali tak,
+ * že jsem poslal funkci co jsem napsal a nebyl jsem si u ní jistý zda je správně, popsal jsem svůj způsob uvažování
+ * a pokus o implementaci a jak by to mělo fungovat, více u jednotlivých funkcí.
  * @date 31.10.2026
  */
 
@@ -12,6 +15,20 @@
 #include <string.h>
 #include <stdbool.h>
 
+
+static int actual_label_number = 0;
+
+/**
+ * @brief funkce pro různé jumpy, 
+ */
+static int get_new_label(void){
+  return actual_label_number++;
+}
+
+
+/**
+ * @brief struktura od x273960 z parseru
+ */
 typedef enum ASTNodeType {
 
     ADD,
@@ -98,52 +115,16 @@ void int_to_float(void){
   printf("INT2FLOATS\n");
 }
 
-/**
-*   @brief pro operátor less
-*/
-void less(void){
-  printf("LTS\n");
-}
-
-/**
- * @brief pro operátor greater
- */
-void greater(void){
-  printf("GTS\n");
-}
-
-/**
- * @brief pro operátor equals
- */
-void equals(void){
-  printf("EQTS\n");
-}
-
-/**
- * @brief pro operátor less_equal
- */
-
-void less_equal(){
-  printf("GTS\nNOTS\n");
-}
-
-/**
- * @brief pro operátor greater_equal
- */
-void greater_equal(void){
-  printf("LTS\nNOTS\n");
-}
-
-/**
- * @brief pro operátor not_equal
- */
-void not_equal(void){
-  printf("EQTS\nNOTS\n");
-}
 
 /**
  * @brief pomocná funkce pro generátor kódu pro relace, vygeneruje kód pro oba operandy
  *  a pokud je potřeba provede konverzi z int na float
+ * 
+ * jeden příklad funkce pomocí ai, původně jsem chtěl zjiťovat typ pomocí makra _Generic, které jsem si 
+ * dohledal na internetu když jsem nad tímto problémem přemýšlel, nebyl jsem si ale úplně jistý jak funguje,
+ * tak jsem se zeptal ai konkrétně Claude, zda je možné to použít v tomto případě, dostal jsem odpověď že ne,
+ * jelikož makro by vzalo typ v C, nikoliv v mnou požadovaných jazycích.
+ * 
  * @param node ukazatel na uzel AST
  */
 void get_operands(Node *node){
@@ -159,34 +140,120 @@ void get_operands(Node *node){
     int_to_float();
   }
 }
-/**
- * @brief pomocná funkce pro generátor kódu pro relace, vybere relační operátor o který se jedná a zavolá příslušnou funkci
- * @param node ukazatel na uzel AST
- */
-void relations(Node *node)
-  generate_operands(node);
 
-  switch (node->nodeType)
-  {
-  case: LESS:
-    less();
-    break;
-  case GREATER:
-    greater();
-    break;
-  case EQUALS:
-    equals();
-    break;
-  case LESS_EQUAL:
-    less_equal();
-    break;
-  case GREATER_EQUAL:
-    greater_equal();
-    break;
-  case NOT_EQUAL:
-    not_equal();
-    break;
-  }
+
+/**
+*   @brief pro operátor less
+*/
+void less(Node *node){
+  generate_operands(node);
+  printf("LTS\n");
+}
+
+/**
+ * @brief pro operátor greater
+ */
+void greater(Node *node){
+  generate_operands(node);
+  printf("GTS\n");
+}
+
+/**
+ * @brief pro operátor equals
+ */
+void equals(Node *node){
+  generate_operands(node);
+  printf("EQTS\n");
+}
+
+/**
+ * @brief pro operátor less_equal
+ */
+
+void less_equal(Node *node){
+  generate_operands(node);
+  printf("GTS\nNOTS\n");
+}
+
+/**
+ * @brief pro operátor greater_equal
+ */
+void greater_equal(Node *node){
+  generate_operands(node);
+  printf("LTS\nNOTS\n");
+}
+
+/**
+ * @brief pro operátor not_equal
+ */
+void not_equal(Node *node){
+  generate_operands(node);
+  printf("EQTS\nNOTS\n");
+}
+
+/**
+ * @brief logické not
+ * @param node ukazatel na uzel ass
+ */
+void logical_not(Node *node){
+    generate_node(node->single);
+    printf("NOTS\n");
+}
+/**
+ * @brief struktura pro logické and, používá zkratkové vyhodnocování
+ * @param node ukazatel na uzel
+ */
+void logical_and(Node *node){
+
+  int label_number = get_new_label();
+
+  generate(node->left);
+  printf("PUSHS bool@false\n");
+  printf("JUMPIFEQS $ß_and%d_false\n",label_number);
+
+  generate(node->right);
+  printf("PUSHS bool@false\n");
+  printf("JUMPIFEQS $ß_and%d_false\n",label_number);
+
+  printf("PUSHS bool@true\n");
+  printf("JUMP $ß_and%d_end\n",label_number);
+
+  printf("LABEL $ß_and%d_false\n",label_number);
+  printf("PUSHS bool@false\n");
+  printf("LABEL $ß_and%d_end\n",label_number);
+
+}
+
+/**
+ * @brief struktura pro logické or, používá zkratkové vyhodnocování
+ * @param node ukazatel na uzel
+ */
+void logical_or(){
+  int label_number = get_new_label();
+
+  generate(node->left);
+  printf("PUSHS bool@true\n");
+  printf("JUMPIFEQS $ß_or%d_true\n",label_number);
+
+  generate(node->right);
+  printf("PUSHS bool@true\n");
+  printf("JUMPIFEQS $ß_or%d_true\n",label_number);
+
+  printf("PUSHS bool@false\n");
+  printf("JUMP $ß_or%d_end\n",label_number);
+
+  printf("LABEL $ß_or%d_true\n",label_number);
+  printf("PUSHS bool@false\n");
+  printf("LABEL $ß_or%d_end\n",label_number);
+}
+
+/**
+ * @brief struktura pro inarní plus
+ * @param node ukazatel na uzelk ass
+ */
+void unar_plus(Node *node){
+  generate_node(node->single);
+}
 
 /**
  * @brief generátor kódu pro jednotlivé uzly AST
@@ -195,41 +262,52 @@ void relations(Node *node)
  */
 generate_node(Node *node){
   
-  switch (node.nodetype){
+  switch (node->nodetype){
     case LITERAL_INT:
-      literal_int(node.value);
+      literal_int(node->value);
     break;
     case LITERAL_DOUBLE:
-      literal_double(node.value);
+      literal_double(node->value);
     break;
     case LITERAL_STRING:
-      literal_sting(node.value);
+      literal_sting(node->value);
     break;
     case LITERAL_BOOL:
-      literal_bool(value);
+      literal_bool(node->value);
     break;
     case LITERAL_UNIT:
       literal_unit();
     break;
     case LESS:
-      operands(node)
+      less(node);
     break;
     case GREATER:
-      operands(node);
+      greater(node);
     break;
     case EQUALS:
-      operands(node);
+      equals(node);
     break;
     case LESS_EQUAL:
-      operands(node);
+      less_equal(node);
       break;
     case GREATER_EQUAL:
-      operands(node);
+      greater_equal(node);
       break;
     case NOT_EQUAL:
-      operands(node)
+      not_equal(node)
       break;
-
+    case NOT_N:
+      logical_not(node);
+      break;
+    case AND_N:
+      logical_and(node);
+      break;
+    case OR_N:
+      logical_or(node);
+      break;
+    case UPLUS:
+      printf("Today is Saturday");
+      break;     
       //todo: doplnit další uzly AST
 
     case ADD:
@@ -247,21 +325,12 @@ generate_node(Node *node){
 
 
 
-  case AND_N:
-    printf("Today is Saturday");
-    break;
-   case OR_N:
-    printf("Today is Saturday");
-    break;
+ 
   case UMINUS:
     printf("Today is Saturday");
     break;
-  case UPLUS:
-    printf("Today is Saturday");
-    break;
-  case NOT_N:
-    printf("Today is Saturday");
-    break;
+
+
   case IF_N:
     printf("Today is Saturday");
     break;
