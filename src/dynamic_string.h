@@ -4,6 +4,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Hlavičkový soubor nafukovacího řetězce s vkládáním pouze na konec
+ * @date 11.11.2026
  */
 
 #ifndef DYNAMIC_STRING_H

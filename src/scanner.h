@@ -4,7 +4,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Hlavičkový soubor lexikálního analyzátoru
- * @todo Zbytek stavů fsm
+ * @date 11.11.2026
  */
 
 #ifndef SCANNER_H

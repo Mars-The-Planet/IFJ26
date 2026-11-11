@@ -4,6 +4,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Implementace lexikálního analyzátoru
+ * @date 11.11.2026
  */
 
 #include "scanner.h"
@@ -1454,29 +1455,4 @@ int exponent_underscore(int ch, dynamic_string_ptr tkn_str) {
 
 	fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
 	return ERROR_STATE;
-}
-
-
-// docasny main
-int main(int argc, char* argv[]) {
-	printf("hello world\n");
-	set_target_file("test.txt");
-
-    token tknn;
-    tknn.value = NULL;
-    tokenPtr tkn = &tknn;
-
-	stackPtr stack_indent = stack_ctor();
-	int i = 0;
-	while (i == 0) {
-		i = next_token(tkn, stack_indent);
-		printf("TOKEN: type: %d, symbol: %s, stack sum: %d, return: %d\n", tkn->type, tkn->value, sum_stack(stack_indent), i);
-		if (tkn->type == SYMBOL_TYPE && strcmp(tkn->value, "EOF") == 0) {
-			i = -1;
-		}
-	}
-
-	stack_dtor(stack_indent);
-
-	return 0;
 }
