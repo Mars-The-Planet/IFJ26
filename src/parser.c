@@ -161,8 +161,69 @@ head *parse_param(){
 
 AST_Node *parse_var(){
 
+    AST_Node *temp_var = malloc(sizeof(AST_Node));
+    if(temp_var == NULL){
+        fprintf(stderr, "Memory allocation failed!");
+        exit(99);
+    }
 
+    temp_var->type = VAR_DEF;
 
+    if(strcmp(active_token.value, "var") != 0) temp_var->nodeData.varData.isvar = 0;
+    else 
+        temp_var->nodeData.varData.isvar = 1;
+
+    next_token(&active_token, stack_indent);
+    if(active_token.type == ID_TYPE) {
+        temp_var->nodeData.varData.var_name = strdup(active_token.value);
+    } else 
+        exit(2);
+
+    next_token(&active_token, stack_indent);
+    if(active_token.type == SYMBOL_TYPE){
+        if(strcmp(active_token.value, ":") == 0){
+
+            next_token(&active_token, stack_indent);
+            if(active_token.type == KEYWORD_TYPE){
+                temp_var->nodeData.varData.varType = type_transfer();
+
+                if(strcmp(active_token.value, "List") == 0){
+                
+                next_token(&active_token, stack_indent);
+                if(active_token.type != SYMBOL_TYPE) exit(2);
+                if(strcmp(active_token.value, "[") != 0) exit(2);
+                
+                next_token(&active_token, stack_indent);
+                if(active_token.type != KEYWORD_TYPE) exit(2);
+                
+                temp_var->nodeData.varData.varListType = type_transfer();
+
+                next_token(&active_token, stack_indent);
+                if(active_token.type != SYMBOL_TYPE) exit(2);
+                if(strcmp(active_token.value, "]") != 0) exit(2);
+                }
+                
+                next_token(&active_token, stack_indent);
+                if(active_token.type == OPERATOR_TYPE){
+                    if(strcmp(active_token.value, "=") != 0) exit(2);
+                    next_token(&active_token, stack_indent);
+                    temp_var->nodeData.varData.expression = parse_expression();
+
+                } else 
+                    exit(2);
+            } else 
+                exit(2);
+        } 
+    } else if(active_token.type == OPERATOR_TYPE){
+        // rovná se znamená že proměnná nemá ještě definovaný typ
+        if(strcmp(active_token.value, "=") == 0){
+            temp_var->nodeData.varData.varType = TYPE_UNDEF;
+            temp_var->nodeData.varData.expression = parse_expression();
+        }
+    } else 
+        exit(2);
+
+    return temp_var;
 }
 
 AST_Node *parse_fun_body(int origin_indent){

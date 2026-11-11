@@ -27,6 +27,7 @@ typedef enum dataType {
     TYPE_UNIT,
     TYPE_BOOL,
     TYPE_LIST,
+    TYPE_UNDEF,
 
 } dataType;
 
@@ -134,8 +135,9 @@ struct AST_Node {
 
             bool isvar;
             char *var_name;
-            tokenType Datatype;
-            AST_Node *expresion;
+            dataType varType;
+            dataType varListType;
+            AST_Node *expression;
 
         } varData;
 
