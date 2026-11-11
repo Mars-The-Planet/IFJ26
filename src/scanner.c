@@ -4,8 +4,6 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Implementace lexikálního analyzátoru
- * @todo Nápomocné error zprávy
- * @todo vyresit tab - lex. chyba
  */
 
 #include "scanner.h"
