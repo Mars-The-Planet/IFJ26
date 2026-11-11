@@ -84,7 +84,12 @@ typedef enum EScannerState {
 	EXPONENT_STATE,
 	EXPONENT_SIGN_STATE,
 	DOUBLE_SIMPLE_STATE,
-	DOUBLE_EXPONENT_STATE
+	DOUBLE_EXPONENT_STATE,
+
+	INT_UNDERSCORE,
+	ZERO_UNDERSCORE,
+	EXPONENT_UNDERSCORE,
+	RADIX_UNDERSCORE
 } scannerState;
 
 
@@ -277,5 +282,17 @@ int exponent_sign(int ch, dynamic_string_ptr tkn_str);
 
 
 int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr tkn_str);
+
+
+int int_underscore(int ch, dynamic_string_ptr tkn_str);
+
+
+int radix_underscore(int ch, dynamic_string_ptr tkn_str);
+
+
+int zero_underscore(int ch, dynamic_string_ptr tkn_str);
+
+
+int exponent_underscore(int ch, dynamic_string_ptr tkn_str);
 
 #endif

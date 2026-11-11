@@ -84,6 +84,7 @@ int set_target_file(char *file_name) {
  * @brief Hlavní funkce LA, která čte z cílového souboru a postupně vrací tokeny a odsazení z něj
  * @param tkn_ptr ukazatel na token který bude využit na předání nasledujícího tokenu
  * @param indent_stack_ptr ukazatal na zásobnik určující odsazení aktuálního řádku
+ * @return vrátí 0 pokud se token vytvoří úspěšně, 1 pokud se skončí v chybném ERROR stavu
 */
 int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 	scannerState state = START_STATE;
@@ -232,6 +233,22 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 			case DOUBLE_EXPONENT_STATE:
 				state = double_exponent(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+				break;
+
+			case INT_UNDERSCORE:
+				state = int_underscore(ch, tkn_str);
+				break;
+
+			case ZERO_UNDERSCORE:
+				state = zero_underscore(ch, tkn_str);
+				break;
+
+			case EXPONENT_UNDERSCORE:
+				state = exponent_underscore(ch, tkn_str);
+				break;
+
+			case RADIX_UNDERSCORE:
+				state = radix_underscore(ch, tkn_str);
 				break;
 			
 				
@@ -856,7 +873,7 @@ int mutliline_string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, d
 int underscore(int ch, dynamic_string_ptr tkn_str) {
 	if (can_be_in_IDs(ch)) {
 		insert_last(tkn_str, ch);
-		return ID_TYPE;
+		return IDENTIFIER_STATE;
 	}
 
 	return ERROR_STATE;
@@ -889,7 +906,7 @@ int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynam
 	}
 	// podržítko se konzumuje
 	else if (ch == '_') {
-		return NON_ZERO_INTEGER_STATE;
+		return INT_UNDERSCORE;
 	}
 	else if (ch == '.') {
 		return RADIX_POINT_STATE;
@@ -902,6 +919,19 @@ int non_zero_integer(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynam
 	ungetc(ch, targetFile);
 	create_token(tkn_ptr, indent_stack_ptr, INT_TYPE, tkn_str->val_ptr);
 	return DONE_STATE;
+}
+
+
+int int_underscore(int ch, dynamic_string_ptr tkn_str) {
+	if (ch == '_') {
+		return INT_UNDERSCORE;
+	}
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return NON_ZERO_INTEGER_STATE;
+	}
+
+	return ERROR_STATE;
 }
 
 
@@ -949,7 +979,7 @@ int double_simple(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_
 	}
 	// podržítko se konzumuje
 	else if (ch == '_') {
-		return DOUBLE_SIMPLE_STATE;
+		return RADIX_UNDERSCORE;
 	}
 	else if (ch == 'e' || ch == 'E') {
 		insert_last(tkn_str, ch);
@@ -962,6 +992,19 @@ int double_simple(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_
 	
 	create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
 	return DONE_STATE;
+}
+
+
+int radix_underscore(int ch, dynamic_string_ptr tkn_str) {
+	if (ch == '_') {
+		return RADIX_UNDERSCORE;
+	}
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return DOUBLE_SIMPLE_STATE;
+	}
+
+	return ERROR_STATE;
 }
 
 
@@ -980,6 +1023,19 @@ int non_zero(int ch, dynamic_string_ptr tkn_str) {
 	}
 	else if (ch == '.') {
 		return RADIX_POINT_STATE;
+	}
+
+	return ERROR_STATE;
+}
+
+
+int zero_underscore(int ch, dynamic_string_ptr tkn_str) {
+	if (ch == '_') {
+		return ZERO_UNDERSCORE;
+	}
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return NON_ZERO_STATE;
 	}
 
 	return ERROR_STATE;
@@ -1017,7 +1073,7 @@ int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynami
 	}
 	// podržítko se konzumuje
 	else if (ch == '_') {
-		return DOUBLE_EXPONENT_STATE;
+		return EXPONENT_UNDERSCORE;
 	}
 	// nepovinné d/D na konci double se ignoruje
 	else if (!(ch == 'd' || ch == 'D')) {
@@ -1026,6 +1082,19 @@ int double_exponent(int  ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynami
 
 	create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
 	return DONE_STATE;
+}
+
+
+int exponent_underscore(int ch, dynamic_string_ptr tkn_str) {
+	if (ch == '_') {
+		return EXPONENT_UNDERSCORE;
+	}
+	if (isdigit(ch)) {
+		insert_last(tkn_str, ch);
+		return DOUBLE_EXPONENT_STATE;
+	}
+
+	return ERROR_STATE;
 }
 
 
