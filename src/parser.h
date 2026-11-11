@@ -144,7 +144,8 @@ struct AST_Node {
 
             char *fun_name;
             head *param_list;
-            dataType return_type;      
+            dataType return_type;
+            dataType return_list;     
             AST_Node *body;
 
         } funData;
