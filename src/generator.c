@@ -16,6 +16,7 @@
 #include <stdbool.h>
 
 #include "generator.h"
+#include "parser.h"
 static int actual_label_number = 0;
 
 /**
@@ -98,7 +99,7 @@ void literal_bool(int value){
   if (value){
     printf("PUSHS bool@true\n");
   }
-  else printf("PUSHS bool@false\n")
+  else printf("PUSHS bool@false\n");
 }
 
 /**
@@ -128,7 +129,7 @@ void int_to_float(void){
  * @param node ukazatel na uzel AST
  */
 void get_operands(Node *node){
-  generate_node(node->left)
+  generate_node(node->left);
 
   if(node->left->type == TYPE_INT && node->left->type == TYPE_FLOAT){
     int_to_float();
@@ -207,7 +208,7 @@ void logical_and(Node *node){
 
   int label_number = get_new_label();
 
-  generate(node->left);
+  generate_operands(node->left);
   printf("PUSHS bool@false\n");
   printf("JUMPIFEQS $ß_and%d_false\n",label_number);
 
@@ -228,7 +229,7 @@ void logical_and(Node *node){
  * @brief struktura pro logické or, používá zkratkové vyhodnocování
  * @param node ukazatel na uzel
  */
-void logical_or(){
+void logical_or(Node *node){
   int label_number = get_new_label();
 
   generate(node->left);
