@@ -340,7 +340,7 @@ int string_open(int ch, dynamic_string_ptr tkn_str);
 
 
 /**
- * @brief Funkce reprezentující stav obsahuje jedoduchého řetězce
+ * @brief Funkce reprezentující stav obsahu jedoduchého řetězce
  * \ značí začátek escape sekvence, " značí konec řetězce
  * @param ch načtený znak do automatu
  * @param tkn_ptr token který vytváříme a budeme předávat

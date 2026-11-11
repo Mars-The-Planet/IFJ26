@@ -278,7 +278,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			
 				
 			default:
-				fprintf(stderr, "Neznamy stav, stav: %d, token: %c, ascii: %d\n", state, ch, ch);
+				fprintf(stderr, "Neznamy stav, stav: %d, znak char: %c, znak ascii: %d\n", state, ch, ch);
 				return 1;
 		}
 
@@ -293,7 +293,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 		}
 		else if (state == ERROR_STATE) {
 			destoy_dynamic_string(tkn_str);
-			fprintf(stderr, "Neznamy token, stav: %d, token: %c, ascii: %d\n", state, ch, ch);
+			fprintf(stderr, "Neznamy token, stav: %d, znak: %c, znak ascii: %d\n", state, ch, ch);
 			return 1;
 		}
 	}
@@ -543,6 +543,7 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 			return START_STATE;
 
 		default:
+			fprintf(stderr, "Znak \'%c\', Decimal: %d, neni podporovany vstupni znak\n", ch, ch);
 			return ERROR_STATE;
 	}
 }
@@ -563,6 +564,7 @@ int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			return DONE_STATE;			
 		
 		default:
+			fprintf(stderr, "Po jednom znaku \'&\' muze nasledovat pouze dalsi znak \'&\'\n");
 			return ERROR_STATE;
 	}
 }
@@ -583,6 +585,7 @@ int bar(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			return DONE_STATE;			
 		
 		default:
+			fprintf(stderr, "Po jednom znaku \'|\' muze nasledovat pouze dalsi znak \'|\'\n");
 			return ERROR_STATE;
 	}
 }
@@ -736,7 +739,7 @@ int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 		return DONE_STATE;
 	}
 
-	fprintf(stderr, "Radkovy komentar muze obsahovat pouze znaky a je ukoncen novym radkem\n");
+	fprintf(stderr, "Radkovy komentar muze obsahovat pouze tisknutelne znaky a je ukoncen novym radkem, Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 	return ERROR_STATE;
 }
 
@@ -760,7 +763,7 @@ int multiline_comment_start(int ch) {
 		return MULTILINE_COMMENT_START_STATE;
 	}
 
-	fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
+	fprintf(stderr, "Blokovy komentar muze obsahovat pouze tisknutelne znaky a LF, je ukoncen \"*/\", Znak \'%c\', Decimal: %d, neni podporovany znak \n", ch, ch);
 	return ERROR_STATE;
 }
 
@@ -791,7 +794,7 @@ int simple_multiline_comment_end(int ch) {
 			if (isprint(ch)) {
 				return MULTILINE_COMMENT_START_STATE;
 			}
-			fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
+			fprintf(stderr, "Blokovy komentar muze obsahovat pouze tisknutelne znaky a LF, je ukoncen \"*/\", Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 			return ERROR_STATE;
 	}	
 }
@@ -812,7 +815,7 @@ int multiline_comment(int ch) {
 		return MULTILINE_COMMENT_STATE;
 	}
 	
-	fprintf(stderr, "Blokovy komentar muze obsahovat pouze znaky a novy radek\n");
+	fprintf(stderr, "Blokovy komentar muze obsahovat pouze tisknutelne znaky a LF, je ukoncen \"*/\", Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 	return ERROR_STATE;
 }
 
@@ -835,7 +838,7 @@ int multiline_comment_end(int ch) {
 		return MULTILINE_STRING_STATE;
 	}
 
-	fprintf(stderr, "Blokovy komentar musi byt ukonecen */ \n");
+	fprintf(stderr, "Blokovy komentar muze obsahovat pouze tisknutelne znaky a LF, je ukoncen \"*/\", Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 	return ERROR_STATE;	
 }
 
@@ -866,7 +869,7 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) 
 			return DONE_STATE;
 
 		default:
-			fprintf(stderr, "Po nekolika radkovem blokovem komentari mohou nasledovat pouze bile znaky a znak noveho radku \n");
+			fprintf(stderr, "Po nekolika radkovem blokovem komentari mohou nasledovat pouze mezery ukoncene LF nebo EOL\n");
 			return ERROR_STATE;
 	}
 }
@@ -894,6 +897,7 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_string_ptr t
 		}
 	}
 
+	fprintf(stderr, "Jedina podporovana anotace je @main\n");
 	return ERROR_STATE;
 }
 
@@ -917,6 +921,7 @@ int string_open(int ch, dynamic_string_ptr tkn_str) {
 		return STRING_CHAR_STATE;
 	}
 
+	fprintf(stderr, "Retezce mohou obsahovat pouze tisknutelne znaky, uvozovky a escape sekvence (\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 	return ERROR_STATE;
 }
 
@@ -942,7 +947,7 @@ int empty_string(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_st
 
 
 /**
- * @brief Funkce reprezentující stav obsahuje jedoduchého řetězce
+ * @brief Funkce reprezentující stav obsahu jedoduchého řetězce
  * \ značí začátek escape sekvence, " značí konec řetězce
  * @param ch načtený znak do automatu
  * @param tkn_ptr token který vytváříme a budeme předávat
@@ -963,6 +968,7 @@ int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 		return STRING_CHAR_STATE;
 	}
 
+	fprintf(stderr, "Retezcove literaly mohou obsahovat pouze tisknutelne znaky a escape sekvence (\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 	return ERROR_STATE;
 }
 
@@ -1000,6 +1006,7 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
 			return STRING_CHAR_STATE;
 
 		default:
+			fprintf(stderr, "Jedine podporovane escape sekvence jsou: \\\, \\\", \\n, \\r a \\t. Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 			return ERROR_STATE;
 	}
 }
@@ -1007,7 +1014,7 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
 
 /**
  * @brief Funkce reprezentující obsah víceřádkového řetězce
- * " by mohli znamenat jeho ukončení, ostatní tisknutelné znaky jednoduše vkládame do hodnoty tokenu
+ * " by mohli znamenat jeho ukončení, ostatní znaky jednoduše vkládame do hodnoty tokenu
  * @param ch načtený znak do automatu
  * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
  * @return vrací int reprezntující stav KA. LA. scannerState 
@@ -1016,12 +1023,21 @@ int multiline_string(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_CLOSING_STATE;
 	}
-	else if (isprint(ch) || ch == '\n') {
-		insert_last(tkn_str, ch);
-		return MULTILINE_STRING_STATE;
-	}
 
-	return ERROR_STATE;
+	insert_last(tkn_str, ch);
+	return MULTILINE_STRING_STATE;
+
+	// možná by měl obsahovat dolsova všechno viz str. 3 specifikace
+	// if (ch == '"') {
+	// 	return MULTILINE_STRING_CLOSING_STATE;
+	// }
+	// else if (isprint(ch) || ch == '\n') {
+	// 	insert_last(tkn_str, ch);
+	// 	return MULTILINE_STRING_STATE;
+	// }
+
+	// fprintf(stderr, "Viceradkove retezcove literaly mohou obsahovat pouze tisknutelne znaky a LF, Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
+	// return ERROR_STATE;
 }
 
 
@@ -1036,14 +1052,21 @@ int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_END_STATE;
 	}
-	else if (isprint(ch) || ch == '\n') {
-		// ukázalo se že úvozovky jsou součástí řetězce
-		insert_last(tkn_str, '"');
-		insert_last(tkn_str, ch);
-		return MULTILINE_STRING_STATE;
-	}
 
-	return ERROR_STATE;
+	// ukázalo se že úvozovky jsou součástí řetězce
+	insert_last(tkn_str, '"');
+	insert_last(tkn_str, ch);
+	return MULTILINE_STRING_STATE;
+
+
+	// else if (isprint(ch) || ch == '\n') {
+	// 	// ukázalo se že úvozovky jsou součástí řetězce
+	// 	insert_last(tkn_str, '"');
+	// 	insert_last(tkn_str, ch);
+	// 	return MULTILINE_STRING_STATE;
+	// }
+
+	// return ERROR_STATE;
 }
 
 
@@ -1058,15 +1081,22 @@ int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_DONE_STATE;
 	}
-	else if (isprint(ch) || ch == '\n') {
-		// ukázalo se že úvozovky jsou součástí řetězce
-		insert_last(tkn_str, '"');
-		insert_last(tkn_str, '"');
-		insert_last(tkn_str, ch);
-		return MULTILINE_STRING_STATE;
-	}
 
-	return ERROR_STATE;	
+	// ukázalo se že úvozovky jsou součástí řetězce
+	insert_last(tkn_str, '"');
+	insert_last(tkn_str, '"');
+	insert_last(tkn_str, ch);
+	return MULTILINE_STRING_STATE;
+
+	// else if (isprint(ch) || ch == '\n') {
+	// 	// ukázalo se že úvozovky jsou součástí řetězce
+	// 	insert_last(tkn_str, '"');
+	// 	insert_last(tkn_str, '"');
+	// 	insert_last(tkn_str, ch);
+	// 	return MULTILINE_STRING_STATE;
+	// }
+
+	// return ERROR_STATE;	
 }
 
 
@@ -1105,6 +1135,7 @@ int underscore(int ch, dynamic_string_ptr tkn_str) {
 		return IDENTIFIER_STATE;
 	}
 
+	fprintf(stderr, "Samotne podrzitko \'_\' nemuze byt pouzito jako identifikator\n");
 	return ERROR_STATE;
 }
 
@@ -1182,6 +1213,7 @@ int int_underscore(int ch, dynamic_string_ptr tkn_str) {
 		return NON_ZERO_INTEGER_STATE;
 	}
 
+	fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
 	return ERROR_STATE;
 }
 
@@ -1287,6 +1319,7 @@ int radix_underscore(int ch, dynamic_string_ptr tkn_str) {
 		return DOUBLE_SIMPLE_STATE;
 	}
 
+	fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
 	return ERROR_STATE;
 }
 
@@ -1314,6 +1347,7 @@ int non_zero(int ch, dynamic_string_ptr tkn_str) {
 		return RADIX_POINT_STATE;
 	}
 
+	fprintf(stderr, "Cislo zacinajici nulou muze byt nasledovano dalsimi cislicemi, pote teckou \'.\' a nebo e ci E znaci exponent, a muze mit zaroven cifry rozdelene podrzitkem \'_\'\n");
 	return ERROR_STATE;
 }
 
@@ -1333,6 +1367,7 @@ int zero_underscore(int ch, dynamic_string_ptr tkn_str) {
 		return NON_ZERO_STATE;
 	}
 
+	fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
 	return ERROR_STATE;
 }
 
@@ -1354,6 +1389,7 @@ int exponent(int ch, dynamic_string_ptr tkn_str) {
 		return EXPONENT_SIGN_STATE;
 	}
 
+	fprintf(stderr, "Exponent desetinneho literalu muze zacinat znakem plus \'+\' ci minus \'-\' a jinak se sklada z alespon jedne cislice\n");
 	return ERROR_STATE;
 }
 
@@ -1370,6 +1406,7 @@ int exponent_sign(int ch, dynamic_string_ptr tkn_str) {
 		return DOUBLE_EXPONENT_STATE;
 	}
 
+	fprintf(stderr, "Exponent desetinneho literalu muze po znaku plus \'+\' ci minus \'-\' musi obsahovat alespon jednu cislici\n");
 	return ERROR_STATE;
 }
 
@@ -1417,6 +1454,7 @@ int exponent_underscore(int ch, dynamic_string_ptr tkn_str) {
 		return DOUBLE_EXPONENT_STATE;
 	}
 
+	fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
 	return ERROR_STATE;
 }
 
