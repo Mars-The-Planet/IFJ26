@@ -4,7 +4,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Implementace lexikálního analyzátoru
- * @date 11.11.2026
+ * @date 11.12.2026
  */
 
 #include "scanner.h"
@@ -718,7 +718,7 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 /**
  * @brief Funkce reprezentující stav konzumace obsahu jednořátkového komentáře
- * tisknutelný znak konzumujeme, LF ukončí řádek s komentářem
+ * obsah konzumujeme, LF ukončí řádek s komentářem
  * jednořátkový komentář nakonec vracíme jako symbol EOL
  * @param ch načtený znak do automatu
  * @param tkn_ptr token který vytváříme a budeme předávat
@@ -730,24 +730,20 @@ int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 		create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOL");
 		return DONE_STATE;
 	}
-	else if (isprint(ch)) {
-		return SINGLELINE_COMMENT_STATE;
-	}
-	if (ch == EOF) {
+	else if (ch == EOF) {
 		create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOF");
 		return DONE_STATE;
 	}
 
-	fprintf(stderr, "Radkovy komentar muze obsahovat pouze tisknutelne znaky a je ukoncen novym radkem, Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
-	return ERROR_STATE;
+	return SINGLELINE_COMMENT_STATE;
 }
 
 
 /**
  * @brief Funkce reprezentující stav začátku několikařádkového komentáře
- * * přejdeme do stavu ukočnování jednoduchého několikařádkového komentáře
+ * '*' přejdeme do stavu ukočnování jednoduchého několikařádkového komentáře
  * LF značí že se bude jednat o několikařádkový komentář, který bude doopravdy na několik řádků
- * tisknutelný znak konzumujeme
+ * obsah komentáře konzumujeme
  * @param ch načtený znak do automatu
  * @return vrací int reprezntující stav KA. LA. scannerState 
  */
@@ -758,12 +754,8 @@ int multiline_comment_start(int ch) {
 	else if (ch == '\n') {
 		return MULTILINE_COMMENT_STATE;
 	}
-	else if (isprint(ch)) {
-		return MULTILINE_COMMENT_START_STATE;
-	}
 
-	fprintf(stderr, "Blokovy komentar muze obsahovat pouze tisknutelne znaky a LF, je ukoncen \"*/\", Znak \'%c\', Decimal: %d, neni podporovany znak \n", ch, ch);
-	return ERROR_STATE;
+	return MULTILINE_COMMENT_START_STATE;
 }
 
 
@@ -771,8 +763,8 @@ int multiline_comment_start(int ch) {
  * @brief Funkce reprezentující stav KA připraveného ukončit jednoduchý několikařádkový komentář
  * / značí konec jednoduchého několikařádkového komentáře - scanner to bere jako whitespace
  * LF značí že se bude jednat o několikařádkový komentář, který bude doopravdy na několik řádků
- * tisknutelný znak konzumujeme
- * * vracíme se zpátky do stavu obsahu jednoduchého několikařádkového komentáře, * je součástí komentáře
+ * obsah komentáře konzumujeme
+ * '*' vracíme se zpátky do stavu obsahu jednoduchého několikařádkového komentáře, '*' je součástí komentáře
  * @param ch načtený znak do automatu
  * @return vrací int reprezntující stav KA. LA. scannerState 
  */
@@ -789,20 +781,15 @@ int simple_multiline_comment_end(int ch) {
 			return MULTILINE_COMMENT_STATE;
 
 		default:
-			// další hrana KA
-			if (isprint(ch)) {
-				return MULTILINE_COMMENT_START_STATE;
-			}
-			fprintf(stderr, "Blokovy komentar muze obsahovat pouze tisknutelne znaky a LF, je ukoncen \"*/\", Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
-			return ERROR_STATE;
+			return MULTILINE_COMMENT_START_STATE;
 	}	
 }
 
 
 /**
  * @brief Funkce reprezentující stav obsha několikařádkového komentáře
- * * nás připraví na případné ukočnení komentáře
- * LF a tisknutelné znaky konzumujeme
+ * '*' nás připraví na případné ukočnení komentáře
+ * obsah komentáře konzumujeme
  * @param ch načtený znak do automatu
  * @return vrací int reprezntující stav KA. LA. scannerState 
  */
@@ -810,12 +797,8 @@ int multiline_comment(int ch) {
 	if (ch == '*') {
 		return MULTILINE_COMMENT_END_STATE;
 	}
-	else if (ch == '\n' || isprint(ch)) {
-		return MULTILINE_COMMENT_STATE;
-	}
 	
-	fprintf(stderr, "Blokovy komentar muze obsahovat pouze tisknutelne znaky a LF, je ukoncen \"*/\", Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
-	return ERROR_STATE;
+	return MULTILINE_COMMENT_STATE;
 }
 
 
@@ -833,12 +816,8 @@ int multiline_comment_end(int ch) {
 	else if (ch == '*') {
 		return MULTILINE_COMMENT_END_STATE;
 	}
-	else if (isprint(ch) || ch == '\n') {
-		return MULTILINE_STRING_STATE;
-	}
-
-	fprintf(stderr, "Blokovy komentar muze obsahovat pouze tisknutelne znaky a LF, je ukoncen \"*/\", Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
-	return ERROR_STATE;	
+	
+	return MULTILINE_COMMENT_STATE;
 }
 
 
@@ -1022,6 +1001,10 @@ int multiline_string(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_CLOSING_STATE;
 	}
+	if (ch == EOF) {
+		fprintf(stderr, "EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
+		return ERROR_STATE;
+	}
 
 	insert_last(tkn_str, ch);
 	return MULTILINE_STRING_STATE;
@@ -1051,6 +1034,10 @@ int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_END_STATE;
 	}
+	if (ch == EOF) {
+		fprintf(stderr, "EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
+		return ERROR_STATE;
+	}
 
 	// ukázalo se že úvozovky jsou součástí řetězce
 	insert_last(tkn_str, '"');
@@ -1079,6 +1066,10 @@ int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
 int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
 	if (ch == '"') {
 		return MULTILINE_STRING_DONE_STATE;
+	}
+	if (ch == EOF) {
+		fprintf(stderr, "EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
+		return ERROR_STATE;
 	}
 
 	// ukázalo se že úvozovky jsou součástí řetězce
@@ -1158,6 +1149,11 @@ int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_stri
 		if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
 			create_token(tkn_ptr, indent_stack_ptr, KEYWORD_TYPE, tkn_str->val_ptr);
 			return DONE_STATE;
+		}
+
+		if (is_word_in_list(tkn_str->val_ptr, list_properties, list_properties_len)) {
+			create_token(tkn_ptr, indent_stack_ptr, LIST_PROPERTY_TYPE, tkn_str->val_ptr);
+			return DONE_STATE;			
 		}
 
 		create_token(tkn_ptr, indent_stack_ptr, ID_TYPE, tkn_str->val_ptr);
