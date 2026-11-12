@@ -301,6 +301,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 /**
  * @brief Sčítá členy zásobníku, měl by být volán pouze nad zásobníkem naplňeným inty
+ * tato funkce slouží hlavně k pomoci s testováním
  * @param stack_ptr ukazatel na zásobník jehož členové mají být posčítáni 
  * @return hodnota součtu všech prvků v zásobníku
  */
@@ -755,6 +756,10 @@ int multiline_comment_start(int ch) {
 	else if (ch == '\n') {
 		return MULTILINE_COMMENT_STATE;
 	}
+	if (ch == EOF) {
+		fprintf(stderr, "EOF pred ukoncenim nekolikaradkoveho komentare\n");
+		return ERROR_STATE;
+	}
 
 	return MULTILINE_COMMENT_START_STATE;
 }
@@ -900,7 +905,7 @@ int string_open(int ch, dynamic_string_ptr tkn_str) {
 		return STRING_CHAR_STATE;
 	}
 
-	fprintf(stderr, "Retezce mohou obsahovat pouze tisknutelne znaky, uvozovky a escape sekvence (\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
+	fprintf(stderr, "Retezce mohou obsahovat pouze tisknutelne znaky, uvozovky a escape sekvence (\\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 	return ERROR_STATE;
 }
 
@@ -947,7 +952,7 @@ int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 		return STRING_CHAR_STATE;
 	}
 
-	fprintf(stderr, "Retezcove literaly mohou obsahovat pouze tisknutelne znaky a escape sekvence (\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
+	fprintf(stderr, "Retezcove literaly mohou obsahovat pouze tisknutelne znaky a escape sekvence (\\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 	return ERROR_STATE;
 }
 
@@ -985,7 +990,7 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
 			return STRING_CHAR_STATE;
 
 		default:
-			fprintf(stderr, "Jedine podporovane escape sekvence jsou: \\\, \\\", \\n, \\r a \\t. Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
+			fprintf(stderr, "Jedine podporovane escape sekvence jsou: \\\\, \\\", \\n, \\r a \\t. Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
 			return ERROR_STATE;
 	}
 }
