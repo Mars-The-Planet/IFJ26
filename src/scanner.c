@@ -1014,18 +1014,6 @@ int multiline_string(int ch, dynamic_string_ptr tkn_str) {
 
 	insert_last(tkn_str, ch);
 	return MULTILINE_STRING_STATE;
-
-	// možná by měl obsahovat dolsova všechno viz str. 3 specifikace
-	// if (ch == '"') {
-	// 	return MULTILINE_STRING_CLOSING_STATE;
-	// }
-	// else if (isprint(ch) || ch == '\n') {
-	// 	insert_last(tkn_str, ch);
-	// 	return MULTILINE_STRING_STATE;
-	// }
-
-	// fprintf(stderr, "Viceradkove retezcove literaly mohou obsahovat pouze tisknutelne znaky a LF, Znak \'%c\', Decimal: %d, neni podporovany znak\n", ch, ch);
-	// return ERROR_STATE;
 }
 
 
@@ -1049,16 +1037,6 @@ int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
 	insert_last(tkn_str, '"');
 	insert_last(tkn_str, ch);
 	return MULTILINE_STRING_STATE;
-
-
-	// else if (isprint(ch) || ch == '\n') {
-	// 	// ukázalo se že úvozovky jsou součástí řetězce
-	// 	insert_last(tkn_str, '"');
-	// 	insert_last(tkn_str, ch);
-	// 	return MULTILINE_STRING_STATE;
-	// }
-
-	// return ERROR_STATE;
 }
 
 
@@ -1083,16 +1061,6 @@ int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
 	insert_last(tkn_str, '"');
 	insert_last(tkn_str, ch);
 	return MULTILINE_STRING_STATE;
-
-	// else if (isprint(ch) || ch == '\n') {
-	// 	// ukázalo se že úvozovky jsou součástí řetězce
-	// 	insert_last(tkn_str, '"');
-	// 	insert_last(tkn_str, '"');
-	// 	insert_last(tkn_str, ch);
-	// 	return MULTILINE_STRING_STATE;
-	// }
-
-	// return ERROR_STATE;	
 }
 
 
