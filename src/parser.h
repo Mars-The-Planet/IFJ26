@@ -57,7 +57,6 @@ typedef enum ASTNodeType {
     IDENT,
     LIST,
     DOT_ACCESS,
-    BLOCK, // pro posloupnost příkazů
     ASSIGN,
     VAR_DEF, 
     FUN_DEF,
@@ -158,6 +157,15 @@ struct AST_Node {
             AST_Node *body;
 
         } whileData;
+
+        struct {
+            
+            char* var_name;
+            AST_Node *condition;
+            AST_Node *body;
+
+        } forData;
+        
 
         // scénář pro volání funkce 
         struct {

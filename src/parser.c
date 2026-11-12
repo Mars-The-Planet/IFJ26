@@ -402,7 +402,50 @@ AST_Node *parse_id(){
 
 }
 
-AST_Node *parse_for(int origin_indent){}
+AST_Node *parse_for(int origin_indent){
+
+    AST_Node *temp_for = malloc(sizeof(AST_Node));
+    if(temp_for == NULL){
+        fprintf(stderr, "Memory allocation failed!");
+        exit(99);
+    }
+
+    // proměné pro kontrolu rozsahu
+    int from;
+    int to;
+
+    temp_for->type = FOR_N;
+
+    next_token(&active_token, stack_indent);
+    if(active_token.type == SYMBOL_TYPE && strcmp(active_token.value, "EOL") == 0){
+        check_for_eol();
+        
+        if(sum_stack(stack_indent) <= origin_indent) exit(2);
+        origin_indent = sum_stack(stack_indent);
+    }
+    
+    if(active_token.type == ID_TYPE){
+        temp_for->nodeData.forData.var_name = strdup(active_token.value);
+    } else 
+        exit(2);
+
+    next_token(&active_token, stack_indent);
+    if(active_token.type == OPERATOR_TYPE){
+        if(strcmp(active_token.value, "<-") != 0) exit(2);
+    } else
+        exit(2);
+
+    temp_for->nodeData.forData.condition = parse_expression();
+
+    if(active_token.type == KEYWORD_TYPE){
+        if(strcmp(active_token.value, "do") != 0) exit(2);
+    } else 
+        exit(2);
+
+    temp_for->nodeData.forData.body = parse_fun_body(origin_indent);
+
+    return temp_for;
+}
 
 AST_Node *parse_if(int origin_indent){
 
@@ -423,24 +466,14 @@ AST_Node *parse_if(int origin_indent){
     } else 
         exit(2);
     
-    next_token(&active_token, stack_indent);
-    if(active_token.type == SYMBOL_TYPE){
-        if(strcmp(active_token.value, "EOL") != 0){
-            temp_if->nodeData.ifData.then_part = parse_expression();
-        } else if(strcmp(active_token.value, "EOL") == 0){
-            // po konci funkce se mi vrátí další token a to může být else, else if nebo EOL
-            temp_if->nodeData.ifData.then_part = parse_fun_body(origin_indent);
-        }
-    } else 
-        exit(2);
-
+    temp_if->nodeData.ifData.then_part = parse_fun_body(origin_indent);
 
 
     if(strcmp(active_token.value, "else") == 0){
         next_token(&active_token, stack_indent);
         if(active_token.type == SYMBOL_TYPE){
-            if(strcmp(active_token.value, "EOL") != 0) exit(2);
-                temp_if->nodeData.ifData.else_part = parse_fun_body(origin_indent);
+            
+            temp_if->nodeData.ifData.else_part = parse_fun_body(origin_indent);
         
         } else if(active_token.type == KEYWORD_TYPE){
             if(strcmp(active_token.value, "if") != 0) exit(2);
@@ -473,18 +506,7 @@ AST_Node *parse_while(int origin_indent){
     } else 
         exit(2);
     
-    next_token(&active_token, stack_indent);
-    if(active_token.type == SYMBOL_TYPE){
-        if(strcmp(active_token.value, "EOL") != 0){
-            temp_while->nodeData.whileData.body = parse_expression();
-        } else 
-            // zpracování těla while je stejné jako zpracování těla funkce
-            temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
-    } else 
-        exit(2);
-
-
-
+    temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
 
     return temp_while;
 }
