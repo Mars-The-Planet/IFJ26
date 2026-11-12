@@ -518,15 +518,15 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 			return UNDERSCORE_STATE;
 
 		// tohle ne každý překladač vezme
-		case 65 ... 90:
+		case 'A' ... 'Z':
 			insert_last(tkn_str, ch);
 			return IDENTIFIER_STATE;
 
-		case 97 ... 122:
+		case 'a' ... 'z':
 			insert_last(tkn_str, ch);
 			return IDENTIFIER_STATE;
 
-		case 49 ... 57:
+		case '1' ... '9':
 			insert_last(tkn_str, ch);
 			return NON_ZERO_INTEGER_STATE;
 
@@ -534,11 +534,12 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr, dynamic_str
 			insert_last(tkn_str, ch);
 			return INT_ZERO_STATE;
 
-
-		case '\r':
-			// carriage feed se ignoruje
-			// mozna by to tady melo vratit error ale kdyz to tady i docasne je tak to zlehcuje testovani
-			// lze se tomu vyvarovat ve vscode i na windows kdyz se v pravem dolnim rohu end of line sequence prepne CRLF na LF
+		// konzumace bílých znaků
+		// vertical tab, form feed, carriage return
+		case '\v' ... '\r':
+			return START_STATE;
+		// tab
+		case '\t':
 			return START_STATE;
 
 		default:
