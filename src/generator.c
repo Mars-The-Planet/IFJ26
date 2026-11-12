@@ -17,6 +17,11 @@
 
 #include "generator.h"
 #include "parser.h"
+
+/**
+ * @brief vrací nové unikátní číslo pro návěští (skoky)
+ */
+
 static int actual_label_number = 0;
 
 /**
@@ -27,44 +32,9 @@ static int get_new_label(void){
 }
 
 
-/**
- * @brief struktura od x273960 z parseru
- */
-typedef enum ASTNodeType {
+//doplnit až bude parser vědět jak vypadá blok
+void generate_block();
 
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-    LESS,
-    EQUALS,
-    LESS_EQUAL,
-    GREATER,
-    GREATER_EQUEAL,
-    AND,
-    OR,
-    UMINUS,
-    UPLUS,
-    NOT,
-    IF,
-    WHILE,
-    FOR,
-    IDENT,
-    LIST,
-    DOT_ACCESS,
-    BLOCK, // pro posloupnost příkazů
-    ASSIGN,
-    VAR_DEF, // TODO: bool kde budu rozohodovat jestli se jedná od VAL(true) nebo VAR(false)
-    FUN_DEF,
-    FUN_CALL,
-    LITERAL_INT,
-    LITERAL_DOUBLE,
-    LITERAL_STRING,
-    LITERAL_BOOL,
-    LITERAL_UNIT,
-    RETURN,    
-
-} NodeType;
 
 
 /**
@@ -103,11 +73,12 @@ void literal_bool(int value){
 }
 
 /**
- * @brief vložení typu unit kde potřeba
+ * @brief unit nic nenechává na zásobníku
  */
 void literal_unit(void){
-    printf("PUSHS nil@nil\n");
 }
+
+void ident();
 
 /**
  * @brief typová konverze z int na float
@@ -128,16 +99,19 @@ void int_to_float(void){
  * 
  * @param node ukazatel na uzel AST
  */
-void get_operands(Node *node){
-  generate_node(node->left);
+void get_operands(AST_Node *node){
 
-  if(node->left->type == TYPE_INT && node->left->type == TYPE_FLOAT){
+  dataType left = node->nodeData.biData.left->result;
+  dataType right = node->nodeData.biData.right->result;
+  generate_node(node->nodeData.biData.left);
+
+  if( left == TYPE_INT && right == TYPE_DOUBLE){
     int_to_float();
   }
 
-  generate_node(node->right)
+  generate_node(node->nodeData.biData.right);
 
-  if(node->left->type == TYPE_INT && node->left->type == TYPE_FLOAT){
+  if(right == TYPE_INT && left == TYPE_DOUBLE){
     int_to_float();
   }
 }
@@ -146,82 +120,82 @@ void get_operands(Node *node){
 /**
 *   @brief pro operátor less
 */
-void less(Node *node){
-  generate_operands(node);
+void less(AST_Node *node){
+  get_operands(node);
   printf("LTS\n");
 }
 
 /**
  * @brief pro operátor greater
  */
-void greater(Node *node){
-  generate_operands(node);
+void greater(AST_Node *node){
+  get_operands(node);
   printf("GTS\n");
 }
 
 /**
  * @brief pro operátor equals
  */
-void equals(Node *node){
-  generate_operands(node);
-  printf("EQTS\n");
+void equals(AST_Node *node){
+  get_operands(node);
+  printf("EQS\n");
 }
 
 /**
  * @brief pro operátor less_equal
  */
 
-void less_equal(Node *node){
-  generate_operands(node);
+void less_equal(AST_Node *node){
+  get_operands(node);
   printf("GTS\nNOTS\n");
 }
 
 /**
  * @brief pro operátor greater_equal
  */
-void greater_equal(Node *node){
-  generate_operands(node);
+void greater_equal(AST_Node *node){
+  get_operands(node);
   printf("LTS\nNOTS\n");
 }
 
 /**
  * @brief pro operátor not_equal
  */
-void not_equal(Node *node){
-  generate_operands(node);
-  printf("EQTS\nNOTS\n");
+void not_equal(AST_Node *node){
+  get_operands(node);
+  printf("EQS\nNOTS\n");
 }
 
 /**
  * @brief logické not
  * @param node ukazatel na uzel ass
  */
-void logical_not(Node *node){
-    generate_node(node->single);
+void logical_not(AST_Node *node){
+    generate_node(node->nodeData.uData.single);
     printf("NOTS\n");
 }
 /**
  * @brief struktura pro logické and, používá zkratkové vyhodnocování
  * @param node ukazatel na uzel
  */
-void logical_and(Node *node){
+void logical_and(AST_Node *node){
 
   int label_number = get_new_label();
 
-  generate_operands(node->left);
+  generate_node(node->nodeData.biData.left);
   printf("PUSHS bool@false\n");
-  printf("JUMPIFEQS $ß_and%d_false\n",label_number);
+  printf("JUMPIFEQS $_and%d_false\n",label_number);
 
-  generate(node->right);
+  generate_node(node->nodeData.biData.right);
   printf("PUSHS bool@false\n");
-  printf("JUMPIFEQS $ß_and%d_false\n",label_number);
+  printf("JUMPIFEQS $_and%d_false\n",label_number);
 
   printf("PUSHS bool@true\n");
-  printf("JUMP $ß_and%d_end\n",label_number);
+  printf("JUMP $_and%d_end\n",label_number);
 
-  printf("LABEL $ß_and%d_false\n",label_number);
+  printf("LABEL $_and%d_false\n",label_number);
   printf("PUSHS bool@false\n");
-  printf("LABEL $ß_and%d_end\n",label_number);
+  printf("LABEL $_and%d_end\n",label_number);
 
 }
 
@@ -229,65 +203,67 @@ void logical_and(Node *node){
  * @brief struktura pro logické or, používá zkratkové vyhodnocování
  * @param node ukazatel na uzel
  */
-void logical_or(Node *node){
+void logical_or(AST_Node *node){
   int label_number = get_new_label();
 
-  generate(node->left);
+  generate_node(node->nodeData.biData.left);
   printf("PUSHS bool@true\n");
-  printf("JUMPIFEQS $ß_or%d_true\n",label_number);
+  printf("JUMPIFEQS $_or%d_true\n",label_number);
 
-  generate(node->right);
+  generate_node(node->nodeData.biData.right);
   printf("PUSHS bool@true\n");
-  printf("JUMPIFEQS $ß_or%d_true\n",label_number);
+  printf("JUMPIFEQS $_or%d_true\n",label_number);
 
   printf("PUSHS bool@false\n");
-  printf("JUMP $ß_or%d_end\n",label_number);
+  printf("JUMP $_or%d_end\n",label_number);
 
-  printf("LABEL $ß_or%d_true\n",label_number);
-  printf("PUSHS bool@false\n");
-  printf("LABEL $ß_or%d_end\n",label_number);
+  printf("LABEL $_or%d_true\n",label_number);
+  printf("PUSHS bool@true\n");
+  printf("LABEL $_or%d_end\n",label_number);
 }
 
 /**
  * @brief funkce pro inarní plus
  * @param node ukazatel na uzelk ass
  */
-void unar_plus(Node *node){
-  generate_node(node->single);
+void unar_plus(AST_Node *node){
+  generate_node(node->nodeData.uData.single);
 }
 
 /**
  * @brief funkce pro sčítání a kokatenaci řetězců
  * @param node ukazatel na uzel
  */
-void add(Node *node){
+void add(AST_Node *node){
   get_operands(node);
 
   //stačí jeden, sémantika zkontroluj epředtím;
-  if (node->left->type == TYPE_STRING){
+  if (node->nodeData.biData.left->result == TYPE_STRING){
     printf("POPS GF@$t2\n");
     printf("POPS GF@$t1\n");
 
     //concat nemá zásobníkovou verzi
     printf("CONCAT GF@$t1 GF@$t1 GF@$t2\n");
     printf("PUSHS GF@$t1\n");
-  };
-
-  else
+  }
+  else{
     printf("ADDS\n");
+  }
 }
+
 /**
  * @brief funkce pro odečítání
  * @param node ukazatel na uzel
  */
-void sub(Node *node){
-  printf("SUBS\n")
+void sub(AST_Node *node){
+  get_operands(node);
+  printf("SUBS\n");
 }
 /**
  * @brief funkce pro násobení
  * @param node ukazatel na uzel
  */
-void mul(Node *node){
+void mul(AST_Node *node){
   get_operands(node);
 
   printf("MULS\n");
@@ -299,34 +275,38 @@ void mul(Node *node){
  * nepřevádět na float a použít funkci DIVS
  * @param node ukazatel na uzel
  */
-void div(Node *node){
+void divide(AST_Node *node){
   get_operands(node);
 
-  if (node->left->type == TYPE_FLOAT){
+  if (node->nodeData.biData.left->result == TYPE_DOUBLE || node->nodeData.biData.left->result == TYPE_DOUBLE){
     printf("DIVS\n");
   }
   else
     printf("IDIVS\n");
 }
+
+
 /**
  * @brief generátor kódu pro jednotlivé uzly AST
  *  používá switch a prokaždý uzel podle jeho typu zavolá funkci která vygeneruje kód pro daný uzel
  * @param node ukazatel na uzel AST
  */
-generate_node(Node *node){
+
+ 
+void generate_node(AST_Node *node){
   
-  switch (node->nodetype){
+  switch (node->type){
     case LITERAL_INT:
-      literal_int(node->value);
+      literal_int(node->nodeData.elemData.valueType.int_value);
     break;
     case LITERAL_DOUBLE:
-      literal_double(node->value);
+      literal_double(node->nodeData.elemData.valueType.double_value);
     break;
     case LITERAL_STRING:
-      literal_sting(node->value);
+      literal_string(node->nodeData.elemData.valueType.string_value);
     break;
     case LITERAL_BOOL:
-      literal_bool(node->value);
+      literal_bool(node->nodeData.elemData.valueType.bool_value);
     break;
     case LITERAL_UNIT:
       literal_unit();
@@ -347,7 +327,7 @@ generate_node(Node *node){
       greater_equal(node);
       break;
     case NOT_EQUAL:
-      not_equal(node)
+      not_equal(node);
       break;
     case NOT_N:
       logical_not(node);
@@ -372,7 +352,7 @@ generate_node(Node *node){
       mul(node);
       break;
     case DIV:
-      div(node);
+      divide(node);
       break;
 //todo: doplnit další uzly AST
 
@@ -398,7 +378,7 @@ generate_node(Node *node){
   case LIST:
     printf("Today is Saturday");
     break;
-  case DOT_ACCES:
+  case DOT_ACCESS:
     printf("Today is Saturday");
     break;
    case BLOCK:
@@ -416,7 +396,6 @@ generate_node(Node *node){
   case FUN_CALL:
     printf("Today is Saturday");
     break;
-
 
 
   case RETURN:

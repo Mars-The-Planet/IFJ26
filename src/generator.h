@@ -13,45 +13,9 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "parser.h"
 //#include "parser.h"
 
-
-/**
- * @brief Výčet typů uzlů abstraktního syntaktického stromu (AST)
- */
-typedef enum ASTNodeType {
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-    LESS,
-    EQUALS,
-    LESS_EQUAL,
-    GREATER,
-    GREATER_EQUEAL,
-    AND,
-    OR,
-    UMINUS,
-    UPLUS,
-    NOT,
-    IF,
-    WHILE,
-    FOR,
-    IDENT,
-    LIST,
-    DOT_ACCESS,
-    BLOCK,          // pro posloupnost příkazů
-    ASSIGN,
-    VAR_DEF,        // TODO: bool kde budu rozhodovat jestli se jedná od VAL(true) nebo VAR(false)
-    FUN_DEF,
-    FUN_CALL,
-    LITERAL_INT,
-    LITERAL_DOUBLE,
-    LITERAL_STRING,
-    LITERAL_BOOL,
-    LITERAL_UNIT,
-    RETURN,
-} NodeType;
 
 /**
  * @brief Funkce pro int z ifj26 do ifjcode26
@@ -72,7 +36,7 @@ void literal_double(double value);
 void literal_bool(int value);
 
 /**
- * @brief Vložení typu unit (nil) kde je potřeba
+ * @brief v podstatě nic nedělá
  */
 void literal_unit(void);
 
@@ -85,102 +49,102 @@ void int_to_float(void);
  * @brief Pomocná funkce pro generování kódu pro operandy a konverze typů
  * @param node Ukazatel na uzel AST
  */
-void get_operands(Node *node);
+void get_operands(AST_Node *node);
 
 /**
  * @brief Generování kódu pro operátor menší než (<)
  * @param node Ukazatel na uzel AST
  */
-void less(Node *node);
+void less(AST_Node *node);
 
 /**
  * @brief Generování kódu pro operátor větší než (>)
  * @param node Ukazatel na uzel AST
  */
-void greater(Node *node);
+void greater(AST_Node *node);
 
 /**
  * @brief Generování kódu pro operátor rovnosti (==)
  * @param node Ukazatel na uzel AST
  */
-void equals(Node *node);
+void equals(AST_Node *node);
 
 /**
  * @brief Generování kódu pro operátor menší nebo rovno (<=)
  * @param node Ukazatel na uzel AST
  */
-void less_equal(Node *node);
+void less_equal(AST_Node *node);
 
 /**
  * @brief Generování kódu pro operátor větší nebo rovno (>=)
  * @param node Ukazatel na uzel AST
  */
-void greater_equal(Node *node);
+void greater_equal(AST_Node *node);
 
 /**
  * @brief Generování kódu pro operátor nerovnosti (!=)
  * @param node Ukazatel na uzel AST
  */
-void not_equal(Node *node);
+void not_equal(AST_Node *node);
 
 /**
  * @brief Logické negování (NOT)
  * @param node Ukazatel na uzel AST
  */
-void logical_not(Node *node);
+void logical_not(AST_Node *node);
 
 /**
  * @brief Struktura pro logické AND se zkratkovým vyhodnocováním
  * @param node Ukazatel na uzel AST
  */
-void logical_and(Node *node);
+void logical_and(AST_Node *node);
 
 /**
  * @brief Struktura pro logické OR se zkratkovým vyhodnocováním
  * @param node Ukazatel na uzel AST
  */
-void logical_or(Node *node);
+void logical_or(AST_Node *node);
 
 /**
  * @brief Generátor pro unární plus
  * @param node Ukazatel na uzel AST
  */
-void unar_plus(Node *node);
+void unar_plus(AST_Node *node);
 
 /**
  * @brief Generátor pro unární mínus
  * @param node Ukazatel na uzel AST
  */
-void unar_minus(Node *node);
+void unar_minus(AST_Node *node);
 
 /**
  * @brief Generátor pro sčítání (nebo řetězení stringů)
  * @param node Ukazatel na uzel AST
  */
-void add(Node *node);
+void add(AST_Node *node);
 
 /**
  * @brief funkce pro odečítání
  * @param node ukazatel na uzel
  */
-void sub(Node *node);
+void sub(AST_Node *node);
 
 /**
  * @brief Generátor pro násobení
  * @param node Ukazatel na uzel AST
  */
-void mul(Node *node);
+void mul(AST_Node *node);
 
 /**
  * @brief Generátor pro děllení (float / integer dělení podle typů)
  * @param node Ukazatel na uzel AST
  */
-void div(Node *node);
+void divide(AST_Node *node);
 
 /**
  * @brief Hlavní dispatcher – generátor kódu pro jednotlivé uzly AST
  * @param node Ukazatel na uzel AST
  */
-void generate_node(Node *node);
+void generate_node(AST_Node *node);
 
 #endif // GENERATOR_H
