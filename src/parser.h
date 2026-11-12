@@ -176,6 +176,12 @@ struct AST_Node {
 
         } callFunData;
 
+        struct {
+
+            char *var_name;
+            AST_Node *equal;
+
+        } assignData;
 
         // scénář pro poslední část AST stromu 
         struct {
@@ -209,7 +215,7 @@ void parse_fun();
 
 void has_main();
 
-AST_Node *parse_expression();
+AST_Node *parse_expression(AST_Node *past_node);
 
 head *parse_param();
 

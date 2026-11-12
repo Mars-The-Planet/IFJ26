@@ -103,8 +103,8 @@ void the_parser(){
     return;
 }
 
-
-AST_Node *parse_expression(){
+// přidání parametru abych neztratil jméno identifikátoru
+AST_Node *parse_expression(AST_Node *past_node){
 
 }
 
@@ -312,7 +312,7 @@ AST_Node *parse_fun_body(int origin_indent){
                 case STRING_TYPE:
                 case SYMBOL_TYPE:
                 case OPERATOR_TYPE:
-                    temp_statement = parse_expression();
+                    temp_statement = parse_expression(NULL);
                     break;
             } 
             
@@ -327,7 +327,7 @@ AST_Node *parse_fun_body(int origin_indent){
         }
 
     } else 
-        return parse_expression();
+        return parse_expression(NULL);
 }
 
 
@@ -368,6 +368,7 @@ AST_Node *parse_var(){
                 next_token(&active_token, stack_indent);
                 if(active_token.type != KEYWORD_TYPE) exit(2);
                 
+                next_token(&active_token, stack_indent);
                 temp_var->nodeData.varData.varListType = type_transfer();
 
                 next_token(&active_token, stack_indent);
@@ -379,7 +380,7 @@ AST_Node *parse_var(){
                 if(active_token.type == OPERATOR_TYPE){
                     if(strcmp(active_token.value, "=") != 0) exit(2);
                     next_token(&active_token, stack_indent);
-                    temp_var->nodeData.varData.expression = parse_expression();
+                    temp_var->nodeData.varData.expression = parse_expression(NULL);
 
                 } else 
                     exit(2);
@@ -390,8 +391,10 @@ AST_Node *parse_var(){
         // rovná se znamená že proměnná nemá ještě definovaný typ
         if(strcmp(active_token.value, "=") == 0){
             temp_var->nodeData.varData.varType = TYPE_UNDEF;
-            temp_var->nodeData.varData.expression = parse_expression();
-        }
+            next_token(&active_token, stack_indent);
+            temp_var->nodeData.varData.expression = parse_expression(NULL);
+        } else 
+            exit(2);
     } else 
         exit(2);
 
@@ -400,6 +403,35 @@ AST_Node *parse_var(){
 
 AST_Node *parse_id(){
 
+    // uložení jména proměnné, protože ještě nevím o jaký typ výrazu se jedná
+    char *temp_name = strdup(active_token.value);
+
+    AST_Node *temp_id = malloc(sizeof(AST_Node));
+    if(temp_id == NULL){
+        fprintf(stderr, "Memory allocation failed!");
+        exit(99);
+    }
+
+
+    next_token(&active_token, stack_indent);
+    if(active_token.type == OPERATOR_TYPE && strcmp(active_token.value, "=") == 0){
+        
+
+        temp_id->type = ASSIGN;
+
+        temp_id->nodeData.assignData.var_name = temp_name;
+
+        next_token(&active_token, stack_indent);
+        temp_id->nodeData.assignData.equal = parse_expression(NULL);
+
+
+        return temp_id;
+    
+    } 
+
+    temp_id->type = IDENT;
+    temp_id->nodeData.idVarData.id_name = temp_name;
+    return parse_expression(temp_id);
 }
 
 AST_Node *parse_for(int origin_indent){
@@ -435,7 +467,8 @@ AST_Node *parse_for(int origin_indent){
     } else
         exit(2);
 
-    temp_for->nodeData.forData.condition = parse_expression();
+    next_token(&active_token, stack_indent);
+    temp_for->nodeData.forData.condition = parse_expression(NULL);
 
     if(active_token.type == KEYWORD_TYPE){
         if(strcmp(active_token.value, "do") != 0) exit(2);
@@ -459,7 +492,7 @@ AST_Node *parse_if(int origin_indent){
 
     // zavoláme token pro podmínku
     next_token(&active_token, stack_indent);
-    temp_if->nodeData.ifData.condition = parse_expression();
+    temp_if->nodeData.ifData.condition = parse_expression(NULL);
 
     if(active_token.type == KEYWORD_TYPE){
         if(strcmp(active_token.value, "then") != 0) exit (2);
@@ -498,7 +531,7 @@ AST_Node *parse_while(int origin_indent){
     temp_while->type = WHILE_N;
 
     next_token(&active_token, stack_indent);
-    temp_while->nodeData.whileData.condition = parse_expression();
+    temp_while->nodeData.whileData.condition = parse_expression(NULL);
 
     // nevolám next_token protože počítám stím že ho zavolal funkce parse_expression
     if(active_token.type == KEYWORD_TYPE){
