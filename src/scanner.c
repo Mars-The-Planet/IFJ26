@@ -286,12 +286,12 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 			tokenType type = tkn_ptr->type;
 			// nafukovací řetězec nebyl využit je potřeba ho uvolnit již tady
 			if (!(type == KEYWORD_TYPE || type == ID_TYPE || type == LIST_PROPERTY_TYPE || type == STRING_TYPE || type == INT_TYPE || type == DOUBLE_TYPE)) {
-				destoy_dynamic_string(tkn_str);
+				destroy_dynamic_string(tkn_str);
 			}
 			return 0;
 		}
 		else if (state == ERROR_STATE) {
-			destoy_dynamic_string(tkn_str);
+			destroy_dynamic_string(tkn_str);
 			fprintf(stderr, "Neznamy token, stav: %d, znak: %c, znak ascii: %d\n", state, ch, ch);
 			return 1;
 		}

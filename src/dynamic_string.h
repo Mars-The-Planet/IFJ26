@@ -4,7 +4,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Hlavičkový soubor nafukovacího řetězce s vkládáním pouze na konec
- * @date 11.11.2026
+ * @date 11.12.2026
  */
 
 #ifndef DYNAMIC_STRING_H
@@ -34,18 +34,18 @@ int init_dynamic_string(dynamic_string_ptr string_ptr, int len);
 
 
 /**
- * @brief Vloží znak na poslední prvek
- * @param string_ptr ukazatel na nafukovací řetězce
+ * @brief Vloží znak za poslední prvek
+ * @param string_ptr ukazatel na nafukovací řetězec
  * @param ch znak který má být vložen 
- * @return vrátí 0 pokud nastavení proběhlo úspěšně, nebo 1 pokud neúspěšně
+ * @return vrátí 0 pokud vložení proběhlo úspěšně, nebo 1 pokud neúspěšně
  */
 int insert_last(dynamic_string_ptr string_ptr, int ch);
 
 
 /**
  * @brief Uvolní paměť nafukovacího řetězece
- * @param string_ptr ukazatel na nafukovací řetězce
+ * @param string_ptr ukazatel na nafukovací řetězec
  */
-void destoy_dynamic_string(dynamic_string_ptr string_ptr);
+void destroy_dynamic_string(dynamic_string_ptr string_ptr);
 
 #endif // DYNAMIC_STRING
