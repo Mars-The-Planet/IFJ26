@@ -152,6 +152,13 @@ struct AST_Node {
 
         } funData;
 
+        struct {
+
+            AST_Node *condition;
+            AST_Node *body;
+
+        } whileData;
+
         // scénář pro volání funkce 
         struct {
 
@@ -185,5 +192,31 @@ struct AST_Node {
     } nodeData;
 
 };
+
+void code_prolog();
+
+void the_parser();
+
+void parse_fun();
+
+void has_main();
+
+AST_Node *parse_expression();
+
+head *parse_param();
+
+AST_Node *parse_fun_body(int origin_indent);
+
+AST_Node *parse_var();
+
+AST_Node *parse_while(int origing_indent);
+
+AST_Node *parse_if(int origin_indent);
+
+AST_Node *parse_for(int origin_indent);
+
+AST_Node *parse_id();
+
+AST_Node *parse_return();
 
 #endif // PARSER_H

@@ -71,6 +71,38 @@ void code_prolog (){
     return;
 }
 
+void the_parser(){
+
+    int indent;
+    
+    while(1){
+        next_token(&active_token, stack_indent);
+        switch(active_token.type) {
+
+            case KEYWORD_TYPE:
+                if(strcmp(active_token.value, "def") == 0){
+                    parse_fun();
+                    break;
+                }
+                else if(strcmp(active_token.value, "@main") == 0){
+                    has_main();
+                }
+                else 
+                    exit(2);
+
+            case SYMBOL_TYPE:
+                if(strcmp(active_token.value, "EOL") == 0) continue;
+                else if(strcmp(active_token.value, "EOF") == 0) break;
+
+            default:
+                exit(2);
+
+        }
+    }
+
+    return;
+}
+
 
 AST_Node *parse_expression(){
 
@@ -159,136 +191,6 @@ head *parse_param(){
     }
 }
 
-AST_Node *parse_var(){
-
-    AST_Node *temp_var = malloc(sizeof(AST_Node));
-    if(temp_var == NULL){
-        fprintf(stderr, "Memory allocation failed!");
-        exit(99);
-    }
-
-    temp_var->type = VAR_DEF;
-
-    if(strcmp(active_token.value, "var") != 0) temp_var->nodeData.varData.isvar = 0;
-    else 
-        temp_var->nodeData.varData.isvar = 1;
-
-    next_token(&active_token, stack_indent);
-    if(active_token.type == ID_TYPE) {
-        temp_var->nodeData.varData.var_name = strdup(active_token.value);
-    } else 
-        exit(2);
-
-    next_token(&active_token, stack_indent);
-    if(active_token.type == SYMBOL_TYPE){
-        if(strcmp(active_token.value, ":") == 0){
-
-            next_token(&active_token, stack_indent);
-            if(active_token.type == KEYWORD_TYPE){
-                temp_var->nodeData.varData.varType = type_transfer();
-
-                if(strcmp(active_token.value, "List") == 0){
-                
-                next_token(&active_token, stack_indent);
-                if(active_token.type != SYMBOL_TYPE) exit(2);
-                if(strcmp(active_token.value, "[") != 0) exit(2);
-                
-                next_token(&active_token, stack_indent);
-                if(active_token.type != KEYWORD_TYPE) exit(2);
-                
-                temp_var->nodeData.varData.varListType = type_transfer();
-
-                next_token(&active_token, stack_indent);
-                if(active_token.type != SYMBOL_TYPE) exit(2);
-                if(strcmp(active_token.value, "]") != 0) exit(2);
-                }
-                
-                next_token(&active_token, stack_indent);
-                if(active_token.type == OPERATOR_TYPE){
-                    if(strcmp(active_token.value, "=") != 0) exit(2);
-                    next_token(&active_token, stack_indent);
-                    temp_var->nodeData.varData.expression = parse_expression();
-
-                } else 
-                    exit(2);
-            } else 
-                exit(2);
-        } 
-    } else if(active_token.type == OPERATOR_TYPE){
-        // rovná se znamená že proměnná nemá ještě definovaný typ
-        if(strcmp(active_token.value, "=") == 0){
-            temp_var->nodeData.varData.varType = TYPE_UNDEF;
-            temp_var->nodeData.varData.expression = parse_expression();
-        }
-    } else 
-        exit(2);
-
-    return temp_var;
-}
-
-AST_Node *parse_fun_body(int origin_indent){
-    
-    AST_Node *statements = NULL;
-    AST_Node *temp_statement = NULL;
-    AST_Node *last_statement = NULL;
-
-    next_token(&active_token, stack_indent);
-    // pokud je tam odsazení jedná se o tělo funkce, jinak je to výraz
-    if(active_token.type == SYMBOL_TYPE && strcmp(active_token.value, "EOL") == 0){
-        check_for_eol();
-        if(active_token.type == SYMBOL_TYPE && strcmp(active_token.value, "EOF") == 0) exit(2);
-        // tady může mít stack_indent mít hodnotu 0
-        if(sum_stack(stack_indent) <= origin_indent) exit(2);
-        origin_indent = sum_stack(stack_indent);
-
-        while(1){
-            check_for_eol();
-            if(active_token.type == SYMBOL_TYPE && strcmp(active_token.value, "EOF") == 0) return statements;
-            if(sum_stack(stack_indent) < origin_indent) return statements;
-            // odsazení se nesmí jen tak zvětšit
-            if(sum_stack(stack_indent) > origin_indent) exit(2);
-            
-            switch(active_token.type){
-
-                case KEYWORD_TYPE:
-                // var(1) a val(0) se rozlišuje podle bool 
-                if(strcmp(active_token.value, "val") == 0 || strcmp(active_token.value, "var") == 0) temp_statement = parse_var();
-                else if(strcmp(active_token.value, "while") == 0) temp_statement = parse_while();
-                else if(strcmp(active_token.value, "if") == 0) temp_statement = parse_if();
-                else if(strcmp(active_token.value, "for") == 0) temp_statement = parse_for();
-                else if(strcmp(active_token.value, "return") == 0) temp_statement = parse_return();
-                else 
-                    exit(2);
-                break;
-
-                case ID_TYPE:
-                    // funkce která už bude rozhodovat co s id vlastně dělat
-                    temp_statement = parse_id();
-                    break;
-                
-                // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem case featuru propadnutí
-                case INT_TYPE:
-                case DOUBLE_TYPE:
-                case STRING_TYPE:
-                case SYMBOL_TYPE:
-                case OPERATOR_TYPE:
-                    temp_statement = parse_expression();
-                    break;
-            } 
-            
-            if(statements == NULL){
-                statements = temp_statement;
-                last_statement = temp_statement;
-            } else {
-                last_statement->next = temp_statement;
-                last_statement = temp_statement;
-            }
-
-        }
-
-    } else 
-        return parse_expression();
-}
 
 void parse_fun(){
 
@@ -363,43 +265,237 @@ void parse_fun(){
     return;
 }
 
+
+AST_Node *parse_fun_body(int origin_indent){
+    
+    AST_Node *statements = NULL;
+    AST_Node *temp_statement = NULL;
+    AST_Node *last_statement = NULL;
+
+    next_token(&active_token, stack_indent);
+    // pokud je tam odsazení jedná se o tělo funkce, jinak je to výraz
+    if(active_token.type == SYMBOL_TYPE && strcmp(active_token.value, "EOL") == 0){
+        check_for_eol();
+        if(active_token.type == SYMBOL_TYPE && strcmp(active_token.value, "EOF") == 0) exit(2);
+        // tady může mít stack_indent mít hodnotu 0
+        if(sum_stack(stack_indent) <= origin_indent) exit(2);
+        origin_indent = sum_stack(stack_indent);
+
+        while(1){
+            check_for_eol();
+            if(active_token.type == SYMBOL_TYPE && strcmp(active_token.value, "EOF") == 0) return statements;
+            if(sum_stack(stack_indent) < origin_indent) return statements;
+            // odsazení se nesmí jen tak zvětšit
+            if(sum_stack(stack_indent) > origin_indent) exit(2);
+            
+            switch(active_token.type){
+
+                case KEYWORD_TYPE:
+                // var(1) a val(0) se rozlišuje podle bool 
+                if(strcmp(active_token.value, "val") == 0 || strcmp(active_token.value, "var") == 0) temp_statement = parse_var();
+                else if(strcmp(active_token.value, "while") == 0) temp_statement = parse_while(origin_indent);
+                else if(strcmp(active_token.value, "if") == 0) temp_statement = parse_if(origin_indent);
+                else if(strcmp(active_token.value, "for") == 0) temp_statement = parse_for(origin_indent);
+                else if(strcmp(active_token.value, "return") == 0) temp_statement = parse_return();
+                else 
+                    exit(2);
+                break;
+
+                case ID_TYPE:
+                    // funkce která už bude rozhodovat co s id vlastně dělat
+                    temp_statement = parse_id();
+                    break;
+                
+                // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem case featuru propadnutí
+                case INT_TYPE:
+                case DOUBLE_TYPE:
+                case STRING_TYPE:
+                case SYMBOL_TYPE:
+                case OPERATOR_TYPE:
+                    temp_statement = parse_expression();
+                    break;
+            } 
+            
+            if(statements == NULL){
+                statements = temp_statement;
+                last_statement = temp_statement;
+            } else {
+                last_statement->next = temp_statement;
+                last_statement = temp_statement;
+            }
+
+        }
+
+    } else 
+        return parse_expression();
+}
+
+
+AST_Node *parse_var(){
+
+    AST_Node *temp_var = malloc(sizeof(AST_Node));
+    if(temp_var == NULL){
+        fprintf(stderr, "Memory allocation failed!");
+        exit(99);
+    }
+
+    temp_var->type = VAR_DEF;
+
+    if(strcmp(active_token.value, "var") != 0) temp_var->nodeData.varData.isvar = 0;
+    else 
+        temp_var->nodeData.varData.isvar = 1;
+
+    next_token(&active_token, stack_indent);
+    if(active_token.type == ID_TYPE) {
+        temp_var->nodeData.varData.var_name = strdup(active_token.value);
+    } else 
+        exit(2);
+
+    next_token(&active_token, stack_indent);
+    if(active_token.type == SYMBOL_TYPE){
+        if(strcmp(active_token.value, ":") == 0){
+
+            next_token(&active_token, stack_indent);
+            if(active_token.type == KEYWORD_TYPE){
+                temp_var->nodeData.varData.varType = type_transfer();
+
+                if(strcmp(active_token.value, "List") == 0){
+                
+                next_token(&active_token, stack_indent);
+                if(active_token.type != SYMBOL_TYPE) exit(2);
+                if(strcmp(active_token.value, "[") != 0) exit(2);
+                
+                next_token(&active_token, stack_indent);
+                if(active_token.type != KEYWORD_TYPE) exit(2);
+                
+                temp_var->nodeData.varData.varListType = type_transfer();
+
+                next_token(&active_token, stack_indent);
+                if(active_token.type != SYMBOL_TYPE) exit(2);
+                if(strcmp(active_token.value, "]") != 0) exit(2);
+                }
+                
+                next_token(&active_token, stack_indent);
+                if(active_token.type == OPERATOR_TYPE){
+                    if(strcmp(active_token.value, "=") != 0) exit(2);
+                    next_token(&active_token, stack_indent);
+                    temp_var->nodeData.varData.expression = parse_expression();
+
+                } else 
+                    exit(2);
+            } else 
+                exit(2);
+        } 
+    } else if(active_token.type == OPERATOR_TYPE){
+        // rovná se znamená že proměnná nemá ještě definovaný typ
+        if(strcmp(active_token.value, "=") == 0){
+            temp_var->nodeData.varData.varType = TYPE_UNDEF;
+            temp_var->nodeData.varData.expression = parse_expression();
+        }
+    } else 
+        exit(2);
+
+    return temp_var;
+}
+
+AST_Node *parse_id(){
+
+}
+
+AST_Node *parse_for(int origin_indent){}
+
+AST_Node *parse_if(int origin_indent){
+
+    AST_Node *temp_if = malloc(sizeof(AST_Node));
+    if(temp_if == NULL){
+        fprintf(stderr,"ERROR: Memory allocation failed!");
+        exit(99);
+    }
+
+    temp_if->type = IF_N;
+
+    // zavoláme token pro podmínku
+    next_token(&active_token, stack_indent);
+    temp_if->nodeData.ifData.condition = parse_expression();
+
+    if(active_token.type == KEYWORD_TYPE){
+        if(strcmp(active_token.value, "then") != 0) exit (2);
+    } else 
+        exit(2);
+    
+    next_token(&active_token, stack_indent);
+    if(active_token.type == SYMBOL_TYPE){
+        if(strcmp(active_token.value, "EOL") != 0){
+            temp_if->nodeData.ifData.then_part = parse_expression();
+        } else if(strcmp(active_token.value, "EOL") == 0){
+            // po konci funkce se mi vrátí další token a to může být else, else if nebo EOL
+            temp_if->nodeData.ifData.then_part = parse_fun_body(origin_indent);
+        }
+    } else 
+        exit(2);
+
+
+
+    if(strcmp(active_token.value, "else") == 0){
+        next_token(&active_token, stack_indent);
+        if(active_token.type == SYMBOL_TYPE){
+            if(strcmp(active_token.value, "EOL") != 0) exit(2);
+                temp_if->nodeData.ifData.else_part = parse_fun_body(origin_indent);
+        
+        } else if(active_token.type == KEYWORD_TYPE){
+            if(strcmp(active_token.value, "if") != 0) exit(2);
+            temp_if->nodeData.ifData.else_part = parse_if(origin_indent);
+        }
+    } else {
+        temp_if->nodeData.ifData.else_part = NULL;
+        return temp_if;
+    }
+    return temp_if;
+
+}
+
+AST_Node *parse_while(int origin_indent){
+
+    AST_Node *temp_while = malloc(sizeof(AST_Node));
+    if(temp_while == NULL){
+        fprintf(stderr,"ERROR: Memory allocation failed!");
+        exit(99);
+    }
+
+    temp_while->type = WHILE_N;
+
+    next_token(&active_token, stack_indent);
+    temp_while->nodeData.whileData.condition = parse_expression();
+
+    // nevolám next_token protože počítám stím že ho zavolal funkce parse_expression
+    if(active_token.type == KEYWORD_TYPE){
+        if(strcmp(active_token.value, "do") != 0) exit(2);
+    } else 
+        exit(2);
+    
+    next_token(&active_token, stack_indent);
+    if(active_token.type == SYMBOL_TYPE){
+        if(strcmp(active_token.value, "EOL") != 0){
+            temp_while->nodeData.whileData.body = parse_expression();
+        } else 
+            // zpracování těla while je stejné jako zpracování těla funkce
+            temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
+    } else 
+        exit(2);
+
+
+
+
+    return temp_while;
+}
+
 // TODO: dodělat funkci na kontrolu existence funkce main
 void has_main(){
 
 }
 
 
-void the_parser(){
 
-    int indent;
-    
-    while(1){
-        next_token(&active_token, stack_indent);
-        switch(active_token.type) {
-
-            case KEYWORD_TYPE:
-                if(strcmp(active_token.value, "def") == 0){
-                    parse_fun();
-                    break;
-                }
-                else if(strcmp(active_token.value, "@main") == 0){
-                    has_main();
-                }
-                else 
-                    exit(2);
-
-            case SYMBOL_TYPE:
-                if(strcmp(active_token.value, "EOL") == 0) continue;
-                else if(strcmp(active_token.value, "EOF") == 0) break;
-
-            default:
-                exit(2);
-
-        }
-    }
-
-    return;
-}
 
 
 
