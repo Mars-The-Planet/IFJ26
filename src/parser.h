@@ -188,7 +188,7 @@ struct AST_Node {
             AST_Node *expression;
         
 
-        } retrunData;
+        } returnData;
 
         // scénář pro poslední část AST stromu 
         struct {

@@ -203,6 +203,7 @@ void parse_fun(){
     }
     
     new_fun->type = FUN_DEF;
+    new_fun->next = NULL;
 
     next_token(&active_token, stack_indent);
     if(active_token.type == ID_TYPE){
@@ -248,7 +249,7 @@ void parse_fun(){
                 next_token(&active_token, stack_indent);
                 if (active_token.type == OPERATOR_TYPE){
                     if(strcmp(active_token.value, "=") == 0){
-                        parse_fun_body(indent);
+                        new_fun->nodeData.funData.body = parse_fun_body(indent);
                     } else 
                         exit(2);
                 } else 
@@ -259,7 +260,7 @@ void parse_fun(){
         } 
     } else if(active_token.type == OPERATOR_TYPE){
         if(strcmp(active_token.value, "=") != 0) exit(2);
-        parse_fun_body(indent);
+        new_fun->nodeData.funData.body = parse_fun_body(indent);
     }
 
     return;
@@ -347,6 +348,7 @@ AST_Node *parse_var(){
     }
 
     temp_var->type = VAR_DEF;
+    temp_var->next = NULL;
 
     if(strcmp(active_token.value, "var") != 0) temp_var->nodeData.varData.isvar = 0;
     else 
@@ -417,11 +419,8 @@ AST_Node *parse_for(int origin_indent){
         exit(99);
     }
 
-    // proměné pro kontrolu rozsahu
-    int from;
-    int to;
-
     temp_for->type = FOR_N;
+    temp_for->next = NULL;
 
     next_token(&active_token, stack_indent);
     if(active_token.type == SYMBOL_TYPE && strcmp(active_token.value, "EOL") == 0){
@@ -464,6 +463,7 @@ AST_Node *parse_if(int origin_indent){
     }
 
     temp_if->type = IF_N;
+    temp_if->next = NULL;
 
     // zavoláme token pro podmínku
     next_token(&active_token, stack_indent);
@@ -478,10 +478,7 @@ AST_Node *parse_if(int origin_indent){
 
     check_for_eol();
 
-    if(strcmp(active_token.value, "else") == 0){
-    
-        if(sum_stack(stack_indent) > origin_indent)
-        origin_indent = sum_stack(stack_indent);
+    if(strcmp(active_token.value, "else") == 0 && sum_stack(stack_indent) == origin_indent){
 
         temp_if->nodeData.ifData.else_part = parse_fun_body(origin_indent);
         
@@ -503,6 +500,7 @@ AST_Node *parse_while(int origin_indent){
     }
 
     temp_while->type = WHILE_N;
+    temp_while->next = NULL;
 
     next_token(&active_token, stack_indent);
     temp_while->nodeData.whileData.condition = parse_expression(NULL);
@@ -514,6 +512,7 @@ AST_Node *parse_while(int origin_indent){
         exit(2);
     
     temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
+
 
     return temp_while;
 }
@@ -529,6 +528,7 @@ AST_Node *parse_id(){
         exit(99);
     }
 
+    temp_id->next = NULL;
 
     next_token(&active_token, stack_indent);
     // pokud tam je rovná se jedná se o přiřazení hodnoty
@@ -562,6 +562,8 @@ AST_Node *parse_return(){
     }
 
     temp_return->type = RETURN;
+    temp_return->next = NULL;
+    
 
     next_token(&active_token, stack_indent);
 
@@ -570,14 +572,13 @@ AST_Node *parse_return(){
            strcmp(active_token.value, "EOF") == 0 ||
            strcmp(active_token.value, ";") == 0){
             
-            temp_return->nodeData.retrunData.expression = NULL;
+            temp_return->nodeData.returnData.expression = NULL;
 
             return temp_return;
         }
     }
 
-    temp_return->nodeData.retrunData.expression = parse_expression(NULL);
-
+    temp_return->nodeData.returnData.expression = parse_expression(NULL);
 
     return temp_return;
 }
