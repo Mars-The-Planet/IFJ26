@@ -1,217 +1,212 @@
 /**
-* @file parser.h
-* @author Jonáš Vávra (x273960)
-*
-* @brief Imlementace syntaktického analyzátoru
-*/
+ * @file parser.h
+ * @author Jonáš Vávra (x273960)
+ *
+ * @brief Imlementace syntaktického analyzátoru
+ */
 
 #ifndef PARSER_H
 #define PARSER_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #include "scanner.h"
 
 /**
- * 
+ *
  * @brief Výčet datových typů
  */
 typedef enum dataType {
 
-    TYPE_INT,
-    TYPE_DOUBLE,
-    TYPE_STRING,
-    TYPE_UNIT,
-    TYPE_BOOL,
-    TYPE_LIST,
-    TYPE_UNDEF,
+  TYPE_INT,
+  TYPE_DOUBLE,
+  TYPE_STRING,
+  TYPE_UNIT,
+  TYPE_BOOL,
+  TYPE_LIST,
+  TYPE_UNDEF,
 
 } dataType;
 
 /**
- * 
+ *
  * @brief Výčet všech uzlů které můžou nastat
  */
 typedef enum ASTNodeType {
 
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-    LESS,
-    EQUALS,
-    LESS_EQUAL,
-    GREATER,
-    GREATER_EQUAL,
-    AND_N,
-    OR_N,
-    UMINUS,
-    UPLUS,
-    NOT,
-    IF_N,
-    WHILE_N,
-    FOR_N,
-    IDENT,
-    LIST,
-    DOT_ACCESS,
-    ASSIGN,
-    VAR_DEF, 
-    FUN_DEF,
-    FUN_CALL,
-    LITERAL_INT,
-    LITERAL_DOUBLE,
-    LITERAL_STRING,
-    LITERAL_BOOL,
-    LITERAL_UNIT,
-    RETURN,    
+  ADD,
+  SUB,
+  MUL,
+  DIV,
+  LESS,
+  EQUALS,
+  LESS_EQUAL,
+  GREATER,
+  GREATER_EQUAL,
+  AND_N,
+  OR_N,
+  UMINUS,
+  UPLUS,
+  NOT,
+  IF_N,
+  WHILE_N,
+  FOR_N,
+  IDENT,
+  LIST,
+  DOT_ACCESS,
+  ASSIGN,
+  VAR_DEF,
+  FUN_DEF,
+  FUN_CALL,
+  LITERAL_INT,
+  LITERAL_DOUBLE,
+  LITERAL_STRING,
+  LITERAL_BOOL,
+  LITERAL_UNIT,
+  RETURN,
 
 } NodeType;
 
-
 /**
- * 
+ *
  * @brief struktura spojového seznamu
  */
 typedef struct ListParam {
 
-    dataType type;
-    dataType list_type;
-    char *param_name;
-    struct ListParam *next;
+  dataType type;
+  dataType list_type;
+  char *param_name;
+  struct ListParam *next;
 
 } ListParam;
 
 /**
- * 
+ *
  * @brief struktura pro zaznačení začátku spojového seznamu
  */
 typedef struct SHead {
 
-    ListParam *first;
-} head; 
+  ListParam *first;
+} head;
 
 /**
- * 
+ *
  * @brief struktura abstraktního derivačního stromu
  * @param isvar bool rozeznávající proměnou (1) a konstantu (0)
  */
 typedef struct AST_Node AST_Node;
 struct AST_Node {
 
-    NodeType type;
-    AST_Node *next;
-    dataType result;
-    union {
-        // scénář pro binární operace
-        struct {
+  NodeType type;
+  AST_Node *next;
+  dataType result;
+  union {
+    // scénář pro binární operace
+    struct {
 
-            AST_Node *left;
-            AST_Node *right;
+      AST_Node *left;
+      AST_Node *right;
 
-        } biData;
-        
-        // scénář pro unární operace
-        struct {
+    } biData;
 
-            AST_Node *single;
+    // scénář pro unární operace
+    struct {
 
-        }uData;
+      AST_Node *single;
 
-        // scénář pro if podmínku
-        struct {
+    } uData;
 
-            AST_Node  *condition;
-            AST_Node  *then_part;
-            AST_Node  *else_part; 
+    // scénář pro if podmínku
+    struct {
 
-        } ifData;
-        
-        // scénář pro proměnou
-        struct {
+      AST_Node *condition;
+      AST_Node *then_part;
+      AST_Node *else_part;
 
-            bool isvar;
-            char *var_name;
-            dataType varType;
-            dataType varListType;
-            AST_Node *expression;
+    } ifData;
 
-        } varData;
+    // scénář pro proměnou
+    struct {
 
-        // scénář pro data funkce
-        struct {
+      bool isvar;
+      char *var_name;
+      dataType varType;
+      dataType varListType;
+      AST_Node *expression;
 
-            char *fun_name;
-            head *param_list;
-            dataType return_type;
-            dataType return_list;     
-            AST_Node *body;
+    } varData;
 
-        } funData;
+    // scénář pro data funkce
+    struct {
 
-        struct {
+      char *fun_name;
+      head *param_list;
+      dataType return_type;
+      dataType return_list;
+      AST_Node *body;
 
-            AST_Node *condition;
-            AST_Node *body;
+    } funData;
 
-        } whileData;
+    struct {
 
-        struct {
-            
-            char* var_name;
-            AST_Node *condition;
-            AST_Node *body;
+      AST_Node *condition;
+      AST_Node *body;
 
-        } forData;
-        
+    } whileData;
 
-        // scénář pro volání funkce 
-        struct {
+    struct {
 
-            char *call_fun_name;
-            AST_Node *fun_args;
+      char *var_name;
+      AST_Node *condition;
+      AST_Node *body;
 
+    } forData;
 
-        } callFunData;
+    // scénář pro volání funkce
+    struct {
 
-        struct {
+      char *call_fun_name;
+      AST_Node *fun_args;
 
-            char *var_name;
-            AST_Node *equal;
+    } callFunData;
 
-        } assignData;
+    struct {
 
-        struct {
+      char *var_name;
+      AST_Node *equal;
 
-            AST_Node *expression;
-        
+    } assignData;
 
-        } returnData;
+    struct {
 
-        // scénář pro poslední část AST stromu 
-        struct {
+      AST_Node *expression;
 
-            union {
+    } returnData;
 
-                int int_value;
-                double double_value;
-                bool bool_value;
-                char *string_value;
+    // scénář pro poslední část AST stromu
+    struct {
 
-            } valueType;
+      union {
 
-        } elemData;
+        int int_value;
+        double double_value;
+        bool bool_value;
+        char *string_value;
 
-        // scénář když se používá proměnná mimo deklaraci
-        struct {
+      } valueType;
 
-            char *id_name;
+    } elemData;
 
-        } idVarData;
-    } nodeData;
+    // scénář když se používá proměnná mimo deklaraci
+    struct {
 
+      char *id_name;
+
+    } idVarData;
+  } nodeData;
 };
 
 void code_prolog();
