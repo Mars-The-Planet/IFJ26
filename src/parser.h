@@ -183,6 +183,13 @@ struct AST_Node {
 
         } assignData;
 
+        struct {
+
+            AST_Node *expression;
+        
+
+        } retrunData;
+
         // scénář pro poslední část AST stromu 
         struct {
 

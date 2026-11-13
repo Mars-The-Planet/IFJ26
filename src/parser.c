@@ -326,8 +326,15 @@ AST_Node *parse_fun_body(int origin_indent){
 
         }
 
-    } else 
+    } else {
+        if(active_token.type == KEYWORD_TYPE){
+            if(strcmp(active_token.value, "if") == 0){
+                return parse_if(origin_indent);
+            }
+        }
+        
         return parse_expression(NULL);
+    }
 }
 
 
@@ -401,38 +408,6 @@ AST_Node *parse_var(){
     return temp_var;
 }
 
-AST_Node *parse_id(){
-
-    // uložení jména proměnné, protože ještě nevím o jaký typ výrazu se jedná
-    char *temp_name = strdup(active_token.value);
-
-    AST_Node *temp_id = malloc(sizeof(AST_Node));
-    if(temp_id == NULL){
-        fprintf(stderr, "Memory allocation failed!");
-        exit(99);
-    }
-
-
-    next_token(&active_token, stack_indent);
-    if(active_token.type == OPERATOR_TYPE && strcmp(active_token.value, "=") == 0){
-        
-
-        temp_id->type = ASSIGN;
-
-        temp_id->nodeData.assignData.var_name = temp_name;
-
-        next_token(&active_token, stack_indent);
-        temp_id->nodeData.assignData.equal = parse_expression(NULL);
-
-
-        return temp_id;
-    
-    } 
-
-    temp_id->type = IDENT;
-    temp_id->nodeData.idVarData.id_name = temp_name;
-    return parse_expression(temp_id);
-}
 
 AST_Node *parse_for(int origin_indent){
 
@@ -501,17 +476,16 @@ AST_Node *parse_if(int origin_indent){
     
     temp_if->nodeData.ifData.then_part = parse_fun_body(origin_indent);
 
+    check_for_eol();
 
     if(strcmp(active_token.value, "else") == 0){
-        next_token(&active_token, stack_indent);
-        if(active_token.type == SYMBOL_TYPE){
-            
-            temp_if->nodeData.ifData.else_part = parse_fun_body(origin_indent);
+    
+        if(sum_stack(stack_indent) > origin_indent)
+        origin_indent = sum_stack(stack_indent);
+
+        temp_if->nodeData.ifData.else_part = parse_fun_body(origin_indent);
         
-        } else if(active_token.type == KEYWORD_TYPE){
-            if(strcmp(active_token.value, "if") != 0) exit(2);
-            temp_if->nodeData.ifData.else_part = parse_if(origin_indent);
-        }
+    
     } else {
         temp_if->nodeData.ifData.else_part = NULL;
         return temp_if;
@@ -543,6 +517,72 @@ AST_Node *parse_while(int origin_indent){
 
     return temp_while;
 }
+
+AST_Node *parse_id(){
+
+    // uložení jména proměnné, protože ještě nevím o jaký typ výrazu se jedná
+    char *temp_name = strdup(active_token.value);
+
+    AST_Node *temp_id = malloc(sizeof(AST_Node));
+    if(temp_id == NULL){
+        fprintf(stderr, "Memory allocation failed!");
+        exit(99);
+    }
+
+
+    next_token(&active_token, stack_indent);
+    // pokud tam je rovná se jedná se o přiřazení hodnoty
+    if(active_token.type == OPERATOR_TYPE && strcmp(active_token.value, "=") == 0){
+        
+
+        temp_id->type = ASSIGN;
+
+        temp_id->nodeData.assignData.var_name = temp_name;
+
+        next_token(&active_token, stack_indent);
+        temp_id->nodeData.assignData.equal = parse_expression(NULL);
+
+
+        return temp_id;
+    
+    } 
+
+    temp_id->type = IDENT;
+    temp_id->nodeData.idVarData.id_name = temp_name;
+    return parse_expression(temp_id);
+}
+
+
+AST_Node *parse_return(){
+
+    AST_Node *temp_return = malloc(sizeof(AST_Node));
+    if(temp_return == NULL){
+        fprintf(stderr, "Memory allocation failed!");
+        exit(99);
+    }
+
+    temp_return->type = RETURN;
+
+    next_token(&active_token, stack_indent);
+
+    if(active_token.type == SYMBOL_TYPE){
+        if(strcmp(active_token.value, "EOL") == 0 || 
+           strcmp(active_token.value, "EOF") == 0 ||
+           strcmp(active_token.value, ";") == 0){
+            
+            temp_return->nodeData.retrunData.expression = NULL;
+
+            return temp_return;
+        }
+    }
+
+    temp_return->nodeData.retrunData.expression = parse_expression(NULL);
+
+
+    return temp_return;
+}
+
+
 
 // TODO: dodělat funkci na kontrolu existence funkce main
 void has_main(){
