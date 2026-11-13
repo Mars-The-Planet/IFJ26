@@ -4,7 +4,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Hlavičkový soubor lexikálního analyzátoru
- * @date 11.11.2026
+ * @date 13.11.2026
  */
 
 #ifndef SCANNER_H
