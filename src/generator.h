@@ -152,6 +152,19 @@ void generate_block(AST_Node *node);
  * @param node Ukazatel na uzel AST
  */
 void generate_while(AST_Node *node);
+
+/**
+ * @brief unární minus, násobí -1, využívá dříve definované funkce
+ * @param node ukazatel na uzel ast
+*/
+void unar_minus(AST_Node *node)
+
+/**
+ * @brief pro uzly var a assign
+ * @param node ukazatel na uzel ast
+ */
+void var_assign(AST_Node *node)
+
 /**
  * @brief Hlavní dispatcher – generátor kódu pro jednotlivé uzly AST
  * @param node Ukazatel na uzel AST

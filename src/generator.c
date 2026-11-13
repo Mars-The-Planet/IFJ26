@@ -76,7 +76,12 @@ void literal_bool(int value){
 void literal_unit(void){
 }
 
-void ident();
+void ident(AST_Node *node){
+  if (node->result != TYPE_UNIT){
+    printf("PUSHS LF@%s\n", node->nodeData.idVarData.id_name);
+  }
+}
+
 
 /**
  * @brief typová konverze z int na float
@@ -228,6 +233,7 @@ void unar_plus(AST_Node *node){
   generate_node(node->nodeData.uData.single);
 }
 
+
 /**
  * @brief funkce pro sčítání a kokatenaci řetězců
  * @param node ukazatel na uzel
@@ -324,7 +330,7 @@ void generate_while(AST_Node *node){
     
     //vygeneruje blok příkazů uvnitř cyklu
     generate_block(node->nodeData.whileData.body);
-    
+
     //zjistí typ posledního příkazu v bloku, pokud není unit, tak ho zahodí, 
     //jelikož while si nepotřebuje uchovávat hodnotu z těla cyklu
     AST_Node *last = node->nodeData.while.body;
@@ -338,6 +344,51 @@ void generate_while(AST_Node *node){
 
     printf("JUMP $while%d_start\n", label_number);
     printf("LABEL $while%d_end\n", label_number);
+}
+
+
+/**
+ * @brief pro uzly var a assign
+ * @param node ukazatel na uzel ast
+ */
+void var_assign(AST_Node *node){
+    AST_Node *expression = node->nodeData.varData.expression;
+    dataType var_type = node->nodeData.varData.varType;
+
+    //když není typ definovaný vezme si ho z hodnoty kterou do proměnné přiřazuje
+    if (var_type = TYPE_UNDEF){
+        var_type = expression->result;
+    }
+
+    generate node(expression);
+
+    if (var_type == TYPE_UNIT){
+        printf("MOVE LF@%s nil@nil \n", node->nodeData.varData.var_name);
+        return;
+    }
+
+    //pokud je proměnná typu double a snaží se tam přiřadit celé číslo, jako například val x: Double = 5
+    if (var_type == TYPE_DOUBLE  && expression-> result == TYPE_INT){
+        int_to_float();
+    }
+
+    //vezme hodnotu z vrcholu zásobníku a uoží ji do proměnné
+    printf("POPS LF@%s\n", node->nodeData.varData.var_name);
+}
+
+/**
+ * @brief unární minus, násobí -1, využívá dříve definované funkce
+ * @param node ukazatel na uzel ast
+*/
+void unar_minus(AST_Node *node){
+  generate_node(node->nodeData.uData.single);
+  if(node->nodeData.uData.single->result == TYPE_DOUBLE){
+    literal_double(-1.0);
+  }
+    else{
+    literal_int(-1);
+  }
+  mul;
 }
 
 /**
@@ -393,7 +444,7 @@ void generate_node(AST_Node *node){
       logical_or(node);
       break;
     case UPLUS:
-      printf("Today is Saturday");
+      unar_plus(node);
       break;     
       
     case ADD:
@@ -408,42 +459,47 @@ void generate_node(AST_Node *node){
     case DIV:
       divide(node);
       break;
+
+    case WHILE_N:
+      generate_while(node);
+      break;
+
+    case ASSIGN:
+      var_assign(node);
+      break;
+    case VAR_DEF:
+      var_assign(node);
+      break;
+
+    case IDENT:
+      ident(node);
+      break;
+    case UMINUS:
+      unar_minus(node);
+      break;
+
 //todo: doplnit další uzly AST
 
 
  
-  case UMINUS:
-    printf("Today is Saturday");
-    break;
 
 
   case IF_N:
     printf("Today is Saturday");
     break;
-   case WHILE_N:
-    printf("Today is Saturday");
-    break;
+
   case FOR_N:
     printf("Today is Saturday");
     break;
-  case IDENT:
-    printf("Today is Saturday");
-    break;
+
   case LIST:
     printf("Today is Saturday");
     break;
   case DOT_ACCESS:
     printf("Today is Saturday");
     break;
-   case BLOCK:
-    printf("Today is Saturday");
-    break;
-  case ASSIGN:
-    printf("Today is Saturday");
-    break;
-  case VAR_DEF:
-    printf("Today is Saturday");
-    break;
+
+
   case FUN_DEF:
     printf("Today is Saturday");
     break;
