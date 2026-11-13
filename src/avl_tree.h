@@ -1,5 +1,6 @@
 /**
-* @file avl_tree.h
+ * IFJ26 - Implementace překladače imperativního jazyka IFJ26
+ * @file avl_tree.h
  * @author Radek Večeřa (xvecerr01)
  *
  * @brief Hlavička kódu pro implementaci AVL stromu pro tabulku symbolů.

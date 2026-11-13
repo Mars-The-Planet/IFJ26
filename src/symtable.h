@@ -1,5 +1,6 @@
 /**
-* @file symtable.h
+ * IFJ26 - Implementace překladače imperativního jazyka IFJ26
+ * @file symtable.h
  * @author Radek Večeřa (xvecerr01)
  *
  * @brief Hlavička kódu pro Implementaci tabulky symbolů pomocí zásobníku a AVL stromů

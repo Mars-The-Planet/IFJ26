@@ -1,5 +1,6 @@
 /**
-* @file stack.h
+ * IFJ26 - Implementace překladače imperativního jazyka IFJ26
+ * @file stack.h
  * @brief Hlavička kódu pro implementaci zásobníku pomocí listů
  * @author Radek Večeřa (xvecerr01)
  * @date 31.10.2026
