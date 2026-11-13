@@ -606,7 +606,7 @@ int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
   default:
     ungetc(ch, targetFile);
 
-    create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "=");
+    create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "=");
     return DONE_STATE;
   }
 }
