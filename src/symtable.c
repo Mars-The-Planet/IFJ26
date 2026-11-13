@@ -111,7 +111,7 @@ int insert_symbol(scoped_symtablePtr symtable, char *symbol, void *value) {
  * @param symbol hledaný klíč
  * @return Vrátí hodnotu při úspěchu, NULL při selhání
  */
-char *get_symbol(scoped_symtablePtr symtable, char *symbol) {
+void *get_symbol(scoped_symtablePtr symtable, char *symbol) {
     s_nodePtr currentScopeNode = symtable->scopes->top;
     nodePtr result = nullptr;
     while (currentScopeNode != NULL && result==NULL) {
