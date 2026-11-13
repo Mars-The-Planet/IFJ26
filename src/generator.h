@@ -142,6 +142,17 @@ void mul(AST_Node *node);
 void divide(AST_Node *node);
 
 /**
+ * @brief vygeneruje vnitřní blok, například tělo cyklu pro while 
+ * @param node Ukazatel na uzel AST
+ */
+void generate_block(AST_Node *node);
+
+/**
+ * @brief vygeneruje blok pro while
+ * @param node Ukazatel na uzel AST
+ */
+void generate_while(AST_Node *node);
+/**
  * @brief Hlavní dispatcher – generátor kódu pro jednotlivé uzly AST
  * @param node Ukazatel na uzel AST
  */

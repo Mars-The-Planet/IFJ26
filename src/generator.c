@@ -32,8 +32,6 @@ static int get_new_label(void){
 }
 
 
-//doplnit až bude parser vědět jak vypadá blok
-void generate_block();
 
 
 
@@ -285,6 +283,62 @@ void divide(AST_Node *node){
     printf("IDIVS\n");
 }
 
+/**
+ * @brief generátor bloků, například uvnitř cyklů atd..
+ * 
+ * kvůli této částispecifikace:
+ * 
+ * "Není-li proveden return, funkce vrátí výsledek svého těla. Výsledkem jednořádkového těla
+ * je hodnota jeho výrazu či volání; výsledkem bloku zakončeného výrazem či voláním je hod-
+ * nota tohoto posledního příkazu. Blok zakončený definicí proměnné, přiřazením nebo cyklem
+ * má výsledek () (typu Unit). Hodnoty z těla cyklu se nepřenášejí do výsledku nadřazeného
+ * bloku."
+ * 
+ * výsledek zahazuje voláním POPS do dočasné proměnné
+ * @param node ukazatel na uzel stromu
+ */
+
+void generate_block(AST_Node *node){
+    while (node){
+        generate_node(node);
+        if (node->next && node->result != TYPE_UNIT){
+          
+            printf("POPS GF@$t1\n");
+        }
+    node = node->next;
+    }
+    
+}
+/**
+ * @brief pro funkci while
+ * 
+ * @param node ukazatel na uzel ast 
+ */
+void generate_while(AST_Node *node){
+    int label_number = get_new_label();
+    
+    printf("LABEL $while%d_start\n",label_number);
+    generate_node(node->nodeData.whileData.condition);    //
+    printf("PUSHS bool@false\n");
+    printf("JUMPIFEQS $while%d_end\n", label_number);
+    
+    //vygeneruje blok příkazů uvnitř cyklu
+    generate_block(node->nodeData.whileData.body);
+    
+    //zjistí typ posledního příkazu v bloku, pokud není unit, tak ho zahodí, 
+    //jelikož while si nepotřebuje uchovávat hodnotu z těla cyklu
+    AST_Node *last = node->nodeData.while.body;
+    while(last->next){
+      last = last.next;
+    }
+    
+    if (last->result != TYPE_UNIT){
+      printf("POPS GF@$t1\n");
+    }
+
+    printf("JUMP $while%d_start\n", label_number);
+    printf("LABEL $while%d_end\n", label_number);
+}
 
 /**
  * @brief generátor kódu pro jednotlivé uzly AST
