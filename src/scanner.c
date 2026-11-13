@@ -42,17 +42,6 @@ const char *keywords[] = {"def", "do",     "Double",  "else", "if",   "import",
                           "var", "while",  "Boolean", "List", "for",  "@main"};
 
 /**
- * @brief Délka seznamu funkcí pole
- */
-int const list_properties_len = 8;
-
-/**
- * @brief Seznam funkcí pole
- */
-const char *list_properties[] = {"drop", "take",     "slice", "head",
-                                 "tail", "toString", "range", "toList"};
-
-/**
  * @brief Nastaví soubor ze kterého čte LA
  * @param file_name název souboru který chceme nastavit
  * @return vrátí 0 pokud nastavení proběhlo úspěšně, nebo 1 pokud neúspěšně
@@ -254,8 +243,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     if (state == DONE_STATE) {
       tokenType type = tkn_ptr->type;
       // nafukovací řetězec nebyl využit je potřeba ho uvolnit již tady
-      if (!(type == KEYWORD_TYPE || type == ID_TYPE ||
-            type == LIST_PROPERTY_TYPE || type == STRING_TYPE ||
+      if (!(type == KEYWORD_TYPE || type == ID_TYPE || type == STRING_TYPE ||
             type == INT_TYPE || type == DOUBLE_TYPE)) {
         destroy_dynamic_string(tkn_str);
       }
@@ -345,8 +333,8 @@ void create_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr, tokenType state,
  */
 void clear_token(tokenPtr tkn_ptr) {
   tokenType type = tkn_ptr->type;
-  if (type == KEYWORD_TYPE || type == ID_TYPE || type == LIST_PROPERTY_TYPE ||
-      type == STRING_TYPE || type == INT_TYPE || type == DOUBLE_TYPE) {
+  if (type == KEYWORD_TYPE || type == ID_TYPE || type == STRING_TYPE ||
+      type == INT_TYPE || type == DOUBLE_TYPE) {
     free(tkn_ptr->value);
   }
 }
@@ -1096,13 +1084,6 @@ int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
 
     if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
       create_token(tkn_ptr, indent_stack_ptr, KEYWORD_TYPE, tkn_str->val_ptr);
-      return DONE_STATE;
-    }
-
-    if (is_word_in_list(tkn_str->val_ptr, list_properties,
-                        list_properties_len)) {
-      create_token(tkn_ptr, indent_stack_ptr, LIST_PROPERTY_TYPE,
-                   tkn_str->val_ptr);
       return DONE_STATE;
     }
 
