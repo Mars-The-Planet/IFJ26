@@ -10,19 +10,18 @@
 #ifndef DYNAMIC_STRING_H
 #define DYNAMIC_STRING_H
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 
 /**
  * @brief Struktura nafukovacího řetězce
  */
 typedef struct EDynamicString {
-    char *val_ptr;
-    int size;
-    int max_size;
+  char *val_ptr;
+  int size;
+  int max_size;
 } dynamic_string, *dynamic_string_ptr;
-
 
 /**
  * @brief Inicializuje nafukovací řetězec
@@ -32,15 +31,13 @@ typedef struct EDynamicString {
  */
 int init_dynamic_string(dynamic_string_ptr string_ptr, int len);
 
-
 /**
  * @brief Vloží znak za poslední prvek
  * @param string_ptr ukazatel na nafukovací řetězec
- * @param ch znak který má být vložen 
+ * @param ch znak který má být vložen
  * @return vrátí 0 pokud vložení proběhlo úspěšně, nebo 1 pokud neúspěšně
  */
 int insert_last(dynamic_string_ptr string_ptr, int ch);
-
 
 /**
  * @brief Uvolní paměť nafukovacího řetězece
