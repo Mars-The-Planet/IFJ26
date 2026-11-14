@@ -15,11 +15,22 @@
 token active_token;
 stackPtr stack_indent;
 
+/**
+ *
+ * @brief funckce zavolá a zároveň zkontroluje next_token
+ */
+void check_next_token() {
+
+  if (next_token(&active_token, stack_indent) == 1) {
+    exit(1);
+  }
+}
+
 void check_for_eol() {
 
   while (active_token.type == SYMBOL_TYPE &&
          strcmp(active_token.value, "EOL") == 0) {
-    next_token(&active_token, stack_indent);
+    check_next_token();
   }
 }
 
@@ -47,7 +58,7 @@ dataType type_transfer() {
 void code_prolog() {
 
   // případ pro newline na začátku
-  next_token(&active_token, stack_indent);
+  check_next_token();
   check_for_eol();
 
   if (active_token.type == KEYWORD_TYPE) {
@@ -56,21 +67,21 @@ void code_prolog() {
   } else
     exit(2);
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == ID_TYPE) {
     if (strcmp(active_token.value, "ifj26") != 0)
       exit(2);
   } else
     exit(2);
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, ".") != 0)
       exit(2);
   } else
     exit(2);
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
     if (strcmp(active_token.value, "*") != 0)
       exit(2);
@@ -85,7 +96,7 @@ void the_parser() {
   int indent;
 
   while (1) {
-    next_token(&active_token, stack_indent);
+    check_next_token();
     switch (active_token.type) {
 
     case KEYWORD_TYPE:
@@ -136,7 +147,7 @@ head *parse_param() {
   params->first = NULL;
 
   while (1) {
-    next_token(&active_token, stack_indent);
+    check_next_token();
 
     if (active_token.type == SYMBOL_TYPE) {
 
@@ -165,41 +176,41 @@ head *parse_param() {
         list_end = new_param;
       }
 
-      next_token(&active_token, stack_indent);
+      check_next_token();
       check_for_eol();
 
       if (active_token.type == SYMBOL_TYPE) {
         if (strcmp(active_token.value, ":") != 0)
           exit(2);
 
-        next_token(&active_token, stack_indent);
+        check_next_token();
         check_for_eol();
         if (active_token.type != KEYWORD_TYPE)
           exit(2);
         list_end->type = type_transfer();
 
         if (strcmp(active_token.value, "List") == 0) {
-          next_token(&active_token, stack_indent);
+          check_next_token();
           check_for_eol();
           if (active_token.type != SYMBOL_TYPE)
             exit(2);
           if (strcmp(active_token.value, "[") != 0)
             exit(2);
 
-          next_token(&active_token, stack_indent);
+          check_next_token();
           check_for_eol();
           if (active_token.type != KEYWORD_TYPE)
             exit(2);
           list_end->list_type = type_transfer();
 
-          next_token(&active_token, stack_indent);
+          check_next_token();
           check_for_eol();
           if (active_token.type != SYMBOL_TYPE)
             exit(2);
           if (strcmp(active_token.value, "]") != 0)
             exit(2);
         }
-        next_token(&active_token, stack_indent);
+        check_next_token();
         check_for_eol();
         if (active_token.type != SYMBOL_TYPE)
           exit(2);
@@ -227,13 +238,13 @@ void parse_fun() {
   new_fun->type = FUN_DEF;
   new_fun->next = NULL;
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == ID_TYPE) {
     new_fun->nodeData.funData.fun_name = strdup(active_token.value);
   } else
     exit(2);
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, "(") != 0) {
       exit(2);
@@ -243,11 +254,11 @@ void parse_fun() {
 
   new_fun->nodeData.funData.param_list = parse_param();
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, ":") == 0) {
 
-      next_token(&active_token, stack_indent);
+      check_next_token();
       if (active_token.type == KEYWORD_TYPE) {
 
         new_fun->nodeData.funData.return_type = type_transfer();
@@ -255,26 +266,26 @@ void parse_fun() {
         // případ kde by vrácená hodnota byl list
         if (strcmp(active_token.value, "List") == 0) {
 
-          next_token(&active_token, stack_indent);
+          check_next_token();
           if (active_token.type != SYMBOL_TYPE)
             exit(2);
           if (strcmp(active_token.value, "[") != 0)
             exit(2);
 
-          next_token(&active_token, stack_indent);
+          check_next_token();
           if (active_token.type != KEYWORD_TYPE)
             exit(2);
           // Uložení hodnoty které bude mít vracený list v sobě uložené
           new_fun->nodeData.funData.return_list = type_transfer();
 
-          next_token(&active_token, stack_indent);
+          check_next_token();
           if (active_token.type != SYMBOL_TYPE)
             exit(2);
           if (strcmp(active_token.value, "]") != 0)
             exit(2);
         }
 
-        next_token(&active_token, stack_indent);
+        check_next_token();
         if (active_token.type == SYMBOL_TYPE) {
           if (strcmp(active_token.value, "=") == 0) {
             new_fun->nodeData.funData.body = parse_fun_body(indent);
@@ -300,7 +311,7 @@ AST_Node *parse_fun_body(int origin_indent) {
   AST_Node *temp_statement = NULL;
   AST_Node *last_statement = NULL;
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   // pokud je tam odsazení jedná se o tělo funkce, jinak je to výraz
   if (active_token.type == SYMBOL_TYPE &&
       strcmp(active_token.value, "EOL") == 0) {
@@ -395,47 +406,47 @@ AST_Node *parse_var() {
   else
     temp_var->nodeData.varData.isvar = 1;
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == ID_TYPE) {
     temp_var->nodeData.varData.var_name = strdup(active_token.value);
   } else
     exit(2);
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, ":") == 0) {
 
-      next_token(&active_token, stack_indent);
+      check_next_token();
       if (active_token.type == KEYWORD_TYPE) {
         temp_var->nodeData.varData.varType = type_transfer();
 
         if (strcmp(active_token.value, "List") == 0) {
 
-          next_token(&active_token, stack_indent);
+          check_next_token();
           if (active_token.type != SYMBOL_TYPE)
             exit(2);
           if (strcmp(active_token.value, "[") != 0)
             exit(2);
 
-          next_token(&active_token, stack_indent);
+          check_next_token();
           if (active_token.type != KEYWORD_TYPE)
             exit(2);
 
-          next_token(&active_token, stack_indent);
+          check_next_token();
           temp_var->nodeData.varData.varListType = type_transfer();
 
-          next_token(&active_token, stack_indent);
+          check_next_token();
           if (active_token.type != SYMBOL_TYPE)
             exit(2);
           if (strcmp(active_token.value, "]") != 0)
             exit(2);
         }
 
-        next_token(&active_token, stack_indent);
+        check_next_token();
         if (active_token.type == SYMBOL_TYPE) {
           if (strcmp(active_token.value, "=") != 0)
             exit(2);
-          next_token(&active_token, stack_indent);
+          check_next_token();
           temp_var->nodeData.varData.expression = parse_expression(NULL);
 
         } else
@@ -445,7 +456,7 @@ AST_Node *parse_var() {
       // rovná se znamená že proměnná nemá ještě definovaný typ
     } else if (strcmp(active_token.value, "=") == 0) {
       temp_var->nodeData.varData.varType = TYPE_UNDEF;
-      next_token(&active_token, stack_indent);
+      check_next_token();
       temp_var->nodeData.varData.expression = parse_expression(NULL);
     } else
       exit(2);
@@ -466,7 +477,7 @@ AST_Node *parse_for(int origin_indent) {
   temp_for->type = FOR_N;
   temp_for->next = NULL;
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == SYMBOL_TYPE &&
       strcmp(active_token.value, "EOL") == 0) {
     check_for_eol();
@@ -481,14 +492,14 @@ AST_Node *parse_for(int origin_indent) {
   } else
     exit(2);
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
     if (strcmp(active_token.value, "<-") != 0)
       exit(2);
   } else
     exit(2);
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   temp_for->nodeData.forData.condition = parse_expression(NULL);
 
   if (active_token.type == KEYWORD_TYPE) {
@@ -514,7 +525,7 @@ AST_Node *parse_if(int origin_indent) {
   temp_if->next = NULL;
 
   // zavoláme token pro podmínku
-  next_token(&active_token, stack_indent);
+  check_next_token();
   temp_if->nodeData.ifData.condition = parse_expression(NULL);
 
   if (active_token.type == KEYWORD_TYPE) {
@@ -550,7 +561,7 @@ AST_Node *parse_while(int origin_indent) {
   temp_while->type = WHILE_N;
   temp_while->next = NULL;
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   temp_while->nodeData.whileData.condition = parse_expression(NULL);
 
   // nevolám next_token protože počítám stím že ho zavolal funkce
@@ -579,7 +590,7 @@ AST_Node *parse_id() {
 
   temp_id->next = NULL;
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
   // pokud tam je rovná se jedná se o přiřazení hodnoty
   if (active_token.type == SYMBOL_TYPE &&
       strcmp(active_token.value, "=") == 0) {
@@ -588,7 +599,7 @@ AST_Node *parse_id() {
 
     temp_id->nodeData.assignData.var_name = temp_name;
 
-    next_token(&active_token, stack_indent);
+    check_next_token();
     temp_id->nodeData.assignData.equal = parse_expression(NULL);
 
     return temp_id;
@@ -610,7 +621,7 @@ AST_Node *parse_return() {
   temp_return->type = RETURN;
   temp_return->next = NULL;
 
-  next_token(&active_token, stack_indent);
+  check_next_token();
 
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, "EOL") == 0 ||
