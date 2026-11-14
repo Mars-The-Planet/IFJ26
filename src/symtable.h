@@ -75,6 +75,23 @@ int insert_symbol(scoped_symtablePtr symtable, char *symbol, void *value);
 
 
 /**
+ * @brief Upraví existující symbol v tabulce symbolů
+ * @param symtable tabulka symbolů
+ * @return Vrátí 0 při úspěchu, 1 při selhání
+ */
+int update_symbol(scoped_symtablePtr symtable, char *symbol, void *value);
+
+
+/**
+ * @brief Vyhledání symbolu v tabulce symbolů
+ * @param symtable tabulka symbolů
+ * @param symbol hledaný klíč
+ * @return Vrátí node při úspěchu, NULL při selhání
+ */
+nodePtr get_symbol_node(scoped_symtablePtr symtable, char *symbol);
+
+
+/**
  * @brief Vyhledání symbolu v tabulce symbolů
  * @param symtable tabulka symbolů
  * @param symbol hledaný klíč
