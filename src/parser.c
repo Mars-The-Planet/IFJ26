@@ -112,7 +112,15 @@ void the_parser() {
 }
 
 // přidání parametru abych neztratil jméno identifikátoru
-AST_Node *parse_expression(AST_Node *past_node) {}
+AST_Node *parse_expression(AST_Node *past_node) {
+
+  // zásobník pro uložení operátorů
+  stackPtr operator_stack = stack_ctor();
+  // zásobník pro uložení proměných
+  stackPtr node_stack = stack_ctor();
+
+  return NULL;
+}
 
 head *parse_param() {
 
@@ -267,7 +275,7 @@ void parse_fun() {
         }
 
         next_token(&active_token, stack_indent);
-        if (active_token.type == OPERATOR_TYPE) {
+        if (active_token.type == SYMBOL_TYPE) {
           if (strcmp(active_token.value, "=") == 0) {
             new_fun->nodeData.funData.body = parse_fun_body(indent);
           } else
@@ -276,12 +284,12 @@ void parse_fun() {
           exit(2);
       } else
         exit(2);
-    }
-  } else if (active_token.type == OPERATOR_TYPE) {
-    if (strcmp(active_token.value, "=") != 0)
+    } else if (strcmp(active_token.value, "=") == 0) {
+      new_fun->nodeData.funData.body = parse_fun_body(indent);
+    } else
       exit(2);
-    new_fun->nodeData.funData.body = parse_fun_body(indent);
-  }
+  } else
+    exit(2);
 
   return;
 }
@@ -424,7 +432,7 @@ AST_Node *parse_var() {
         }
 
         next_token(&active_token, stack_indent);
-        if (active_token.type == OPERATOR_TYPE) {
+        if (active_token.type == SYMBOL_TYPE) {
           if (strcmp(active_token.value, "=") != 0)
             exit(2);
           next_token(&active_token, stack_indent);
@@ -434,10 +442,8 @@ AST_Node *parse_var() {
           exit(2);
       } else
         exit(2);
-    }
-  } else if (active_token.type == OPERATOR_TYPE) {
-    // rovná se znamená že proměnná nemá ještě definovaný typ
-    if (strcmp(active_token.value, "=") == 0) {
+      // rovná se znamená že proměnná nemá ještě definovaný typ
+    } else if (strcmp(active_token.value, "=") == 0) {
       temp_var->nodeData.varData.varType = TYPE_UNDEF;
       next_token(&active_token, stack_indent);
       temp_var->nodeData.varData.expression = parse_expression(NULL);
@@ -575,7 +581,7 @@ AST_Node *parse_id() {
 
   next_token(&active_token, stack_indent);
   // pokud tam je rovná se jedná se o přiřazení hodnoty
-  if (active_token.type == OPERATOR_TYPE &&
+  if (active_token.type == SYMBOL_TYPE &&
       strcmp(active_token.value, "=") == 0) {
 
     temp_id->type = ASSIGN;

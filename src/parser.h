@@ -46,6 +46,7 @@ typedef enum ASTNodeType {
   LESS_EQUAL,
   GREATER,
   GREATER_EQUAL,
+  NOT_EQUAL,
   AND_N,
   OR_N,
   UMINUS,
@@ -169,7 +170,7 @@ struct AST_Node {
     struct {
 
       char *call_fun_name;
-      AST_Node *fun_args;
+      AST_Node *fun_args; // AST_Node má být spíš ukazatel na linked list
 
     } callFunData;
 
