@@ -5,6 +5,7 @@
  * @brief Imlementace syntaxtického analyzátoru
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -122,6 +123,31 @@ void the_parser() {
   return;
 }
 
+char precedence_table[11][11] = {
+    '<', '>', '>', '>', '>', '>',
+    '>', '>', '<', '>', '>', // 0. unární operátory
+    '<', '>', '>', '>', '>', '>',
+    '>', '>', '<', '>', '>', // 1. násobení a dělení
+    '<', '<', '>', '>', '>', '>',
+    '>', '>', '<', '>', '>', // 2. sčítání, odčítání, konkatenace
+    '<', '<', '<', 'E', '>', '>',
+    '>', '>', '<', '>', '>', // 3. relační operátory
+    '<', '<', '<', '<', 'E', '>',
+    '>', '>', '<', '>', '>', // 4. '==' a '!='
+    '<', '<', '<', '<', '<', '>',
+    '>', '>', '<', '>', '>', // 5. AND (&&)
+    '<', '<', '<', '<', '<', '<',
+    '>', '>', '<', '>', '>', // 6. OR (||)
+    '<', '<', '<', '<', '<', '<',
+    '<', '>', '<', '>', '>', // 7. to, untill, by (for cyklus)
+    '<', '<', '<', '<', '<', '<',
+    '<', '<', '<', '=', 'E', // 8. otevírací závorka
+    '<', '>', '>', '>', '>', '>',
+    '>', '>', '<', '=', '>', // 9. uzavírací závorka
+    '<', '<', '<', '<', '<', '<',
+    '<', '<', '<', 'E', '=' // 10. dno zásobníku
+};
+
 // přidání parametru abych neztratil jméno identifikátoru
 AST_Node *parse_expression(AST_Node *past_node) {
 
@@ -129,6 +155,17 @@ AST_Node *parse_expression(AST_Node *past_node) {
   stackPtr operator_stack = stack_ctor();
   // zásobník pro uložení proměných
   stackPtr node_stack = stack_ctor();
+
+  bool stack_switch; // stack_operator(0) nebo node_stack(1)
+
+  stack_push(operator_stack, (void *)(uintptr_t)STACK_END);
+
+  if (past_node != NULL) {
+
+    stack_push(node_stack, past_node);
+    stack_switch = 0;
+  } else
+    stack_switch = 1;
 
   return NULL;
 }
