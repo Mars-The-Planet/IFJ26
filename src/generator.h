@@ -160,12 +160,37 @@ void generate_while(AST_Node *node);
 void unar_minus(AST_Node *node);
 
 /**
- * @brief pro uzly var a assign
+ * @brief pro přiřazení proměnné
  * @param node ukazatel na uzel ast
  */
 void assign(AST_Node *node);
 
+/**
+ * @brief pro definování proměnné
+ * @param node ukazatel na uzel ast
+ */
 void var_def(AST_Node *node);
+
+/**
+ * @brief funcke pro generování větve pro if
+ * @param block ukazatel na blok ve funkci
+ * @param return_type požadovaný návratový typ funkce
+ */
+void generate_branch(AST_Node *block, dataType return_type)
+
+ /**
+ * @brief pro uzel if, počítá s rozšířením control a uchovává podle toho návratové typy
+ * @param node ukazatel na uzel ast
+ */
+void generate_if(AST_Node *node)
+
+/**
+ * @brief pro generování return
+ * @param node ukazatel na uzel ast
+ * @param function_return_type není přímo parametr ale využívá globální proměnou, 
+ * která se nastavuje právě kvůli této funkci
+ */
+void generate_return(AST_Node *node)
 
 /**
  * @brief Hlavní dispatcher – generátor kódu pro jednotlivé uzly AST

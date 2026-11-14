@@ -24,14 +24,15 @@
 
 static int actual_label_number = 0;
 
+//návratová hodnota funkce, inicializuje se na unit a volání funkce ji vždy přepíše a pak "vynuluje"
+static dataType function_return_type = TYPE_UNIT;
+
 /**
  * @brief funkce pro různé jumpy, 
  */
 static int get_new_label(void){
   return actual_label_number++;
 }
-
-
 
 
 
@@ -339,6 +340,7 @@ void generate_while(AST_Node *node){
       last = last.next;
     }
     
+    //
     if (last->result != TYPE_UNIT){
       printf("POPS GF@$t1\n");
     }
@@ -419,11 +421,93 @@ void unar_minus(AST_Node *node){
   mul();
 }
 
-void generate_return(AST_Node *node){
-  AST_Node *value = node->nodeData.uData.single;
+/**
+ * @brief funcke pro generování větve pro if
+ * @param block ukazatel na blok ve funkci
+ * @param return_type požadovaný návratový typ funkce
+ */
+void generate_branch(AST_Node *block, dataType return_type){
+    generate_block(block);
 
-  if value
+    AST_Node *last = block;
+    while(last->next){
+        last = last->next;
+    }
+
+
+    if (return_type == TYPE_UNIT){
+      if (last->result != TYPE_UNIT){
+        printf("POPS GF@$t1\n");
+      }
+    }
+    else if (return_type == TYPE_DOUBLE && return_type->result == TYPE_INT){
+      int_to_float();
+    }
 }
+/**
+ * @brief pro uzel if, počítá s rozšířením control a uchovává podle toho návratové typy
+ * @param node ukazatel na uzel ast
+ */
+void generate_if(AST_Node *node){
+
+    int label_number = get_new_label();
+
+    dataType return_type = node->result;
+    if(node->nodeData.ifData.else_part == NULL){
+        return_type = TYPE_UNIT;
+    }
+
+    generate_node(node->nodeData.ifData.condition);
+    printf("PUSHS bool@false\n");
+    printf("JUMPIFEQS $if%d_else_part\n", label_number);
+
+    generate_branch(node->nodeData.ifData.then_part,return_type);
+    if (node->nodeData.ifData.else_part){
+      printf("JMP $if%d_end\n", label_number);
+      printf("LABEL $if%d_else_part\n", label_number);
+      generate_branch(node->nodeData.ifData.else_part,return_type);
+      printf("LABEL $if%d_end\n", label_number);
+    }
+    
+    else {
+      printf("LABEL $if%d_else\n", label_number);
+    }
+}
+
+/**
+ * @brief pro generování return
+ * @param node ukazatel na uzel ast
+ * @param function_return_type není přímo parametr ale využívá globální proměnou, 
+ * která se nastavuje právě kvůli této funkci
+ */
+void generate_return(AST_Node *node){
+  AST_Node *value = node->nodeData.returnData.expression;
+  
+  //pokud má nějaku hodnotu vygeneruje pro ni uzel
+  generate_node(value);
+  
+  //pokud funkce nemá vracet hodnotu a nějaká ji přece jen vyjde, 
+  //tak ji zahodí do pomocné proměnné
+  if (function_return_type == TYPE_UNIT){
+    if (value->result != TYPE_UNIT){
+      printf("POPS GF@t1\n");
+    }
+  }
+    else if (function_return_type == TYPE_DOUBLE && function_return_type->result == TYPE_INT){
+      int_to_float();
+    }
+
+
+    if (function_return_type == TYPE_UNIT){
+      printf("PUSHS nil@nil\n");
+    }
+
+  printf("POPFRAME\n");
+  printf("RETURN\n");
+}
+
+
+
 
 /**
  * @brief generátor kódu pro jednotlivé uzly AST
@@ -511,6 +595,12 @@ void generate_node(AST_Node *node){
     case UMINUS:
       unar_minus(node);
       break;
+    case IF_N:
+      generate_if(node);
+      break;
+    case RETURN:
+      generate_return(node);
+      break;
 
 //todo: doplnit další uzly AST
 
@@ -518,9 +608,7 @@ void generate_node(AST_Node *node){
  
 
 
-  case IF_N:
-    printf("Today is Saturday");
-    break;
+
 
   case FOR_N:
     printf("Today is Saturday");
@@ -544,9 +632,7 @@ void generate_node(AST_Node *node){
     break;
 
 
-  case RETURN:
-    printf("Today is Saturday");
-    break;
+
   default:
   break;
 }
