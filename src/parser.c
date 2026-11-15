@@ -12,7 +12,9 @@
 
 #include "parser.h"
 #include "scanner.h"
+#include "symtable.h"
 
+scoped_symtablePtr symbol_table;
 token active_token;
 stackPtr stack_indent;
 
@@ -447,6 +449,9 @@ void parse_fun() {
   } else
     exit(2);
 
+  insert_symbol(symbol_table, new_fun->nodeData.funData.fun_name, new_fun);
+  scope_enter(symbol_table);
+
   check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, "(") != 0) {
@@ -505,6 +510,7 @@ void parse_fun() {
   } else
     exit(2);
 
+  scope_leave(symbol_table);
   return;
 }
 
@@ -543,8 +549,10 @@ AST_Node *parse_fun_body(int origin_indent) {
       case KEYWORD_TYPE:
         // var(1) a val(0) se rozlišuje podle bool
         if (strcmp(active_token.value, "val") == 0 ||
-            strcmp(active_token.value, "var") == 0)
+            strcmp(active_token.value, "var") == 0) {
           temp_statement = parse_var();
+          insert_symbol(symbol_table, temp_statement->nodeData.varData.var_name, temp_statement);
+            }
         else if (strcmp(active_token.value, "while") == 0)
           temp_statement = parse_while(origin_indent);
         else if (strcmp(active_token.value, "if") == 0)
@@ -560,6 +568,7 @@ AST_Node *parse_fun_body(int origin_indent) {
       case ID_TYPE:
         // funkce která už bude rozhodovat co s id vlastně dělat
         temp_statement = parse_id();
+        update_symbol(symbol_table, temp_statement->nodeData.varData.var_name, temp_statement);
         break;
 
       // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem case
@@ -671,6 +680,8 @@ AST_Node *parse_var() {
 
 AST_Node *parse_for(int origin_indent) {
 
+  scope_enter(symbol_table);
+
   AST_Node *temp_for = malloc(sizeof(AST_Node));
   if (temp_for == NULL) {
     fprintf(stderr, "Memory allocation failed!");
@@ -713,10 +724,14 @@ AST_Node *parse_for(int origin_indent) {
 
   temp_for->nodeData.forData.body = parse_fun_body(origin_indent);
 
+  scope_leave(symbol_table);
+
   return temp_for;
 }
 
 AST_Node *parse_if(int origin_indent) {
+
+  scope_enter(symbol_table);
 
   AST_Node *temp_if = malloc(sizeof(AST_Node));
   if (temp_if == NULL) {
@@ -748,12 +763,16 @@ AST_Node *parse_if(int origin_indent) {
 
   } else {
     temp_if->nodeData.ifData.else_part = NULL;
+    scope_leave(symbol_table);
     return temp_if;
   }
+  scope_leave(symbol_table);
   return temp_if;
 }
 
 AST_Node *parse_while(int origin_indent) {
+
+  scope_enter(symbol_table);
 
   AST_Node *temp_while = malloc(sizeof(AST_Node));
   if (temp_while == NULL) {
@@ -777,6 +796,7 @@ AST_Node *parse_while(int origin_indent) {
 
   temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
 
+  scope_leave(symbol_table);
   return temp_while;
 }
 
@@ -906,6 +926,7 @@ void has_main() {}
 int main() {
 
   stack_indent = stack_ctor();
+  symbol_table = symbol_table_ctor();
 
   if (set_target_file("test.txt") != 0)
     exit(99);
@@ -913,5 +934,6 @@ int main() {
   code_prolog();
 
   stack_dtor(stack_indent);
+  symbol_table_dtor(symbol_table);
   return 0;
 }

@@ -75,7 +75,6 @@ int scope_enter(scoped_symtablePtr symtable) {
 void scope_leave(scoped_symtablePtr symtable) {
     if (PROTECT_GLOBAL_SYMTABLE) {
         if (symtable->scope_id==GLOBAL_SYMTABLE_ID) {
-            printf("[!] Pokus odejití z globální tabulka symbolů.");
             return;
         }
     }
@@ -106,18 +105,47 @@ int insert_symbol(scoped_symtablePtr symtable, char *symbol, void *value) {
 
 
 /**
+ * @brief Upraví existující symbol v tabulce symbolů
+ * @param symtable tabulka symbolů
+ * @return Vrátí 0 při úspěchu, 1 při selhání
+ */
+int update_symbol(scoped_symtablePtr symtable, char *symbol, void *value) {
+    nodePtr result = get_symbol_node(symtable, symbol);
+    if (result!=NULL) {
+        result->value = value; // Ukládá se podle názvu, přímý zásah by neměl vadit
+        return 1;
+    }
+    return 0;
+}
+
+
+/**
+ * @brief Vyhledání symbolu v tabulce symbolů
+ * @param symtable tabulka symbolů
+ * @param symbol hledaný klíč
+ * @return Vrátí node při úspěchu, NULL při selhání
+ */
+nodePtr get_symbol_node(scoped_symtablePtr symtable, char *symbol) {
+    s_nodePtr currentScopeNode = symtable->scopes->top;
+    nodePtr result = nullptr;
+    while (currentScopeNode != NULL && result==NULL) {
+      result = tree_get(currentScopeNode->value, symbol);
+      currentScopeNode = currentScopeNode->next;
+    }
+    if (result!=NULL)
+      return result;
+    return nullptr;
+}
+
+
+/**
  * @brief Vyhledání symbolu v tabulce symbolů
  * @param symtable tabulka symbolů
  * @param symbol hledaný klíč
  * @return Vrátí hodnotu při úspěchu, NULL při selhání
  */
-char *get_symbol(scoped_symtablePtr symtable, char *symbol) {
-    s_nodePtr currentScopeNode = symtable->scopes->top;
-    nodePtr result = nullptr;
-    while (currentScopeNode != NULL && result==NULL) {
-        result = tree_get(currentScopeNode->value, symbol);
-        currentScopeNode = currentScopeNode->next;
-    }
+void *get_symbol(scoped_symtablePtr symtable, char *symbol) {
+    nodePtr result = get_symbol_node(symtable, symbol);
     if (result!=NULL)
         return result->value;
     return nullptr;
