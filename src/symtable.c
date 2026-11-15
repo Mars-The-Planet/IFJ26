@@ -75,7 +75,6 @@ int scope_enter(scoped_symtablePtr symtable) {
 void scope_leave(scoped_symtablePtr symtable) {
     if (PROTECT_GLOBAL_SYMTABLE) {
         if (symtable->scope_id==GLOBAL_SYMTABLE_ID) {
-            printf("[!] Pokus odejití z globální tabulka symbolů.");
             return;
         }
     }
