@@ -228,7 +228,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
   while (1) {
 
-    allocate_expression(temp_expression);
+    temp_expression = allocate_expression(temp_expression);
 
     if (stack_switch == 1) {
 
@@ -288,29 +288,37 @@ AST_Node *parse_expression(AST_Node *past_node) {
       } else if (active_token.type == KEYWORD_TYPE) {
 
         if (strcmp(active_token.value, "if") == 0) {
-          parse_if(sum_stack(stack_indent));
+          temp_expression = parse_if(sum_stack(stack_indent));
+
+          stack_switch = 0;
+          stack_push(node_stack, temp_expression);
+          // jako jediný případ nemusí volat další token protože je token
+          // načtěný z volání funkce
 
         } else if (strcmp(active_token.value, "List") == 0) {
-          parse_list;
-        }
+          temp_expression = parse_list();
+
+          stack_switch = 0;
+          stack_push(node_stack, temp_expression);
+          check_next_token();
+
+        } else
+          exit(2);
 
       } else if (active_token.type == OPERATOR_TYPE) {
         if (strcmp(active_token.value, "-") == 0) {
           stack_push(operator_stack, (void *)(uintptr_t)UMINUS);
 
-          stack_push(node_stack, temp_expression);
           check_next_token();
 
         } else if (strcmp(active_token.value, "+") == 0) {
           stack_push(operator_stack, (void *)(uintptr_t)UPLUS);
 
-          stack_push(node_stack, temp_expression);
           check_next_token();
 
         } else if (strcmp(active_token.value, "!") == 0) {
           stack_push(operator_stack, (void *)(uintptr_t)NOT_N);
 
-          stack_push(node_stack, temp_expression);
           check_next_token();
 
         } else
@@ -825,6 +833,7 @@ AST_Node *exp_in_brackets() {
 
     if (active_token.type == SYMBOL_TYPE) {
       if (strcmp(active_token.value, ",") == 0) {
+        check_next_token();
         continue;
       } else if (strcmp(active_token.value, ")") == 0) {
 
@@ -832,9 +841,8 @@ AST_Node *exp_in_brackets() {
 
       } else
         exit(2);
-    }
-
-    check_next_token();
+    } else
+      exit(2);
   }
 
   return expression_list;
@@ -863,8 +871,11 @@ AST_Node *parse_list() {
           strcmp(active_token.value, "range") == 0) {
         check_next_token();
         if (active_token.type == SYMBOL_TYPE &&
-            strcmp(active_token.value, "(") == 0)
+            strcmp(active_token.value, "(") == 0) {
           temp_list->nodeData.listData.list_var = exp_in_brackets();
+
+        } else
+          exit(2);
 
         temp_list->type = DOT_ACCESS;
 
@@ -873,6 +884,8 @@ AST_Node *parse_list() {
     } else
       exit(2);
   }
+
+  return temp_list;
 }
 
 AST_Node *parse_id() {
