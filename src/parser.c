@@ -551,9 +551,9 @@ AST_Node *parse_fun_body(int origin_indent) {
         if (strcmp(active_token.value, "val") == 0 ||
             strcmp(active_token.value, "var") == 0) {
           temp_statement = parse_var();
-          insert_symbol(symbol_table, temp_statement->nodeData.varData.var_name, temp_statement);
-            }
-        else if (strcmp(active_token.value, "while") == 0)
+          insert_symbol(symbol_table, temp_statement->nodeData.varData.var_name,
+                        temp_statement);
+        } else if (strcmp(active_token.value, "while") == 0)
           temp_statement = parse_while(origin_indent);
         else if (strcmp(active_token.value, "if") == 0)
           temp_statement = parse_if(origin_indent);
@@ -568,7 +568,8 @@ AST_Node *parse_fun_body(int origin_indent) {
       case ID_TYPE:
         // funkce která už bude rozhodovat co s id vlastně dělat
         temp_statement = parse_id();
-        update_symbol(symbol_table, temp_statement->nodeData.varData.var_name, temp_statement);
+        update_symbol(symbol_table, temp_statement->nodeData.varData.var_name,
+                      temp_statement);
         break;
 
       // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem case
@@ -800,33 +801,43 @@ AST_Node *parse_while(int origin_indent) {
   return temp_while;
 }
 
-head *exp_in_brackets() {
+AST_Node *exp_in_brackets() {
 
-  head *expression_list_head = malloc(sizeof(head));
-
-  if (expression_list_head == NULL) {
-
-    fprintf(stderr, "Memory allocation failed!");
-    exit(99);
-  }
-
-  expression_list_head->first = NULL;
-
+  AST_Node *temp_expression_list = NULL;
+  AST_Node *expression_list = NULL;
   AST_Node *expression_list_end = NULL;
+
+  check_next_token();
+  if (active_token.type == SYMBOL_TYPE && strcmp(active_token.value, ")") == 0)
+    return expression_list;
 
   while (1) {
 
-    check_next_token();
+    temp_expression_list = parse_expression(NULL);
+
+    if (expression_list == NULL) {
+      expression_list = temp_expression_list;
+      expression_list_end = temp_expression_list;
+    } else {
+      expression_list_end->next = temp_expression_list;
+      expression_list_end = temp_expression_list;
+    }
 
     if (active_token.type == SYMBOL_TYPE) {
-      if (strcmp(active_token.value, ","))
+      if (strcmp(active_token.value, ",") == 0) {
         continue;
-      else if (strcmp(active_token.value, ")"))
-        return expression_list_head;
+      } else if (strcmp(active_token.value, ")") == 0) {
+
+        return expression_list;
+
+      } else
+        exit(2);
     }
+
+    check_next_token();
   }
 
-  return expression_list_head;
+  return expression_list;
 }
 
 AST_Node *parse_list() {
@@ -838,22 +849,29 @@ AST_Node *parse_list() {
     exit(99);
   }
 
-  while (strcmp(active_token.value, ")") != 0) {
+  check_next_token();
 
-    check_next_token();
+  if (active_token.type == SYMBOL_TYPE) {
+    if (strcmp(active_token.value, "(") == 0) {
+      temp_list->nodeData.listData.list_var = exp_in_brackets();
 
-    if (active_token.type == SYMBOL_TYPE) {
-      if (strcmp(active_token.value, "(") != 0)
-        exit(2);
+      temp_list->type = LIST;
 
     } else if (strcmp(active_token.value, ".") == 0) {
       check_next_token();
       if (active_token.type == ID_TYPE &&
-          strcmp(active_token.value, "range") != 0)
-        exit(2);
-    }
+          strcmp(active_token.value, "range") == 0) {
+        check_next_token();
+        if (active_token.type == SYMBOL_TYPE &&
+            strcmp(active_token.value, "(") == 0)
+          temp_list->nodeData.listData.list_var = exp_in_brackets();
 
-    temp_list->nodeData.listData.list_var = exp_in_brackets();
+        temp_list->type = DOT_ACCESS;
+
+      } else
+        exit(2);
+    } else
+      exit(2);
   }
 }
 

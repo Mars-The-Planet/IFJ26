@@ -196,7 +196,7 @@ struct AST_Node {
 
     struct {
 
-      head *list_var;
+      AST_Node *list_var;
 
     } listData;
 
@@ -235,7 +235,7 @@ AST_Node *parse_expression(AST_Node *past_node);
 
 head *parse_param();
 
-head *exp_in_brackets();
+AST_Node *exp_in_brackets();
 
 AST_Node *parse_fun_body(int origin_indent);
 
