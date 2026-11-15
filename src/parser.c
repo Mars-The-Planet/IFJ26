@@ -148,6 +148,45 @@ char precedence_table[11][11] = {
     '<', '<', '<', 'E', '=' // 10. dno zásobníku
 };
 
+int get_table_index(NodeType type) {
+
+  if (type == UMINUS || type == UPLUS || type == NOT_N)
+    return 0;
+
+  if (type == MUL || type == DIV)
+    return 1;
+
+  if (type == ADD || type == SUB || type == CON_SEZNAM)
+    return 2;
+
+  if (type == LESS || type == GREATER || type == LESS_EQUAL ||
+      type == GREATER_EQUAL)
+    return 3;
+
+  if (type == EQUALS || type == NOT_EQUAL)
+    return 4;
+
+  if (type == AND_N)
+    return 5;
+
+  if (type == OR_N)
+    return 6;
+
+  if (type == TO_N || type == UNTILL_N || type == BY_N)
+    return 7;
+
+  if (type == BRACK_START)
+    return 8;
+
+  if (type == BRACK_END)
+    return 9;
+
+  if (type == STACK_END)
+    return 10;
+
+  return 11;
+}
+
 // přidání parametru abych neztratil jméno identifikátoru
 AST_Node *parse_expression(AST_Node *past_node) {
 

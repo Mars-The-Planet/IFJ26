@@ -52,7 +52,6 @@ typedef enum ASTNodeType {
   UMINUS,
   UPLUS,
   NOT_N,
-
   CON_SEZNAM, // funkce pro konkatenanci seznamů
   TO_N,
   UNTILL_N,
