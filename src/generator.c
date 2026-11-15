@@ -283,7 +283,7 @@ void mul(AST_Node *node){
 void divide(AST_Node *node){
   get_operands(node);
 
-  if (node->nodeData.biData.left->result == TYPE_DOUBLE || node->nodeData.biData.left->result == TYPE_DOUBLE){
+  if (node->nodeData.biData.left->result == TYPE_DOUBLE || node->nodeData.biData.right->result == TYPE_DOUBLE){
     printf("DIVS\n");
   }
   else
@@ -335,7 +335,7 @@ void generate_while(AST_Node *node){
 
     //zjistí typ posledního příkazu v bloku, pokud není unit, tak ho zahodí, 
     //jelikož while si nepotřebuje uchovávat hodnotu z těla cyklu
-    AST_Node *last = node->nodeData.while.body;
+    AST_Node *last = node->nodeData.whileData.body;
     while(last->next){
       last = last.next;
     }
@@ -356,8 +356,8 @@ void generate_while(AST_Node *node){
 void var_def(AST_Node *node){
 
     //pro zkrácení dlouhých názvů
-    dataType var_type = node->NodeData.varData.var_name;
-    AST_Node expression = node->nodeData.varData.expression;
+    dataType var_type = node->nodeData.varData.varType;
+    AST_Node *expression = node->nodeData.varData.expression;
     char* name = node->nodeData.varData.var_name;
 
     //pokud není typ proměnné deklarován vezme si ho z přiřazované hodnoty 
@@ -386,10 +386,10 @@ void var_def(AST_Node *node){
  */
 void assign(AST_Node *node){
     //pro zkrácení názvů
-    char *name = node->nodeData.assignData.name;
-    AST_Node expression = node->nodeData.assignData.equal;
+    char *name = node->nodeData.var_name;
+    AST_Node *expression = node->nodeData.assignData.equal;
     
-    dataType = expression->result;
+    dataType var_type= expression->result;
     
     generate_node(expression);
 
@@ -399,7 +399,7 @@ void assign(AST_Node *node){
      return;
    }
 
-   if (var_type == TYPE_DOUBLE && expr->result == TYPE_INT){
+   if (var_type == TYPE_DOUBLE && expression->result == TYPE_INT){
      int_to_float();
    }
 
@@ -418,7 +418,7 @@ void unar_minus(AST_Node *node){
     else{
     literal_int(-1);
   }
-  mul();
+  printf("MULS\n");
 }
 
 /**
@@ -440,7 +440,7 @@ void generate_branch(AST_Node *block, dataType return_type){
         printf("POPS GF@$t1\n");
       }
     }
-    else if (return_type == TYPE_DOUBLE && return_type->result == TYPE_INT){
+    else if (return_type == TYPE_DOUBLE && last->result == TYPE_INT){
       int_to_float();
     }
 }
@@ -463,14 +463,14 @@ void generate_if(AST_Node *node){
 
     generate_branch(node->nodeData.ifData.then_part,return_type);
     if (node->nodeData.ifData.else_part){
-      printf("JMP $if%d_end\n", label_number);
+      printf("JUMP $if%d_end\n", label_number);
       printf("LABEL $if%d_else_part\n", label_number);
       generate_branch(node->nodeData.ifData.else_part,return_type);
       printf("LABEL $if%d_end\n", label_number);
     }
     
     else {
-      printf("LABEL $if%d_else\n", label_number);
+      printf("LABEL $if%d_else_part\n", label_number);
     }
 }
 
@@ -484,8 +484,9 @@ void generate_return(AST_Node *node){
   AST_Node *value = node->nodeData.returnData.expression;
   
   //pokud má nějaku hodnotu vygeneruje pro ni uzel
-  generate_node(value);
-  
+  if(value){
+    generate_node(value);
+  }
   //pokud funkce nemá vracet hodnotu a nějaká ji přece jen vyjde, 
   //tak ji zahodí do pomocné proměnné
   if (function_return_type == TYPE_UNIT){
@@ -493,7 +494,7 @@ void generate_return(AST_Node *node){
       printf("POPS GF@t1\n");
     }
   }
-    else if (function_return_type == TYPE_DOUBLE && function_return_type->result == TYPE_INT){
+    else if (function_return_type == TYPE_DOUBLE && value->result == TYPE_INT){
       int_to_float();
     }
 
@@ -507,7 +508,125 @@ void generate_return(AST_Node *node){
 }
 
 
+/**
+ * @brief sbírá definici proměnných, jelikož mohou být definované jen jednou, nemůžou být uvnitř cyklů,
+ *  proměnné se definují hned při začátku funkce
+ * 
+ * @param node ukazatel na uzel ast
+ */
+void collect_vars(AST_Node *node){
+  while (node)
+  {
+    switch (node->type)
+    {
+    case VAR_DEF:
+      printf("DEFVAR LF@%s\n",node->nodeData.varData.var_name)
+      break;
+    case ASSIGN:
+      collect_vars(n->nodeData.assignData.equal);
+      break;
+    case IF_N:
+      collext_vars(node->nodeData.assignData.equal);
+      break;
+    case IF_N:
+      collect_defvars(node->nodeData.ifData.condition);
+      collect_defvars(node->nodeData.ifData.then_part);
+      collect_defvars(node->nodeData.ifData.else_part);  
+      break;
+    case WHILE:
+      collect_defvars(node->nodeData.whileData.condition);
+      collect_defvars(node->nodeData.whileData.body);
+      break;
+    
+    //pro binární
+    case ADD: case SUB: case MUL: case DIV:
+    case LESS: case GREATER: case EQUALS: 
+    case LESS_EQUAL: case GREATER_EQUAL:
+    case AND_N: case OR_N:
+      collect_defvars(node->nodeData.biData.left);
+      collect_defvars(node->nodeData.biData.right);
+      break;
 
+    //pro unární
+    case UMINUS: case UPLUS: case NOT:
+      collect_defvars(node->nodeData.uData.single);
+      break;
+    
+    case RETURN:
+      collect_vars(node->nodeData.returnData.expression);
+      break;
+    case FUN_CALL:
+      collect_vars(node->nodeData.callFunData.fun_args);
+      break;
+    default:
+      break;
+    }
+   node = node->next;
+  }
+}
+
+/**
+ * @brief funkce pro vybírání parametrů ze zásobníku
+ * používá rekurzi aby byl pravý parametr nejhlouběji a levý nejvíce navrchu
+ * @param params ukazatel na hlavičku listu parametrů funkce
+ */
+void pop_params(ListParam *params){
+  if (params == NULL){
+    return;
+  }
+  pop_params(params->next);
+  printf("POPS LF@%s\n", params->param_name);
+}
+
+/**
+ * @brief funkce pro vytvoření spouštění funkcí
+ * 
+ * @param node ukazatel na uzel ast
+ */
+void generate_fun(AST_node *node){
+
+  AST_Node *body = node->nodeData.funData.body;
+  function_return_type = node->nodeData.funData.return_type;
+
+
+  if(function_return_type == TYPE_UNDEF){
+    function_return_type = last_node(body)->result;
+  }
+
+  printf("LABEL $function\n$",node->nodeData.funData.fun_name);
+  printf("CREATEFRAME\n");
+  printf("PUSHFRAME\n");
+
+  head *params = node->nodeData.funData.param_list;
+  if(params){
+    for (ListParams *p = params->first; p; p = p->next){
+        printf("DEFVAR LF@%s\n", p->param_name);
+    }
+    pop_params(param_first);
+  }
+    //sesbírá všechny proměnné
+  collect_vars(body);
+
+  //vygeneruje tělo funkce
+  generate_block(body);
+
+  AST_Node *function_return = last_node(body);
+
+  if(function_return_type == TYPE_UNIT){
+    if(function_return->result != TYPE_UNIT){
+      printf("POPS GF$t1\n");
+    }
+    printf("PUSHS nil@nil\n");
+  }
+  else if (function_return_type == TYPE_DOUBLE && last->result == TYPE_INT){
+    int_to_float();
+  }
+
+  printf("POPFRAME");
+  printf("RETURN");
+
+  function_return_type = TYPE_UNIT;
+}
 
 /**
  * @brief generátor kódu pro jednotlivé uzly AST
@@ -522,45 +641,59 @@ void generate_node(AST_Node *node){
     case LITERAL_INT:
       literal_int(node->nodeData.elemData.valueType.int_value);
     break;
+
     case LITERAL_DOUBLE:
       literal_double(node->nodeData.elemData.valueType.double_value);
     break;
+
     case LITERAL_STRING:
       literal_string(node->nodeData.elemData.valueType.string_value);
     break;
+
     case LITERAL_BOOL:
       literal_bool(node->nodeData.elemData.valueType.bool_value);
     break;
+
     case LITERAL_UNIT:
       literal_unit();
     break;
+
     case LESS:
       less(node);
     break;
+
     case GREATER:
       greater(node);
     break;
+
     case EQUALS:
       equals(node);
     break;
+
     case LESS_EQUAL:
       less_equal(node);
       break;
+
     case GREATER_EQUAL:
       greater_equal(node);
       break;
+
     case NOT_EQUAL:
       not_equal(node);
       break;
+
     case NOT_N:
       logical_not(node);
       break;
+
     case AND_N:
       logical_and(node);
       break;
+
     case OR_N:
       logical_or(node);
       break;
+
     case UPLUS:
       unar_plus(node);
       break;     
@@ -568,12 +701,15 @@ void generate_node(AST_Node *node){
     case ADD:
       add(node);
       break;
+
     case SUB:
       sub(node);
       break;
+
     case MUL:
       mul(node);
       break;
+
     case DIV:
       divide(node);
       break;
@@ -585,6 +721,7 @@ void generate_node(AST_Node *node){
    case ASSIGN:
         assign(node);
         break;
+
     case VAR_DEF:
         var_def(node);
         break;
@@ -592,22 +729,24 @@ void generate_node(AST_Node *node){
     case IDENT:
       ident(node);
       break;
+
     case UMINUS:
       unar_minus(node);
       break;
+
     case IF_N:
       generate_if(node);
       break;
+
+    case FUN_DEF:
+      generate_fun(node);
+      break;
+
     case RETURN:
       generate_return(node);
       break;
 
 //todo: doplnit další uzly AST
-
-
- 
-
-
 
 
   case FOR_N:
@@ -619,11 +758,6 @@ void generate_node(AST_Node *node){
     break;
 
   case DOT_ACCESS:
-    printf("Today is Saturday");
-    break;
-
-
-  case FUN_DEF:
     printf("Today is Saturday");
     break;
 

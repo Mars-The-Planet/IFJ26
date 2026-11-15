@@ -14,8 +14,13 @@
 #include <stdbool.h>
 
 #include "parser.h"
-//#include "parser.h"
 
+
+/**
+ * @brief pomocná funkce pro určení posledního prvku seznamu
+ * @param node ukazatel na uzel ast
+ */
+static AST_Node *last_node(AST_Node *node)
 
 /**
  * @brief Funkce pro int z ifj26 do ifjcode26
@@ -191,6 +196,28 @@ void generate_if(AST_Node *node)
  * která se nastavuje právě kvůli této funkci
  */
 void generate_return(AST_Node *node)
+
+/**
+ * @brief sbírá definici proměnných, jelikož mohou být definované jen jednou, nemůžou být uvnitř cyklů,
+ *  proměnné se definují hned při začátku funkce
+ * 
+ * @param node ukazatel na uzel ast
+ */
+void collect_vars(AST_Node *node)
+
+/**
+ * @brief funkce pro vybírání parametrů ze zásobníku
+ * používá rekurzi aby byl pravý parametr nejhlouběji a levý nejvíce navrchu
+ * @param params ukazatel na hlavičku listu parametrů funkce
+ */
+void pop_params(ListParam *params)
+
+/**
+ * @brief funkce pro vytvoření spouštění funkcí
+ * 
+ * @param node ukazatel na uzel ast
+ */
+void generate_fun(AST_node *node)
 
 /**
  * @brief Hlavní dispatcher – generátor kódu pro jednotlivé uzly AST
