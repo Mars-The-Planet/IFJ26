@@ -123,6 +123,22 @@ void the_parser() {
   return;
 }
 
+AST_Node *allocate_expression(AST_Node *expression) {
+
+  // nemůžu allokovat paměť pokud přijímám unární operátory
+  if (active_token.type == OPERATOR_TYPE) {
+    return NULL;
+  }
+
+  expression = malloc(sizeof(AST_Node));
+  if (expression == NULL) {
+    fprintf(stderr, "ERROR: Memory allocation failed!");
+    exit(99);
+  }
+
+  return expression;
+}
+
 char precedence_table[11][11] = {
     '<', '>', '>', '>', '>', '>',
     '>', '>', '<', '>', '>', // 0. unární operátory
@@ -210,12 +226,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
   while (1) {
 
-    temp_expression = malloc(sizeof(AST_Node));
-    if (temp_expression == NULL) {
-
-      fprintf(stderr, "ERROR: Memory allocation failed!");
-      exit(99);
-    }
+    allocate_expression(temp_expression);
 
     if (stack_switch == 1) {
 
@@ -227,9 +238,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
         stack_switch = 0;
         stack_push(node_stack, temp_expression);
         check_next_token();
-      }
 
-      if (active_token.type == DOUBLE_TYPE) {
+      } else if (active_token.type == DOUBLE_TYPE) {
         temp_expression->type = LITERAL_DOUBLE;
         temp_expression->nodeData.elemData.valueType.double_value =
             atof(active_token.value);
@@ -237,9 +247,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
         stack_switch = 0;
         stack_push(node_stack, temp_expression);
         check_next_token();
-      }
 
-      if (active_token.type == STRING_TYPE) {
+      } else if (active_token.type == STRING_TYPE) {
         temp_expression->type = LITERAL_STRING;
         temp_expression->nodeData.elemData.valueType.string_value =
             strdup(active_token.value);
@@ -247,9 +256,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
         stack_switch = 0;
         stack_push(node_stack, temp_expression);
         check_next_token();
-      }
 
-      if (active_token.type == ID_TYPE) {
+      } else if (active_token.type == ID_TYPE) {
         if (strcmp(active_token.value, "true") == 0) {
           temp_expression->type = LITERAL_BOOL;
           temp_expression->nodeData.elemData.valueType.bool_value = 1;
@@ -275,28 +283,43 @@ AST_Node *parse_expression(AST_Node *past_node) {
           stack_push(node_stack, temp_expression);
           check_next_token();
         }
-      }
+      } else if (active_token.type == KEYWORD_TYPE) {
 
-      if (active_token.type == OPERATOR_TYPE) {
+        if (strcmp(active_token.value, "if") == 0) {
+          parse_if(sum_stack(stack_indent));
+
+        } else if (strcmp(active_token.value, "List") == 0) {
+          parse_list;
+        }
+
+      } else if (active_token.type == OPERATOR_TYPE) {
         if (strcmp(active_token.value, "-") == 0) {
           stack_push(operator_stack, (void *)(uintptr_t)UMINUS);
+
+          stack_push(node_stack, temp_expression);
+          check_next_token();
 
         } else if (strcmp(active_token.value, "+") == 0) {
           stack_push(operator_stack, (void *)(uintptr_t)UPLUS);
 
+          stack_push(node_stack, temp_expression);
+          check_next_token();
+
         } else if (strcmp(active_token.value, "!") == 0) {
           stack_push(operator_stack, (void *)(uintptr_t)NOT_N);
 
+          stack_push(node_stack, temp_expression);
+          check_next_token();
+
         } else
           exit(2);
-      }
+      } else if (active_token.type == SYMBOL_TYPE &&
+                 strcmp(active_token.value, "(") == 0) {
 
-      // případ pro výraz v závorce
-      if (active_token.type == SYMBOL_TYPE && strcmp(active_token.value, "(")) {
         check_next_token();
         // pokud je závorka prázdná nastavím ho na UNIT
         if (active_token.type == SYMBOL_TYPE &&
-            strcmp(active_token.value, ")")) {
+            strcmp(active_token.value, ")") == 0) {
           temp_expression->type = LITERAL_UNIT;
 
           stack_switch = 0;
@@ -306,6 +329,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
         } else
           stack_push(operator_stack, BRACK_START);
       }
+    } else if (stack_switch == 0) {
     }
   }
 
@@ -754,6 +778,63 @@ AST_Node *parse_while(int origin_indent) {
   temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
 
   return temp_while;
+}
+
+head *exp_in_brackets() {
+
+  head *expression_list_head = malloc(sizeof(head));
+
+  if (expression_list_head == NULL) {
+
+    fprintf(stderr, "Memory allocation failed!");
+    exit(99);
+  }
+
+  expression_list_head->first = NULL;
+
+  AST_Node *expression_list_end = NULL;
+
+  while (1) {
+
+    check_next_token();
+
+    if (active_token.type == SYMBOL_TYPE) {
+      if (strcmp(active_token.value, ","))
+        continue;
+      else if (strcmp(active_token.value, ")"))
+        return expression_list_head;
+    }
+  }
+
+  return expression_list_head;
+}
+
+AST_Node *parse_list() {
+
+  AST_Node *temp_list = malloc(sizeof(AST_Node));
+  if (temp_list == NULL) {
+
+    fprintf(stderr, "Memory allocation failed!");
+    exit(99);
+  }
+
+  while (strcmp(active_token.value, ")") != 0) {
+
+    check_next_token();
+
+    if (active_token.type == SYMBOL_TYPE) {
+      if (strcmp(active_token.value, "(") != 0)
+        exit(2);
+
+    } else if (strcmp(active_token.value, ".") == 0) {
+      check_next_token();
+      if (active_token.type == ID_TYPE &&
+          strcmp(active_token.value, "range") != 0)
+        exit(2);
+    }
+
+    temp_list->nodeData.listData.list_var = exp_in_brackets();
+  }
 }
 
 AST_Node *parse_id() {

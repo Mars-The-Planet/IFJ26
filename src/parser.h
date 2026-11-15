@@ -194,6 +194,12 @@ struct AST_Node {
 
     } returnData;
 
+    struct {
+
+      head *list_var;
+
+    } listData;
+
     // scénář pro poslední část AST stromu
     struct {
 
@@ -229,6 +235,8 @@ AST_Node *parse_expression(AST_Node *past_node);
 
 head *parse_param();
 
+head *exp_in_brackets();
+
 AST_Node *parse_fun_body(int origin_indent);
 
 AST_Node *parse_var();
@@ -238,6 +246,8 @@ AST_Node *parse_while(int origing_indent);
 AST_Node *parse_if(int origin_indent);
 
 AST_Node *parse_for(int origin_indent);
+
+AST_Node *parse_list();
 
 AST_Node *parse_id();
 
