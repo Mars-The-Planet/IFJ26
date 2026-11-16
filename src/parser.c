@@ -12,6 +12,7 @@
 
 #include "parser.h"
 #include "scanner.h"
+#include "stack.h"
 #include "symtable.h"
 
 scoped_symtablePtr symbol_table;
@@ -51,7 +52,10 @@ dataType type_transfer() {
     return TYPE_BOOL;
   if (strcmp(active_token.value, "List") == 0)
     return TYPE_LIST;
-  exit(2);
+  {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
+    exit(2);
+  };
 }
 
 /**
@@ -65,31 +69,47 @@ void code_prolog() {
   check_for_eol();
 
   if (active_token.type == KEYWORD_TYPE) {
-    if (strcmp(active_token.value, "import") != 0)
+    if (strcmp(active_token.value, "import") != 0) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
-    if (strcmp(active_token.value, "ifj26") != 0)
+    if (strcmp(active_token.value, "ifj26") != 0) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
-    if (strcmp(active_token.value, ".") != 0)
+    if (strcmp(active_token.value, ".") != 0) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
-    if (strcmp(active_token.value, "*") != 0)
+    if (strcmp(active_token.value, "*") != 0) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   return;
 }
@@ -99,6 +119,7 @@ void the_parser() {
   int indent;
 
   while (1) {
+
     check_next_token();
     switch (active_token.type) {
 
@@ -108,17 +129,22 @@ void the_parser() {
         break;
       } else if (strcmp(active_token.value, "@main") == 0) {
         has_main();
-      } else
+        break;
+      } else {
+        printf("Chyba syntaxe na radku %d\n", __LINE__);
         exit(2);
+      };
 
     case SYMBOL_TYPE:
       if (strcmp(active_token.value, "EOL") == 0)
         continue;
       else if (strcmp(active_token.value, "EOF") == 0)
-        break;
+        return;
 
-    default:
+    default: {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
+    };
     }
   }
 
@@ -214,6 +240,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
   stackPtr node_stack = stack_ctor();
 
   AST_Node *temp_expression = NULL;
+  AST_Node *stack_nodes = NULL;
+  AST_Node *stack_operators = NULL;
 
   bool stack_switch; // stack_operator(0) nebo node_stack(1)
 
@@ -227,7 +255,6 @@ AST_Node *parse_expression(AST_Node *past_node) {
     stack_switch = 1;
 
   while (1) {
-
     temp_expression = allocate_expression(temp_expression);
 
     if (stack_switch == 1) {
@@ -302,8 +329,10 @@ AST_Node *parse_expression(AST_Node *past_node) {
           stack_push(node_stack, temp_expression);
           check_next_token();
 
-        } else
+        } else {
+          printf("Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
+        };
 
       } else if (active_token.type == OPERATOR_TYPE) {
         if (strcmp(active_token.value, "-") == 0) {
@@ -321,8 +350,10 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
           check_next_token();
 
-        } else
+        } else {
+          printf("Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
+        };
       } else if (active_token.type == SYMBOL_TYPE &&
                  strcmp(active_token.value, "(") == 0) {
 
@@ -337,9 +368,27 @@ AST_Node *parse_expression(AST_Node *past_node) {
           check_next_token();
 
         } else
-          stack_push(operator_stack, BRACK_START);
+          stack_push(operator_stack, (void *)(uintptr_t)BRACK_START);
       }
     } else if (stack_switch == 0) {
+      if (active_token.type == SYMBOL_TYPE) {
+        if (strcmp(active_token.value, "(") == 0) {
+
+          stack_nodes = (AST_Node *)stack_top(node_stack);
+          stack_pop(node_stack);
+
+          if (stack_nodes->type == IDENT) {
+            temp_expression->type = FUN_CALL;
+            temp_expression->nodeData.callFunData.call_fun_name =
+                stack_nodes->nodeData.idVarData.id_name;
+
+            temp_expression->nodeData.callFunData.fun_args = exp_in_brackets();
+            stack_switch = 1;
+            return temp_expression;
+          }
+        } else
+          return stack_top(node_stack);
+      }
     }
   }
 
@@ -393,47 +442,65 @@ head *parse_param() {
       check_for_eol();
 
       if (active_token.type == SYMBOL_TYPE) {
-        if (strcmp(active_token.value, ":") != 0)
+        if (strcmp(active_token.value, ":") != 0) {
+          printf("Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
+        };
 
         check_next_token();
         check_for_eol();
-        if (active_token.type != KEYWORD_TYPE)
+        if (active_token.type != KEYWORD_TYPE) {
+          printf("Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
+        };
         list_end->type = type_transfer();
 
         if (strcmp(active_token.value, "List") == 0) {
           check_next_token();
           check_for_eol();
-          if (active_token.type != SYMBOL_TYPE)
+          if (active_token.type != SYMBOL_TYPE) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
-          if (strcmp(active_token.value, "[") != 0)
+          };
+          if (strcmp(active_token.value, "[") != 0) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
 
           check_next_token();
           check_for_eol();
-          if (active_token.type != KEYWORD_TYPE)
+          if (active_token.type != KEYWORD_TYPE) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
           list_end->list_type = type_transfer();
 
           check_next_token();
           check_for_eol();
-          if (active_token.type != SYMBOL_TYPE)
+          if (active_token.type != SYMBOL_TYPE) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
-          if (strcmp(active_token.value, "]") != 0)
+          };
+          if (strcmp(active_token.value, "]") != 0) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
         }
         check_next_token();
         check_for_eol();
-        if (active_token.type != SYMBOL_TYPE)
+        if (active_token.type != SYMBOL_TYPE) {
+          printf("Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
+        };
         if (strcmp(active_token.value, ")") == 0)
           return params;
         if (strcmp(active_token.value, ",") == 0)
           continue;
 
-      } else
+      } else {
+        printf("Chyba syntaxe na radku %d\n", __LINE__);
         exit(2);
+      };
     }
   }
 }
@@ -454,8 +521,10 @@ void parse_fun() {
   check_next_token();
   if (active_token.type == ID_TYPE) {
     new_fun->nodeData.funData.fun_name = strdup(active_token.value);
-  } else
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   insert_symbol(symbol_table, new_fun->nodeData.funData.fun_name, new_fun);
   scope_enter(symbol_table);
@@ -463,10 +532,15 @@ void parse_fun() {
   check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, "(") != 0) {
-      exit(2);
+      {
+        printf("Chyba syntaxe na radku %d\n", __LINE__);
+        exit(2);
+      };
     }
-  } else
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   new_fun->nodeData.funData.param_list = parse_param();
 
@@ -483,40 +557,60 @@ void parse_fun() {
         if (strcmp(active_token.value, "List") == 0) {
 
           check_next_token();
-          if (active_token.type != SYMBOL_TYPE)
+          if (active_token.type != SYMBOL_TYPE) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
-          if (strcmp(active_token.value, "[") != 0)
+          };
+          if (strcmp(active_token.value, "[") != 0) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
 
           check_next_token();
-          if (active_token.type != KEYWORD_TYPE)
+          if (active_token.type != KEYWORD_TYPE) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
           // Uložení hodnoty které bude mít vracený list v sobě uložené
           new_fun->nodeData.funData.return_list = type_transfer();
 
           check_next_token();
-          if (active_token.type != SYMBOL_TYPE)
+          if (active_token.type != SYMBOL_TYPE) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
-          if (strcmp(active_token.value, "]") != 0)
+          };
+          if (strcmp(active_token.value, "]") != 0) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
         }
 
         check_next_token();
         if (active_token.type == SYMBOL_TYPE) {
           if (strcmp(active_token.value, "=") == 0) {
             new_fun->nodeData.funData.body = parse_fun_body(indent);
-          } else
+          } else {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
-        } else
+          };
+        } else {
+          printf("Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
-      } else
+        };
+      } else {
+        printf("Chyba syntaxe na radku %d\n", __LINE__);
         exit(2);
+      };
     } else if (strcmp(active_token.value, "=") == 0) {
       new_fun->nodeData.funData.body = parse_fun_body(indent);
-    } else
+    } else {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   scope_leave(symbol_table);
   return;
@@ -534,11 +628,15 @@ AST_Node *parse_fun_body(int origin_indent) {
       strcmp(active_token.value, "EOL") == 0) {
     check_for_eol();
     if (active_token.type == SYMBOL_TYPE &&
-        strcmp(active_token.value, "EOF") == 0)
+        strcmp(active_token.value, "EOF") == 0) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
+    };
     // tady může mít stack_indent mít hodnotu 0
-    if (sum_stack(stack_indent) <= origin_indent)
+    if (sum_stack(stack_indent) <= origin_indent) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
+    };
     origin_indent = sum_stack(stack_indent);
 
     while (1) {
@@ -549,8 +647,10 @@ AST_Node *parse_fun_body(int origin_indent) {
       if (sum_stack(stack_indent) < origin_indent)
         return statements;
       // odsazení se nesmí jen tak zvětšit
-      if (sum_stack(stack_indent) > origin_indent)
+      if (sum_stack(stack_indent) > origin_indent) {
+        printf("Chyba syntaxe na radku %d\n", __LINE__);
         exit(2);
+      };
 
       switch (active_token.type) {
 
@@ -569,8 +669,10 @@ AST_Node *parse_fun_body(int origin_indent) {
           temp_statement = parse_for(origin_indent);
         else if (strcmp(active_token.value, "return") == 0)
           temp_statement = parse_return();
-        else
+        else {
+          printf("Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
+        };
         break;
 
       case ID_TYPE:
@@ -630,8 +732,10 @@ AST_Node *parse_var() {
   check_next_token();
   if (active_token.type == ID_TYPE) {
     temp_var->nodeData.varData.var_name = strdup(active_token.value);
-  } else
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
@@ -644,45 +748,65 @@ AST_Node *parse_var() {
         if (strcmp(active_token.value, "List") == 0) {
 
           check_next_token();
-          if (active_token.type != SYMBOL_TYPE)
+          if (active_token.type != SYMBOL_TYPE) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
-          if (strcmp(active_token.value, "[") != 0)
+          };
+          if (strcmp(active_token.value, "[") != 0) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
 
           check_next_token();
-          if (active_token.type != KEYWORD_TYPE)
+          if (active_token.type != KEYWORD_TYPE) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
 
           check_next_token();
           temp_var->nodeData.varData.varListType = type_transfer();
 
           check_next_token();
-          if (active_token.type != SYMBOL_TYPE)
+          if (active_token.type != SYMBOL_TYPE) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
-          if (strcmp(active_token.value, "]") != 0)
+          };
+          if (strcmp(active_token.value, "]") != 0) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
         }
 
         check_next_token();
         if (active_token.type == SYMBOL_TYPE) {
-          if (strcmp(active_token.value, "=") != 0)
+          if (strcmp(active_token.value, "=") != 0) {
+            printf("Chyba syntaxe na radku %d\n", __LINE__);
             exit(2);
+          };
           check_next_token();
           temp_var->nodeData.varData.expression = parse_expression(NULL);
 
-        } else
+        } else {
+          printf("Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
-      } else
+        };
+      } else {
+        printf("Chyba syntaxe na radku %d\n", __LINE__);
         exit(2);
+      };
       // rovná se znamená že proměnná nemá ještě definovaný typ
     } else if (strcmp(active_token.value, "=") == 0) {
       temp_var->nodeData.varData.varType = TYPE_UNDEF;
       check_next_token();
       temp_var->nodeData.varData.expression = parse_expression(NULL);
-    } else
+    } else {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   return temp_var;
 }
@@ -705,31 +829,43 @@ AST_Node *parse_for(int origin_indent) {
       strcmp(active_token.value, "EOL") == 0) {
     check_for_eol();
 
-    if (sum_stack(stack_indent) <= origin_indent)
+    if (sum_stack(stack_indent) <= origin_indent) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
+    };
     origin_indent = sum_stack(stack_indent);
   }
 
   if (active_token.type == ID_TYPE) {
     temp_for->nodeData.forData.var_name = strdup(active_token.value);
-  } else
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
-    if (strcmp(active_token.value, "<-") != 0)
+    if (strcmp(active_token.value, "<-") != 0) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   check_next_token();
   temp_for->nodeData.forData.condition = parse_expression(NULL);
 
   if (active_token.type == KEYWORD_TYPE) {
-    if (strcmp(active_token.value, "do") != 0)
+    if (strcmp(active_token.value, "do") != 0) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   temp_for->nodeData.forData.body = parse_fun_body(origin_indent);
 
@@ -756,10 +892,14 @@ AST_Node *parse_if(int origin_indent) {
   temp_if->nodeData.ifData.condition = parse_expression(NULL);
 
   if (active_token.type == KEYWORD_TYPE) {
-    if (strcmp(active_token.value, "then") != 0)
+    if (strcmp(active_token.value, "then") != 0) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   temp_if->nodeData.ifData.then_part = parse_fun_body(origin_indent);
 
@@ -798,10 +938,14 @@ AST_Node *parse_while(int origin_indent) {
   // nevolám next_token protože počítám stím že ho zavolal funkce
   // parse_expression
   if (active_token.type == KEYWORD_TYPE) {
-    if (strcmp(active_token.value, "do") != 0)
+    if (strcmp(active_token.value, "do") != 0) {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
-  } else
+    };
+  } else {
+    printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
+  };
 
   temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
 
@@ -839,10 +983,14 @@ AST_Node *exp_in_brackets() {
 
         return expression_list;
 
-      } else
+      } else {
+        printf("Chyba syntaxe na radku %d\n", __LINE__);
         exit(2);
-    } else
+      };
+    } else {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
+    };
   }
 
   return expression_list;
@@ -874,15 +1022,21 @@ AST_Node *parse_list() {
             strcmp(active_token.value, "(") == 0) {
           temp_list->nodeData.listData.list_var = exp_in_brackets();
 
-        } else
+        } else {
+          printf("Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
+        };
 
         temp_list->type = DOT_ACCESS;
 
-      } else
+      } else {
+        printf("Chyba syntaxe na radku %d\n", __LINE__);
         exit(2);
-    } else
+      };
+    } else {
+      printf("Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
+    };
   }
 
   return temp_list;
@@ -951,7 +1105,7 @@ AST_Node *parse_return() {
 }
 
 // TODO: dodělat funkci na kontrolu existence funkce main
-void has_main() {}
+void has_main() { return; }
 
 // dočasný main
 int main() {
@@ -963,6 +1117,9 @@ int main() {
     exit(99);
 
   code_prolog();
+  the_parser();
+
+  printf("přeloženo\n");
 
   stack_dtor(stack_indent);
   symbol_table_dtor(symbol_table);
