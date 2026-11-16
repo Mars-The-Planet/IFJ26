@@ -33,6 +33,16 @@ static dataType function_return_type = TYPE_UNIT;
 static int get_new_label(void){
   return actual_label_number++;
 }
+/**
+ * @brief funkce pro urření posledního uzlu
+ * @param node ukazatel na uzel ast
+ */
+AST_Node last_node(AST_Node *node) {
+  while (node->next) {
+    n = node->next;
+  }
+  return node;
+}
 
 
 
@@ -629,6 +639,115 @@ void generate_fun(AST_node *node){
 }
 
 /**
+ * @brief vestavěná funkce readInt
+ */
+void read_int() {
+  printf("LABEL $BUILDIN$readInt_start\n" // vytvoří zásobníkový rámec
+         "CREATEFRAME\n"
+         "PUSHFRAME\n"
+         "DEFVAR LF@$$input\n"      // načtená hodnota
+         "DEFVAR LF@$$comparator\n" // pomocná hodnota pro porovnání
+         "READ LF@$$input int\n "   // načte vstup, pokud hodnota kterou se
+                                    // snaží načíst není int, vrátí nil
+         "JUMPIFEQ $BUILDIN$readInt_wrong LF@$$comparato\n" // ověří zda čtení
+                                                            // prošlo
+         "GT LF@comparator LF@input int@2147483647\n"       // je větší než max.
+                                                            // 32bitové Int?
+         "JUMPIFEQ $BUILDIN$readInt_wrong LF@c bool@true\n"
+         "LT LF@comparator LF@input int@-2147483648\n" // je menší než min.
+                                                       // 32bitové Int?
+         "JUMPIFEQ $BUILDIN$readInt_wrong LF@comparator bool@true\n"
+         "JUMP $BUILDIN$readInt_ok\n"
+         "LABEL $BUILDIN$readInt_wrong\n"
+         "MOVE LF@$$input INT@0\n"
+         "LABEL $BUILDIN$readInt_ok\n"
+         "PUSHS LF@input\n" // výsledek na zásobník
+         "POPFRAME\n"
+         "RETURN\n");
+}
+/**
+ * @brief vestavěná funkce readDouble
+ */
+void read_double() {
+  printf("LABEL $BUILDIN$readDouble_start\n"
+         "CREATEFRAME\n"
+         "PUSHFRAME\n"
+         "DEFVAR LF@$$input\n"
+         "READ LF@$$input float\n"
+         "JUMPIFNEQ $BUILDIN$readDouble_end LF@$$input nil@nil\n"
+         "MOVE LF@$$input float%a\n"
+         "LABEL $BUILDIN$readDouble_end\n"
+         "PUSHS LF@$$input\n" // výsledek na zásobník
+         "POPFRAME\n"
+         "RETURN\n",
+         0.0);
+}
+
+/**
+ * @brief vestavěná funkce readLine
+ */
+void read_line() {
+  printf("LABEL $BUILDIN$readLine_start\n"
+         "CREATEFRAME\n"
+         "PUSHFRAME\n"
+         "DEFVAR LF@$$input\n"
+         "READ LF@$$input string\n"
+         "JUMPIFNEQ $BUILDIN$readLine_end LF@$$input nil@nil\n"
+         "MOVE LF@$$input string@\n"
+         "LABEL $BUILDIN$readLine_end\n"
+         "PUSHS LF@$$input\n"
+         "POPFRAME\n"
+         "RETURN\n");
+}
+/**
+ * @brief vestavěná funkce readBoolean
+ */
+void read_boolean() {
+  printf("LABEL $BUILDIN$readBoolean\n"
+         "CREATEFRAME\n"
+         "PUSHFRAME\n"
+         "DEFVAR LF@v\n"
+         "READ LF@v bool\n"
+         "JUMPIFNEQ $BUILDIN$readBoolean$end LF@v nil@nil\n"
+         "MOVE LF@v bool@false\n"
+         "LABEL $BUILDIN$readBoolean$end\n"
+         "PUSHS LF@v\n"
+         "POPFRAME\n"
+         "RETURN\n");
+}
+
+/**
+ * @brief vestavěná funkce ord
+ */
+void ord(char *string, int index) {
+  printf(
+      "LABEL $b$ord\n"
+      "CREATEFRAME\n"
+      "PUSHFRAME\n"
+      "DEFVAR LF@$$string\n"
+      "DEFVAR LF@$$index\n"
+      "DEFVAR LF@$$len\n"
+      "DEFVAR LF@c\n"
+      "DEFVAR LF@r\n"
+      "POPS LF@$$index\n"
+      "POPS LF@$$string\n"
+      "STRLEN LF@$$len LF@$$string\n" // zjistí délku řetězce a uloží ji do len
+      "LT LF@c LF@$$index int@0\n"    // index < 0 ?
+      "JUMPIFEQ $BUILDIN$ord_wrong LF@c bool@true\n"
+      "LT LF@c LF@$$index LF@$$len\n"
+      "JUMPIFEQ $BUILDIN$ord_wrong LF@c bool@false\n"
+      "STRI2INT LF@r LF@$$string LF@$$index\n" //; r = kód znaku na pozici i
+      "JUMP $BUILDIN$ord$end\n"
+      "LABEL $BUILDIN$ord_wrong\n"
+      "MOVE LF@r int@-1\n" // mimo rozsah nebo prázdný řetězec vrátí -1
+      "LABEL $BUILDIN$ord_end\n"
+      "PUSHS LF@r\n"
+      "POPFRAME\n"
+      "RETURN\n")
+}
+
+
+/**
  * @brief generátor kódu pro jednotlivé uzly AST
  *  používá switch a prokaždý uzel podle jeho typu zavolá funkci která vygeneruje kód pro daný uzel
  * @param node ukazatel na uzel AST
@@ -770,6 +889,32 @@ void generate_node(AST_Node *node){
   default:
   break;
 }
+}
+
+void generate_program_start(void){
+  printf(".IFJcode26\n");
+  printf("DEFVAR GF@$t1\n");
+  printf("DEFVAR GF@$t2\n");
+  printf("JUMP $program_start\n");
+}
+
+void generate_program_end(const char *main_name){
+  generate_builtins_runtime();
+ 
+  printf("LABEL $program_start\n");
+  printf("CALL $function$%s\n", main_name);
+  printf("EXIT int@0\n");
+}
+
+void generate_program(AST_Node *functions, const char *main_name){
+ 
+  generate_program_start();
+ 
+  for (AST_Node *fun = functions; fun; fun = fun->next){
+    generate_node(fun);
+  }
+ 
+  generate_program_end(main_name);
 }
 
 

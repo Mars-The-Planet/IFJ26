@@ -220,6 +220,31 @@ void pop_params(ListParam *params)
 void generate_fun(AST_node *node)
 
 /**
+ * @brief vestavěná funkce readInt
+ */
+void read_int()
+
+/**
+ * @brief vestavěná funkce readDouble
+ */
+void read_double()
+
+/**
+ * @brief vestavěná funkce readLine
+ */
+void read_line()
+
+/**
+ * @brief vestavěná funkce readBoolean
+ */
+void read_boolean()
+
+/**
+ * @brief vestavěná funkce ord
+ */
+void ord(char *string, int index)
+
+/**
  * @brief Hlavní dispatcher – generátor kódu pro jednotlivé uzly AST
  * @param node Ukazatel na uzel AST
  */
