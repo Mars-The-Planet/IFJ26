@@ -42,10 +42,10 @@ typedef enum ASTNodeType {
   MUL,
   DIV,
   LESS,
-  EQUALS,
   LESS_EQUAL,
   GREATER,
   GREATER_EQUAL,
+  EQUALS,
   NOT_EQUAL,
   AND_N,
   OR_N,
@@ -180,6 +180,14 @@ struct AST_Node {
       AST_Node *fun_args; // AST_Node má být spíš ukazatel na linked list
 
     } callFunData;
+
+    struct {
+
+      char *name_after_dot;
+      AST_Node *before_dot;
+      AST_Node *dot_args;
+
+    } accessDotData;
 
     struct {
 
