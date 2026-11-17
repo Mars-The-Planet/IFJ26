@@ -14,6 +14,9 @@
 #include <string.h>
 
 #include "scanner.h"
+#include "scanner.h"
+#include "stack.h"
+#include "symtable.h"
 
 /**
  *
@@ -252,5 +255,7 @@ AST_Node *parse_list();
 AST_Node *parse_id();
 
 AST_Node *parse_return();
+
+int check_pop();
 
 #endif // PARSER_H

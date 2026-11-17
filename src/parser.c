@@ -11,13 +11,13 @@
 #include <string.h>
 
 #include "parser.h"
-#include "scanner.h"
-#include "stack.h"
-#include "symtable.h"
+
 
 scoped_symtablePtr symbol_table;
 token active_token;
 stackPtr stack_indent;
+
+stackPtr used_symbols;
 
 /**
  *
@@ -54,7 +54,7 @@ dataType type_transfer() {
     return TYPE_LIST;
   {
     printf("Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    exit(3); // chyba typu?
   };
 }
 
@@ -311,6 +311,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
           stack_switch = 0;
           stack_push(node_stack, temp_expression);
           check_next_token();
+
+          stack_push(stack_top(used_symbols), temp_expression);
         }
       } else if (active_token.type == KEYWORD_TYPE) {
 
@@ -384,6 +386,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
             temp_expression->nodeData.callFunData.fun_args = exp_in_brackets();
             stack_switch = 1;
+
+            stack_push(stack_top(used_symbols), temp_expression);
+
             return temp_expression;
           }
         } else
@@ -528,6 +533,7 @@ void parse_fun() {
 
   insert_symbol(symbol_table, new_fun->nodeData.funData.fun_name, new_fun);
   scope_enter(symbol_table);
+  stack_push(used_symbols, stack_ctor());
 
   check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
@@ -612,6 +618,8 @@ void parse_fun() {
     exit(2);
   };
 
+  if (check_pop() == 1)
+    exit(3);
   scope_leave(symbol_table);
   return;
 }
@@ -814,6 +822,7 @@ AST_Node *parse_var() {
 AST_Node *parse_for(int origin_indent) {
 
   scope_enter(symbol_table);
+  stack_push(used_symbols, stack_ctor());
 
   AST_Node *temp_for = malloc(sizeof(AST_Node));
   if (temp_for == NULL) {
@@ -869,6 +878,8 @@ AST_Node *parse_for(int origin_indent) {
 
   temp_for->nodeData.forData.body = parse_fun_body(origin_indent);
 
+  if (check_pop() == 1)
+    exit(3);
   scope_leave(symbol_table);
 
   return temp_for;
@@ -877,6 +888,7 @@ AST_Node *parse_for(int origin_indent) {
 AST_Node *parse_if(int origin_indent) {
 
   scope_enter(symbol_table);
+  stack_push(used_symbols, stack_ctor());
 
   AST_Node *temp_if = malloc(sizeof(AST_Node));
   if (temp_if == NULL) {
@@ -912,9 +924,13 @@ AST_Node *parse_if(int origin_indent) {
 
   } else {
     temp_if->nodeData.ifData.else_part = NULL;
+    if (check_pop() == 1)
+      exit(3);
     scope_leave(symbol_table);
     return temp_if;
   }
+  if (check_pop() == 1)
+    exit(3);
   scope_leave(symbol_table);
   return temp_if;
 }
@@ -922,6 +938,7 @@ AST_Node *parse_if(int origin_indent) {
 AST_Node *parse_while(int origin_indent) {
 
   scope_enter(symbol_table);
+  stack_push(used_symbols, stack_ctor());
 
   AST_Node *temp_while = malloc(sizeof(AST_Node));
   if (temp_while == NULL) {
@@ -949,6 +966,8 @@ AST_Node *parse_while(int origin_indent) {
 
   temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
 
+  if (check_pop() == 1)
+    exit(3);
   scope_leave(symbol_table);
   return temp_while;
 }
@@ -1104,7 +1123,20 @@ AST_Node *parse_return() {
   return temp_return;
 }
 
-// TODO: dodělat funkci na kontrolu existence funkce main
+int check_pop() {
+  stackPtr used_top = stack_top(used_symbols);
+  int failed = 0;
+  while (stack_top(used_top) != NULL) {
+    if (get_symbol(symbol_table, stack_top(used_top)) == NULL) {
+      failed = 1;
+    }
+    stack_pop(used_top);
+  }
+  stack_pop(used_symbols);
+  return failed;
+}
+
+// TODO: dodělat funkci na kontrolu existence funkce main, (je to chyba 3 gl)
 void has_main() { return; }
 
 // dočasný main
@@ -1112,6 +1144,7 @@ int main() {
 
   stack_indent = stack_ctor();
   symbol_table = symbol_table_ctor();
+  used_symbols = stack_ctor();
 
   if (set_target_file("test.txt") != 0)
     exit(99);
