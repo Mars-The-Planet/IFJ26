@@ -62,13 +62,13 @@ dataType type_transfer() {
   if (strcmp(active_token.value, "List") == 0)
     return TYPE_LIST;
   {
-<<<<<<< HEAD
+
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
-=======
+
     printf("Chyba syntaxe na radku %d\n", __LINE__);
     exit(3); // chyba typu?
->>>>>>> f44b510feb14fa6b27839806e218c380df2e6ce0
+
   };
 }
 
@@ -537,7 +537,6 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
       stack_operators = (NodeType)(uintptr_t)stack_top(operator_stack);
       index_vertical = get_table_index(stack_operators);
-
       prec_table_result = precedence_table[index_vertical][index_horizontal];
 
       switch (prec_table_result) {
@@ -1333,8 +1332,15 @@ int check_pop() {
   stackPtr used_top = stack_top(used_symbols);
   int failed = 0;
   while (stack_top(used_top) != NULL) {
-    if (get_symbol(symbol_table, stack_top(used_top)) == NULL) {
-      failed = 1;
+    AST_Node* top = stack_top(used_top);
+    if (top->nodeData.varData.var_name) {
+      if (get_symbol(symbol_table, top->nodeData.varData.var_name) == NULL) {
+        failed = 1;
+      }
+    } else if (top->nodeData.funData.fun_name) {
+      if (get_symbol(symbol_table, top->nodeData.funData.fun_name) == NULL) {
+        failed = 1;
+      }
     }
     stack_pop(used_top);
   }
