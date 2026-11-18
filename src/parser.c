@@ -1423,7 +1423,7 @@ int check_pop() {
       char *temp_name = temp->nodeData.callFunData.call_fun_name;
       AST_Node *found_node = get_symbol(symbol_table, temp_name);
       if (found_node == NULL) {
-        printf("fun fail \"%s\"\n", temp_name);
+        printf("fun fail\n");
         failed = 1;
       } else {
         if (count_args(temp->nodeData.callFunData.fun_args) !=
