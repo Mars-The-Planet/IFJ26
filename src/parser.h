@@ -14,7 +14,6 @@
 #include <string.h>
 
 #include "scanner.h"
-#include "scanner.h"
 #include "stack.h"
 #include "symtable.h"
 
@@ -40,7 +39,7 @@ typedef enum dataType {
  */
 typedef enum ASTNodeType {
 
-  ADD,
+  ADD = 1,
   SUB,
   MUL,
   DIV,
@@ -57,7 +56,7 @@ typedef enum ASTNodeType {
   NOT_N,
   CON_SEZNAM, // funkce pro konkatenanci seznamů
   TO_N,
-  UNTILL_N,
+  UNTIL_N,
   BY_N,
   BRACK_START,
   BRACK_END,
@@ -240,7 +239,7 @@ void the_parser();
 
 void parse_fun();
 
-void has_main();
+int check_pop();
 
 AST_Node *parse_expression(AST_Node *past_node);
 
@@ -263,7 +262,5 @@ AST_Node *parse_list();
 AST_Node *parse_id();
 
 AST_Node *parse_return();
-
-int check_pop();
 
 #endif // PARSER_H

@@ -12,7 +12,6 @@
 
 #include "parser.h"
 
-
 scoped_symtablePtr symbol_table;
 token active_token;
 stackPtr stack_indent;
@@ -40,7 +39,10 @@ void check_for_eol() {
 }
 
 void check_stack_pop(stackPtr stack) {
-  if (stack_top(stack) == NULL) {
+  if (stack_top(stack) != NULL) {
+    stack_pop(stack);
+    return;
+  } else {
 
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
@@ -62,13 +64,10 @@ dataType type_transfer() {
   if (strcmp(active_token.value, "List") == 0)
     return TYPE_LIST;
   {
-<<<<<<< HEAD
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
-=======
-    printf("Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3); // chyba typu?
->>>>>>> f44b510feb14fa6b27839806e218c380df2e6ce0
+      /*
+  fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+     exit(3);
+  */
   };
 }
 
@@ -142,8 +141,17 @@ void the_parser() {
         parse_fun();
         break;
       } else if (strcmp(active_token.value, "@main") == 0) {
-        has_main();
-        break;
+        check_next_token();
+
+        if (active_token.type == KEYWORD_TYPE &&
+            strcmp(active_token.value, "def") == 0) {
+          parse_fun();
+          break;
+
+        } else {
+          fprintf(stderr, "Špatně definovaný main %d\n", __LINE__);
+          exit(2);
+        }
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
         exit(2);
@@ -197,7 +205,7 @@ char precedence_table[11][11] = {
     '<', '<', '<', '<', '<', '<',
     '>', '>', '<', '>', '>', // 6. OR (||)
     '<', '<', '<', '<', '<', '<',
-    '<', '>', '<', '>', '>', // 7. to, untill, by (for cyklus)
+    '<', '>', '<', '>', '>', // 7. to, until, by (for cyklus)
     '<', '<', '<', '<', '<', '<',
     '<', '<', '<', '=', 'E', // 8. otevírací závorka
     '<', '>', '>', '>', '>', '>',
@@ -230,7 +238,7 @@ int get_table_index(NodeType type) {
   if (type == OR_N)
     return 6;
 
-  if (type == TO_N || type == UNTILL_N || type == BY_N)
+  if (type == TO_N || type == UNTIL_N || type == BY_N)
     return 7;
 
   if (type == BRACK_START)
@@ -254,6 +262,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
   stackPtr node_stack = stack_ctor();
 
   AST_Node *temp_expression = NULL;
+  AST_Node *expression = NULL;
   AST_Node *stack_nodes = NULL;
 
   NodeType operator_type;
@@ -276,6 +285,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
     stack_switch = 1;
 
   while (1) {
+
     temp_expression = allocate_expression(temp_expression);
     // režim pro čtení nodes
     if (stack_switch == 1) {
@@ -392,6 +402,10 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
         } else
           stack_push(operator_stack, (void *)(uintptr_t)BRACK_START);
+      } else {
+
+        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+        exit(2);
       }
       // Režim pro čtení operátorů
     } else if (stack_switch == 0) {
@@ -446,8 +460,11 @@ AST_Node *parse_expression(AST_Node *past_node) {
             }
           }
 
-        } else
-          return stack_top(node_stack);
+        } else if (strcmp(active_token.value, ")") == 0) {
+          operator_type = BRACK_END;
+        } else {
+          operator_type = STACK_END;
+        }
 
         // načítání pro precedenční tabulku
       } else if (active_token.type == OPERATOR_TYPE) {
@@ -520,9 +537,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
           operator_type = TO_N;
           index_horizontal = get_table_index(operator_type);
-        } else if (strcmp(active_token.value, "untill") == 0) {
+        } else if (strcmp(active_token.value, "until") == 0) {
 
-          operator_type = UNTILL_N;
+          operator_type = UNTIL_N;
           index_horizontal = get_table_index(operator_type);
         } else if (strcmp(active_token.value, "by") == 0) {
 
@@ -535,6 +552,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
       } else
         operator_type = STACK_END;
 
+      index_horizontal = get_table_index(operator_type);
+
       stack_operators = (NodeType)(uintptr_t)stack_top(operator_stack);
       index_vertical = get_table_index(stack_operators);
 
@@ -544,7 +563,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
       case '<':
 
-        stack_push(operator_stack, (void *)(uintptr_t)index_horizontal);
+        stack_push(operator_stack, (void *)(uintptr_t)operator_type);
         check_next_token();
 
         stack_switch = 1;
@@ -588,10 +607,12 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
         if (stack_operators == STACK_END) {
 
-          temp_expression = (AST_Node *)stack_top(node_stack);
+          expression = (AST_Node *)stack_top(node_stack);
 
-          free(temp_expression);
-          return temp_expression;
+          if (temp_expression != NULL)
+            free(temp_expression);
+
+          return expression;
 
         } else {
 
@@ -599,6 +620,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
           exit(2);
         }
       }
+    } else {
+      fprintf(stderr, "ERROR: Memory allocation failed!");
+      exit(99);
     }
   }
 
@@ -823,8 +847,13 @@ void parse_fun() {
     exit(2);
   };
 
-  if (check_pop() == 1)
-    exit(3);
+  if (check_pop() == 1) {
+    /*
+fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+   exit(3);
+*/
+  }
+
   scope_leave(symbol_table);
   return;
 }
@@ -1084,8 +1113,12 @@ AST_Node *parse_for(int origin_indent) {
 
   temp_for->nodeData.forData.body = parse_fun_body(origin_indent);
 
-  if (check_pop() == 1)
-    exit(3);
+  if (check_pop() == 1) {
+    /*
+fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+   exit(3);
+*/
+  }
   scope_leave(symbol_table);
 
   return temp_for;
@@ -1130,13 +1163,19 @@ AST_Node *parse_if(int origin_indent) {
 
   } else {
     temp_if->nodeData.ifData.else_part = NULL;
-    if (check_pop() == 1)
+    if (check_pop() == 1) {
+      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
       exit(3);
+    }
     scope_leave(symbol_table);
     return temp_if;
   }
-  if (check_pop() == 1)
-    exit(3);
+  if (check_pop() == 1) {
+    /*
+fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+   exit(3);
+*/
+  }
   scope_leave(symbol_table);
   return temp_if;
 }
@@ -1172,8 +1211,12 @@ AST_Node *parse_while(int origin_indent) {
 
   temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
 
-  if (check_pop() == 1)
-    exit(3);
+  if (check_pop() == 1) {
+    /*
+fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+   exit(3);
+*/
+  }
   scope_leave(symbol_table);
   return temp_while;
 }
@@ -1185,8 +1228,11 @@ AST_Node *exp_in_brackets() {
   AST_Node *expression_list_end = NULL;
 
   check_next_token();
-  if (active_token.type == SYMBOL_TYPE && strcmp(active_token.value, ")") == 0)
+  if (active_token.type == SYMBOL_TYPE &&
+      strcmp(active_token.value, ")") == 0) {
+    check_next_token();
     return expression_list;
+  }
 
   while (1) {
 
@@ -1206,6 +1252,7 @@ AST_Node *exp_in_brackets() {
         continue;
       } else if (strcmp(active_token.value, ")") == 0) {
 
+        check_next_token();
         return expression_list;
 
       } else {
@@ -1341,9 +1388,6 @@ int check_pop() {
   stack_pop(used_symbols);
   return failed;
 }
-
-// TODO: dodělat funkci na kontrolu existence funkce main, (je to chyba 3 gl)
-void has_main() { return; }
 
 // dočasný main
 int main() {
