@@ -1423,7 +1423,7 @@ int check_pop() {
       char *temp_name = temp->nodeData.callFunData.call_fun_name;
       AST_Node *found_node = get_symbol(symbol_table, temp_name);
       if (found_node == NULL) {
-        printf("fun fail\n");
+        printf("fun fail \"%s\"\n", temp_name);
         failed = 1;
       } else {
         if (count_args(temp->nodeData.callFunData.fun_args) !=
@@ -1442,12 +1442,124 @@ int check_pop() {
   return failed;
 }
 
+void setup_globals() {
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    ListParam *new_param = malloc(sizeof(ListParam));
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = new_param;
+    new_param->next = NULL;
+    new_param->type = TYPE_ANY;
+    insert_symbol(symbol_table, "print", global_func);
+  }
+
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = NULL;
+    insert_symbol(symbol_table, "readLine", global_func);
+  }
+
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = NULL;
+    insert_symbol(symbol_table, "readInt", global_func);
+  }
+
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = NULL;
+    insert_symbol(symbol_table, "readDouble", global_func);
+  }
+
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    ListParam *new_param = malloc(sizeof(ListParam));
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = new_param;
+    new_param->next = NULL;
+    new_param->type = TYPE_ANY;
+    insert_symbol(symbol_table, "toStr", global_func);
+  }
+
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    ListParam *new_param = malloc(sizeof(ListParam));
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = new_param;
+    new_param->next = NULL;
+    new_param->type = TYPE_DOUBLE;
+    insert_symbol(symbol_table, "toInt", global_func);
+  }
+
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    ListParam *new_param = malloc(sizeof(ListParam));
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = new_param;
+    new_param->next = NULL;
+    new_param->type = TYPE_STRING;
+    insert_symbol(symbol_table, "strLength", global_func);
+  }
+
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    ListParam *new_param1 = malloc(sizeof(ListParam));
+    ListParam *new_param2 = malloc(sizeof(ListParam));
+    ListParam *new_param3 = malloc(sizeof(ListParam));
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = new_param1;
+    new_param1->next = new_param2;
+    new_param2->next = new_param3;
+    new_param1->type = TYPE_STRING;
+    new_param2->type = TYPE_INT;
+    new_param3->type = TYPE_INT;
+    insert_symbol(symbol_table, "subStr", global_func);
+  }
+
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    ListParam *new_param1 = malloc(sizeof(ListParam));
+    ListParam *new_param2 = malloc(sizeof(ListParam));
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = new_param1;
+    new_param1->next = new_param2;
+    new_param1->type = TYPE_STRING;
+    new_param2->type = TYPE_INT;
+    insert_symbol(symbol_table, "ord", global_func);
+  }
+
+  {
+    AST_Node *global_func = allocate_expression(NULL);
+    ListParam *new_param = malloc(sizeof(ListParam));
+    head *params = malloc(sizeof(head));
+    global_func->nodeData.funData.param_list = params;
+    global_func->nodeData.funData.param_list->first = new_param;
+    new_param->next = NULL;
+    new_param->type = TYPE_INT;
+    insert_symbol(symbol_table, "chr", global_func);
+  }
+}
+
 // dočasný main
 int main() {
 
   stack_indent = stack_ctor();
   symbol_table = symbol_table_ctor();
   used_symbols = stack_ctor();
+
+  setup_globals();
 
   if (set_target_file("test.txt") != 0)
     exit(99);
