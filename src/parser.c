@@ -338,7 +338,10 @@ AST_Node *parse_expression(AST_Node *past_node) {
           stack_push(node_stack, temp_expression);
           check_next_token();
 
-          stack_push(stack_top(used_symbols), temp_expression);
+          // stack_push(stack_top(used_symbols), temp_expression);
+          if (get_symbol(symbol_table, temp_expression->nodeData.idVarData.id_name) == NULL) {
+            stack_push(stack_top(used_symbols), temp_expression);
+          }
         }
       } else if (active_token.type == KEYWORD_TYPE) {
 
@@ -843,10 +846,8 @@ void parse_fun() {
   };
 
   if (check_pop() == 1) {
-    /*
-fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-   exit(3);
-*/
+    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    exit(3);
   }
 
   scope_leave(symbol_table);
@@ -1109,10 +1110,8 @@ AST_Node *parse_for(int origin_indent) {
   temp_for->nodeData.forData.body = parse_fun_body(origin_indent);
 
   if (check_pop() == 1) {
-    /*
-fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-   exit(3);
-*/
+    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    exit(3);
   }
   scope_leave(symbol_table);
 
@@ -1166,10 +1165,8 @@ AST_Node *parse_if(int origin_indent) {
     return temp_if;
   }
   if (check_pop() == 1) {
-    /*
-fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-   exit(3);
-*/
+    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    exit(3);
   }
   scope_leave(symbol_table);
   return temp_if;
@@ -1207,10 +1204,8 @@ AST_Node *parse_while(int origin_indent) {
   temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
 
   if (check_pop() == 1) {
-    /*
-fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-   exit(3);
-*/
+    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    exit(3);
   }
   scope_leave(symbol_table);
   return temp_while;
@@ -1375,9 +1370,18 @@ int check_pop() {
   stackPtr used_top = stack_top(used_symbols);
   int failed = 0;
   while (stack_top(used_top) != NULL) {
-    if (get_symbol(symbol_table, stack_top(used_top)) == NULL) {
+    AST_Node *temp = stack_top(used_top);
+    if (temp->type == IDENT) {
       failed = 1;
+    } else if (temp->type == FUN_CALL) {
+      char *temp_name = temp->nodeData.callFunData.call_fun_name;
+      if (get_symbol(symbol_table, temp_name) == NULL) {
+        failed = 1;
+      }
+    } else {
+      // printf("Somehow stored a value that isn't IDENT or FUN_CALL. Type is [%d]\n.", temp->type);
     }
+
     stack_pop(used_top);
   }
   stack_pop(used_symbols);
