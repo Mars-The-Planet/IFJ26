@@ -1,4 +1,5 @@
 /**
+ * IFJ26 - Implementace překladače imperativního jazyka IFJ26
  * @file IFJ26/src/generator.h, projekt ifj
  * @author xmolikj00 
  * @brief hlavičkový soubor pro generátor kódu pro projekt IFJ26
@@ -19,8 +20,13 @@
 /**
  * @brief pomocná funkce pro určení posledního prvku seznamu
  * @param node ukazatel na uzel ast
+ */ 
+AST_Node *last_node(AST_Node *node);
+
+/**
+ * @brief zjistění parametru funkce
  */
-static AST_Node *last_node(AST_Node *node)
+dataType get_param_type(const char *func_name, int index);
 
 /**
  * @brief Funkce pro int z ifj26 do ifjcode26
@@ -40,10 +46,17 @@ void literal_double(double value);
  */
 void literal_bool(int value);
 
+void literal_string(char* string);
+
 /**
  * @brief v podstatě nic nedělá
  */
 void literal_unit(void);
+
+/**
+ * @brief načtení identifikátoru
+ */
+void ident(AST_Node *node);
 
 /**
  * @brief Typová konverze z int na float na zásobníku
@@ -72,7 +85,7 @@ void greater(AST_Node *node);
  * @brief Generování kódu pro operátor rovnosti (==)
  * @param node Ukazatel na uzel AST
  */
-void equals(AST_Node *node);
+void generate_equals(AST_Node *node);
 
 /**
  * @brief Generování kódu pro operátor menší nebo rovno (<=)
@@ -159,12 +172,6 @@ void generate_block(AST_Node *node);
 void generate_while(AST_Node *node);
 
 /**
- * @brief unární minus, násobí -1, využívá dříve definované funkce
- * @param node ukazatel na uzel ast
-*/
-void unar_minus(AST_Node *node);
-
-/**
  * @brief pro přiřazení proměnné
  * @param node ukazatel na uzel ast
  */
@@ -181,13 +188,13 @@ void var_def(AST_Node *node);
  * @param block ukazatel na blok ve funkci
  * @param return_type požadovaný návratový typ funkce
  */
-void generate_branch(AST_Node *block, dataType return_type)
+void generate_branch(AST_Node *block, dataType return_type);
 
  /**
  * @brief pro uzel if, počítá s rozšířením control a uchovává podle toho návratové typy
  * @param node ukazatel na uzel ast
  */
-void generate_if(AST_Node *node)
+void generate_if(AST_Node *node);
 
 /**
  * @brief pro generování return
@@ -195,7 +202,7 @@ void generate_if(AST_Node *node)
  * @param function_return_type není přímo parametr ale využívá globální proměnou, 
  * která se nastavuje právě kvůli této funkci
  */
-void generate_return(AST_Node *node)
+void generate_return(AST_Node *node);
 
 /**
  * @brief sbírá definici proměnných, jelikož mohou být definované jen jednou, nemůžou být uvnitř cyklů,
@@ -203,51 +210,102 @@ void generate_return(AST_Node *node)
  * 
  * @param node ukazatel na uzel ast
  */
-void collect_vars(AST_Node *node)
+void collect_vars(AST_Node *node);
 
 /**
  * @brief funkce pro vybírání parametrů ze zásobníku
  * používá rekurzi aby byl pravý parametr nejhlouběji a levý nejvíce navrchu
  * @param params ukazatel na hlavičku listu parametrů funkce
  */
-void pop_params(ListParam *params)
+void pop_params(ListParam *params);
 
 /**
  * @brief funkce pro vytvoření spouštění funkcí
  * 
  * @param node ukazatel na uzel ast
  */
-void generate_fun(AST_node *node)
+void generate_fun(AST_Node *node);
 
 /**
  * @brief vestavěná funkce readInt
  */
-void read_int()
+void read_int(void);
 
 /**
  * @brief vestavěná funkce readDouble
  */
-void read_double()
+void read_double(void);
 
 /**
  * @brief vestavěná funkce readLine
  */
-void read_line()
+void read_line(void);
 
 /**
  * @brief vestavěná funkce readBoolean
  */
-void read_boolean()
+void read_boolean(void);
 
 /**
  * @brief vestavěná funkce ord
  */
-void ord(char *string, int index)
+void ord(void);
+
+/**
+ * @brief vestavěná funkce subStr
+ */
+void sub_str(void);
+
+/**
+ * @brief vestavěná funkce toInt
+ */
+void to_int(AST_Node *arguments);
+
+/**
+ * @brief Volání uživatelské funkce
+ */
+void call_user_function(AST_Node *node, char *name, AST_Node *arguments);
+
+/**
+ * @brief Vestavěná funkce print
+ */
+void print(AST_Node *arguments);
+
+/**
+ * @brief Vestavěná funkce chr
+ */
+void chr(AST_Node *arguments);
+
+/**
+ * @brief Vestavěná funkce strLength
+ */
+void str_length(AST_Node *arguments);
+
+/**
+ * @brief Vestavěná funkce floor
+ */
+void builtin_floor(void);
+
+/**
+ * @brief Převod na řetězec vestavěná funkce
+ */
+void to_string(dataType type, AST_Node *arguments);
+
+/**
+ * @brief Volání funkcí (rozcestník)
+ */
+void call_fun(AST_Node *node);
+
 
 /**
  * @brief Hlavní dispatcher – generátor kódu pro jednotlivé uzly AST
  * @param node Ukazatel na uzel AST
  */
 void generate_node(AST_Node *node);
+
+/**
+ * @brief Hlavní generátor celého programu
+ */
+void generate_program(AST_Node *functions, const char *main_name);
 
 #endif // GENERATOR_H

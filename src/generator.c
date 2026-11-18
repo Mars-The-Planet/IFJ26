@@ -84,12 +84,11 @@ void literal_int(int value) { printf("PUSHS int@%d\n", value); }
 void literal_double(double value) { printf("PUSHS float@%a\n", value); }
 
 // opravit
-/*
+
 void literal_string(char* string){
-  printf("PUSHS string@")
-  ;
+  printf("PUSHS string@%s", string);
 }
-*/
+
 
 /**
  * @brief převod typu boolean
@@ -167,7 +166,7 @@ void greater(AST_Node *node) {
 /**
  * @brief pro operátor equals
  */
-void equals(AST_Node *node) {
+void generate_equals(AST_Node *node) {
   get_operands(node);
   printf("EQS\n");
 }
@@ -574,7 +573,7 @@ void collect_vars(AST_Node *node) {
     // pro unární
     case UMINUS:
     case UPLUS:
-    case NOT:
+    case NOT_N:
       collect_vars(node->nodeData.uData.single);
       break;
 
@@ -640,7 +639,7 @@ void generate_fun(AST_Node *node) {
 
   head *params = node->nodeData.funData.param_list;
   if (params) {
-    for (ListParams *p = params->first; p; p = p->next) {
+    for (ListParam *p = params->first; p; p = p->next) {
       printf("DEFVAR LF@%s\n", p->param_name);
     }
     pop_params(params->first);
@@ -917,10 +916,6 @@ void to_string(dataType type, AST_Node *arguments) {
     printf("INT2STRS\n");
     break;
 
-  case TYPE_INT:
-    printf("INT2STRS\n");
-    break;
-
   case TYPE_STRING:
     break;
 
@@ -1043,7 +1038,7 @@ void generate_node(AST_Node *node) {
     break;
 
   case EQUALS:
-    equals(node);
+    generate_equals(node);
     break;
 
   case LESS_EQUAL:
@@ -1143,4 +1138,20 @@ void generate_node(AST_Node *node) {
   default:
     break;
   }
+}
+
+void generate_program(AST_Node *functions, const char *main_name) {
+  printf(".IFJcode26\n");
+  printf("DEFVAR GF@$t1\n");
+  printf("DEFVAR GF@$t2\n");
+  printf("JUMP $program_start\n"); // přeskoč definice funkcí
+
+  while (functions) {
+    generate_node(functions); // uzel FUN_DEF -> generate_fun
+    functions = functions->next;
+  }
+
+  printf("LABEL $program_start\n"); // sem skočí první JUMP
+  printf("CALL $function$%s\n", main_name);
+  printf("EXIT int@0\n");
 }
