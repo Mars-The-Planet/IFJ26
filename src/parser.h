@@ -30,6 +30,7 @@ typedef enum dataType {
   TYPE_BOOL,
   TYPE_LIST,
   TYPE_UNDEF,
+  TYPE_ANY,
 
 } dataType;
 
@@ -239,7 +240,13 @@ void the_parser();
 
 void parse_fun();
 
+AST_Node *parse_return();
+
+int count_args(AST_Node *node);
+
 int check_pop();
+
+void setup_globals();
 
 AST_Node *parse_expression(AST_Node *past_node);
 
