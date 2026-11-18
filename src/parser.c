@@ -776,6 +776,11 @@ void parse_fun() {
   };
 
   new_fun->nodeData.funData.param_list = parse_param();
+  ListParam *current_param = new_fun->nodeData.funData.param_list->first;
+  while (current_param != NULL) {
+    insert_symbol(symbol_table, current_param->param_name, current_param);
+    current_param = current_param->next;
+  }
 
   check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
@@ -917,8 +922,8 @@ AST_Node *parse_fun_body(int origin_indent) {
 
       case ID_TYPE:
         // funkce která už bude rozhodovat co s id vlastně dělat
-        update_symbol(symbol_table, strdup(active_token.value),
-              temp_statement);
+        // update_symbol(symbol_table, strdup(active_token.value),
+        //       temp_statement); // tohle rozbije symbol table, co se tu vlastně vůbec děje???
         temp_statement = parse_id();
         break;
 
@@ -1235,6 +1240,7 @@ AST_Node *exp_in_brackets() {
       expression_list_end->next = temp_expression_list;
       expression_list_end = temp_expression_list;
     }
+    expression_list_end->next = NULL; // když to není NULL, těžko se zjistí, kdy je konec --Radek
 
     if (active_token.type == SYMBOL_TYPE) {
       if (strcmp(active_token.value, ",") == 0) {
@@ -1366,17 +1372,57 @@ AST_Node *parse_return() {
   return temp_return;
 }
 
+int count_args(AST_Node* node) {
+  int count = 0;
+  while (node != NULL) {
+    if (node->type == IDENT) {
+      count++;
+    } else if (node->type == LITERAL_INT) {
+      count++;
+    } else if (node->type == LITERAL_DOUBLE) {
+      count++;
+    } else if (node->type == LITERAL_STRING) {
+      count++;
+    } else if (node->type == LITERAL_BOOL) {
+      count++;
+    } else if (node->type == LITERAL_UNIT) {
+      count++;
+    } else if (node->type == FUN_CALL) {
+      count++;
+    }
+    node = node->next;
+  }
+  return count;
+}
+
+int count_params(ListParam *list) {
+  int count = 0;
+  ListParam *current = list;
+  while (current != NULL) {
+    count++;
+    current = current->next;
+  }
+  return count;
+}
+
 int check_pop() {
   stackPtr used_top = stack_top(used_symbols);
   int failed = 0;
   while (stack_top(used_top) != NULL) {
     AST_Node *temp = stack_top(used_top);
     if (temp->type == IDENT) {
+      printf("ident fail\n");
       failed = 1;
     } else if (temp->type == FUN_CALL) {
       char *temp_name = temp->nodeData.callFunData.call_fun_name;
-      if (get_symbol(symbol_table, temp_name) == NULL) {
+      AST_Node *found_node = get_symbol(symbol_table, temp_name);
+      if (found_node == NULL) {
+        printf("fun fail\n");
         failed = 1;
+      } else {
+        if (count_args(temp->nodeData.callFunData.fun_args) != count_params(found_node->nodeData.funData.param_list->first)) {
+          exit(5);
+        }
       }
     } else {
       // printf("Somehow stored a value that isn't IDENT or FUN_CALL. Type is [%d]\n.", temp->type);
