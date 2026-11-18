@@ -175,11 +175,6 @@ void the_parser() {
 
 AST_Node *allocate_expression(AST_Node *expression) {
 
-  // nemůžu allokovat paměť pokud přijímám unární operátory
-  if (active_token.type == OPERATOR_TYPE) {
-    return NULL;
-  }
-
   expression = malloc(sizeof(AST_Node));
   if (expression == NULL) {
     fprintf(stderr, "ERROR: Memory allocation failed!");
