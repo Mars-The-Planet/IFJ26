@@ -131,9 +131,10 @@ void the_parser() {
 
   int indent;
 
+  check_next_token();
+
   while (1) {
 
-    check_next_token();
     switch (active_token.type) {
 
     case KEYWORD_TYPE:
@@ -158,9 +159,11 @@ void the_parser() {
       };
 
     case SYMBOL_TYPE:
-      if (strcmp(active_token.value, "EOL") == 0)
+      if (strcmp(active_token.value, "EOL") == 0) {
+        check_next_token();
         continue;
-      else if (strcmp(active_token.value, "EOF") == 0)
+
+      } else if (strcmp(active_token.value, "EOF") == 0)
         return;
 
     default: {
@@ -339,7 +342,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
           check_next_token();
 
           // stack_push(stack_top(used_symbols), temp_expression);
-          if (get_symbol(symbol_table, temp_expression->nodeData.idVarData.id_name) == NULL) {
+          if (get_symbol(symbol_table,
+                         temp_expression->nodeData.idVarData.id_name) == NULL) {
             stack_push(stack_top(used_symbols), temp_expression);
           }
         }
@@ -923,7 +927,8 @@ AST_Node *parse_fun_body(int origin_indent) {
       case ID_TYPE:
         // funkce která už bude rozhodovat co s id vlastně dělat
         // update_symbol(symbol_table, strdup(active_token.value),
-        //       temp_statement); // tohle rozbije symbol table, co se tu vlastně vůbec děje???
+        //       temp_statement); // tohle rozbije symbol table, co se tu
+        //       vlastně vůbec děje???
         temp_statement = parse_id();
         break;
 
@@ -1240,7 +1245,8 @@ AST_Node *exp_in_brackets() {
       expression_list_end->next = temp_expression_list;
       expression_list_end = temp_expression_list;
     }
-    expression_list_end->next = NULL; // když to není NULL, těžko se zjistí, kdy je konec --Radek
+    expression_list_end->next =
+        NULL; // když to není NULL, těžko se zjistí, kdy je konec --Radek
 
     if (active_token.type == SYMBOL_TYPE) {
       if (strcmp(active_token.value, ",") == 0) {
@@ -1372,7 +1378,7 @@ AST_Node *parse_return() {
   return temp_return;
 }
 
-int count_args(AST_Node* node) {
+int count_args(AST_Node *node) {
   int count = 0;
   while (node != NULL) {
     if (node->type == IDENT) {
@@ -1420,12 +1426,14 @@ int check_pop() {
         printf("fun fail\n");
         failed = 1;
       } else {
-        if (count_args(temp->nodeData.callFunData.fun_args) != count_params(found_node->nodeData.funData.param_list->first)) {
+        if (count_args(temp->nodeData.callFunData.fun_args) !=
+            count_params(found_node->nodeData.funData.param_list->first)) {
           exit(5);
         }
       }
     } else {
-      // printf("Somehow stored a value that isn't IDENT or FUN_CALL. Type is [%d]\n.", temp->type);
+      // printf("Somehow stored a value that isn't IDENT or FUN_CALL. Type is
+      // [%d]\n.", temp->type);
     }
 
     stack_pop(used_top);
