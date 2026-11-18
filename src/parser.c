@@ -917,9 +917,9 @@ AST_Node *parse_fun_body(int origin_indent) {
 
       case ID_TYPE:
         // funkce která už bude rozhodovat co s id vlastně dělat
-        temp_statement = parse_id();
         update_symbol(symbol_table, strdup(active_token.value),
-                      temp_statement);
+              temp_statement);
+        temp_statement = parse_id();
         break;
 
       // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem
