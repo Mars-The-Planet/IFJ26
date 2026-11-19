@@ -315,8 +315,10 @@ dataType get_param_type(const char *func_name, int index);
 void generate_node(AST_Node *node);
 
 /**
- * @brief Hlavní generátor celého programu
+ * @brief hlavní funkce, spouští celý program
+ * @param functions linked list který dodá parser
+ * @param main_name jméno mainu
  */
-void generate_program(AST_Node *functions, const char *main_name);
+void generate_program(stack *functions, const char *main_name) 
 
 #endif // GENERATOR_H

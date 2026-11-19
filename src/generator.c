@@ -1226,7 +1226,7 @@ void generate_node(AST_Node *node) {
  * @param functions linked list který dodá parser
  * @param main_name jméno mainu
  */
-void generate_program(Stack *functions, const char *main_name) {
+void generate_program(stack *functions, const char *main_name) {
 
   function_list = NULL;
   AST_Node *function;
