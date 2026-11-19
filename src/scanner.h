@@ -36,8 +36,10 @@ typedef enum ETokenType {
  * @brief Struktura mezistavů konečného automatu
  */
 typedef enum EScannerState {
-  DONE_STATE,  // extra stav značící dokončení čtení
-  ERROR_STATE, // extra stav značící že načtení neočekávaného znaku
+  DONE_STATE,           // extra stav značící dokončení čtení
+  ERROR_STATE,          // extra stav značící že načtení neočekávaného znaku
+  INTERNAL_ERROR_STATE, // extra stav značící interní chybu neovlivnitelnou
+                        // vstupním programem
 
   START_STATE,
 
@@ -99,19 +101,14 @@ typedef struct SToken {
 } token, *tokenPtr;
 
 /**
- * @brief Nastaví soubor ze kterého čte LA.
- * @param file_name název souboru který chceme nastavit
- * @return vrátí 0 pokud nastavení proběhlo úspěšně, nebo 1 pokud neúspěšně
- */
-int set_target_file(char *file_name);
-
-/**
- * @brief Hlavní funkce LA., která čte z cílového souboru a postupně vrací
- * tokeny a odsazení z něj
+ * @brief Hlavní funkce LA, která čte z stdin a postupně vrací tokeny a odsazení
+ * z něj
  * @param tkn_ptr ukazatel na token který bude využit na předání nasledujícího
  * tokenu
  * @param indent_stack_ptr ukazatal na zásobnik určující odsazení aktuálního
  * řádku
+ * @return vrátí 0 pokud se token vytvoří úspěšně, 1 pokud se skončí v chybném
+ * ERROR stavu, a nebo 99 pokud nastane interní chyba
  */
 int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
@@ -209,7 +206,7 @@ int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
  * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
-int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
+int equals_sign(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 /**
  * @brief Funkce rozhodující do kterého stavu KA se půjde po načtení jednoho >

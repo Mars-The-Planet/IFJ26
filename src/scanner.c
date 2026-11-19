@@ -42,31 +42,19 @@ const char *keywords[] = {"def", "do",     "Double",  "else", "if",   "import",
                           "var", "while",  "Boolean", "List", "for",  "@main"};
 
 /**
- * @brief Nastaví soubor ze kterého čte LA
- * @param file_name název souboru který chceme nastavit
- * @return vrátí 0 pokud nastavení proběhlo úspěšně, nebo 1 pokud neúspěšně
+ * @brief návratová hodnota interní chyby neovlivnitelnou vstupním programem
  */
-int set_target_file(char *file_name) {
-  FILE *file = fopen(file_name, "r");
-
-  if (file == NULL) {
-    fprintf(stderr, "Nebylo mozne otevrit soubor\n");
-    return 1;
-  }
-
-  targetFile = file;
-  return 0;
-}
+int const internalError = 99;
 
 /**
- * @brief Hlavní funkce LA, která čte z cílového souboru a postupně vrací tokeny
- * a odsazení z něj
+ * @brief Hlavní funkce LA, která čte z stdin a postupně vrací tokeny a odsazení
+ * z něj
  * @param tkn_ptr ukazatel na token který bude využit na předání nasledujícího
  * tokenu
  * @param indent_stack_ptr ukazatal na zásobnik určující odsazení aktuálního
  * řádku
  * @return vrátí 0 pokud se token vytvoří úspěšně, 1 pokud se skončí v chybném
- * ERROR stavu
+ * ERROR stavu, a nebo 99 pokud nastane interní chyba
  */
 int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
   scannerState state = START_STATE;
@@ -74,17 +62,25 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
   dynamic_string tkn_str_struct;
   dynamic_string_ptr tkn_str = &tkn_str_struct;
-  init_dynamic_string(tkn_str, 8);
+
+  if (init_dynamic_string(tkn_str, 8) == 1) {
+    return internalError;
+  }
 
   int ch;
   while (1) {
-    ch = getc(targetFile);
+    ch = getchar();
+    // ch = getc(targetFile);
 
     switch (state) {
 
     case START_STATE:
       state = start_state(ch, tkn_ptr, indent_stack_ptr, tkn_str);
       break;
+
+    // v některém ze stavů došlo k selhání alokace paměti
+    case INTERNAL_ERROR_STATE:
+      return internalError;
 
     case AMPERSAND_STATE:
       state = ampersand(ch, tkn_ptr, indent_stack_ptr);
@@ -99,7 +95,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       break;
 
     case EQUALS_STATE:
-      state = equals(ch, tkn_ptr, indent_stack_ptr);
+      state = equals_sign(ch, tkn_ptr, indent_stack_ptr);
       break;
 
     case GREATER_THAN_STATE:
@@ -259,7 +255,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 /**
  * @brief Sčítá členy zásobníku, měl by být volán pouze nad zásobníkem naplňeným
- * inty tato funkce slouží hlavně k pomoci s testováním
+ * inty
  * @param stack_ptr ukazatel na zásobník jehož členové mají být posčítáni
  * @return hodnota součtu všech prvků v zásobníku
  */
@@ -469,31 +465,49 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
 
   // cesty využívající nafukovací řetězec
   case '@':
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return AT_STATE;
 
   case '"':
     return STRING_OPEN_STATE;
 
   case '_':
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return UNDERSCORE_STATE;
 
   // tohle ne každý překladač vezme
   case 'A' ... 'Z':
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return IDENTIFIER_STATE;
 
   case 'a' ... 'z':
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return IDENTIFIER_STATE;
 
   case '1' ... '9':
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return NON_ZERO_INTEGER_STATE;
 
   case '0':
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return INT_ZERO_STATE;
 
   // konzumace bílých znaků
@@ -584,7 +598,7 @@ int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
  * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
-int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
+int equals_sign(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
   switch (ch) {
 
   case '=':
@@ -824,7 +838,10 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr,
 int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
        dynamic_string_ptr tkn_str) {
   if (can_be_in_IDs(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return AT_STATE;
   } else {
     ungetc(ch, targetFile);
@@ -853,7 +870,10 @@ int string_open(int ch, dynamic_string_ptr tkn_str) {
   } else if (ch == '\\') {
     return STRING_ESCAPE_SEQUENCE_STATE;
   } else if (isprint(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return STRING_CHAR_STATE;
   }
 
@@ -904,7 +924,10 @@ int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     create_token(tkn_ptr, indent_stack_ptr, STRING_TYPE, tkn_str->val_ptr);
     return DONE_STATE;
   } else if (isprint(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return STRING_CHAR_STATE;
   }
 
@@ -929,23 +952,38 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
   switch (ch) {
 
   case '\\':
-    insert_last(tkn_str, '\\');
+    if (insert_last(tkn_str, '\\') == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return STRING_CHAR_STATE;
 
   case '"':
-    insert_last(tkn_str, '\"');
+    if (insert_last(tkn_str, '\"') == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return STRING_CHAR_STATE;
 
   case 'n':
-    insert_last(tkn_str, '\n');
+    if (insert_last(tkn_str, '\n') == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return STRING_CHAR_STATE;
 
   case 'r':
-    insert_last(tkn_str, '\r');
+    if (insert_last(tkn_str, '\r') == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return STRING_CHAR_STATE;
 
   case 't':
-    insert_last(tkn_str, '\t');
+    if (insert_last(tkn_str, '\t') == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return STRING_CHAR_STATE;
 
   default:
@@ -974,7 +1012,10 @@ int multiline_string(int ch, dynamic_string_ptr tkn_str) {
     return ERROR_STATE;
   }
 
-  insert_last(tkn_str, ch);
+  if (insert_last(tkn_str, ch) == 1) {
+    destroy_dynamic_string(tkn_str);
+    return INTERNAL_ERROR_STATE;
+  }
   return MULTILINE_STRING_STATE;
 }
 
@@ -996,9 +1037,11 @@ int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
   }
 
   // ukázalo se že úvozovky jsou součástí řetězce
-  insert_last(tkn_str, '"');
-  insert_last(tkn_str, ch);
-  return MULTILINE_STRING_STATE;
+  if (insert_last(tkn_str, '"') == 0 && insert_last(tkn_str, ch) == 0) {
+    return MULTILINE_STRING_STATE;
+  }
+  destroy_dynamic_string(tkn_str);
+  return INTERNAL_ERROR_STATE;
 }
 
 /**
@@ -1019,10 +1062,12 @@ int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
   }
 
   // ukázalo se že úvozovky jsou součástí řetězce
-  insert_last(tkn_str, '"');
-  insert_last(tkn_str, '"');
-  insert_last(tkn_str, ch);
-  return MULTILINE_STRING_STATE;
+  if (insert_last(tkn_str, '"') == 0 && insert_last(tkn_str, '"') == 0 &&
+      insert_last(tkn_str, ch) == 0) {
+    return MULTILINE_STRING_STATE;
+  }
+  destroy_dynamic_string(tkn_str);
+  return INTERNAL_ERROR_STATE;
 }
 
 /**
@@ -1038,7 +1083,10 @@ int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
 int mutliline_string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
                           dynamic_string_ptr tkn_str) {
   if (ch == '"') {
-    insert_last(tkn_str, '"');
+    if (insert_last(tkn_str, '"') == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return MULTILINE_STRING_DONE_STATE;
   }
 
@@ -1057,7 +1105,10 @@ int mutliline_string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
  */
 int underscore(int ch, dynamic_string_ptr tkn_str) {
   if (can_be_in_IDs(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return IDENTIFIER_STATE;
   }
 
@@ -1077,7 +1128,10 @@ int underscore(int ch, dynamic_string_ptr tkn_str) {
 int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
                dynamic_string_ptr tkn_str) {
   if (can_be_in_IDs(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return IDENTIFIER_STATE;
   } else {
     ungetc(ch, targetFile);
@@ -1104,7 +1158,10 @@ int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
 int non_zero_integer(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
                      dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return NON_ZERO_INTEGER_STATE;
   }
   // podržítko se konzumuje
@@ -1113,7 +1170,10 @@ int non_zero_integer(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   } else if (ch == '.') {
     return RADIX_POINT_STATE;
   } else if (ch == 'e' || ch == 'E') {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return EXPONENT_STATE;
   }
 
@@ -1134,7 +1194,10 @@ int int_underscore(int ch, dynamic_string_ptr tkn_str) {
     return INT_UNDERSCORE_STATE;
   }
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return NON_ZERO_INTEGER_STATE;
   }
 
@@ -1154,7 +1217,10 @@ int int_underscore(int ch, dynamic_string_ptr tkn_str) {
 int int_zero(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
              dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return NON_ZERO_STATE;
   }
   // podržítko se konzumuje
@@ -1163,7 +1229,10 @@ int int_zero(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   } else if (ch == '.') {
     return RADIX_POINT_STATE;
   } else if (ch == 'e' || ch == 'E') {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return EXPONENT_STATE;
   }
 
@@ -1185,9 +1254,12 @@ int radix_point(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
                 dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
     // vloží se tečka až zde aby se nekomplikovalo uvolňování paměti
-    insert_last(tkn_str, '.');
-    insert_last(tkn_str, ch);
-    return DOUBLE_SIMPLE_STATE;
+    if (insert_last(tkn_str, '.') == 0 && insert_last(tkn_str, ch) == 0) {
+      return DOUBLE_SIMPLE_STATE;
+    }
+
+    destroy_dynamic_string(tkn_str);
+    return INTERNAL_ERROR_STATE;
   }
 
   ungetc(ch, targetFile);
@@ -1207,14 +1279,20 @@ int radix_point(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
 int double_simple(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
                   dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return DOUBLE_SIMPLE_STATE;
   }
   // podržítko se konzumuje
   else if (ch == '_') {
     return RADIX_UNDERSCORE_STATE;
   } else if (ch == 'e' || ch == 'E') {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return EXPONENT_STATE;
   }
   // nepovinné d/D na konci double se ignoruje
@@ -1238,7 +1316,10 @@ int radix_underscore(int ch, dynamic_string_ptr tkn_str) {
     return RADIX_UNDERSCORE_STATE;
   }
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return DOUBLE_SIMPLE_STATE;
   }
 
@@ -1255,14 +1336,20 @@ int radix_underscore(int ch, dynamic_string_ptr tkn_str) {
  */
 int non_zero(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return NON_ZERO_STATE;
   }
   // podržítko se konzumuje
   else if (ch == '_') {
     return ZERO_UNDERSCORE_STATE;
   } else if (ch == 'e' || ch == 'E') {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return EXPONENT_STATE;
   } else if (ch == '.') {
     return RADIX_POINT_STATE;
@@ -1286,7 +1373,10 @@ int zero_underscore(int ch, dynamic_string_ptr tkn_str) {
     return ZERO_UNDERSCORE_STATE;
   }
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return NON_ZERO_STATE;
   }
 
@@ -1303,10 +1393,16 @@ int zero_underscore(int ch, dynamic_string_ptr tkn_str) {
  */
 int exponent(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return DOUBLE_EXPONENT_STATE;
   } else if (ch == '-' || ch == '+') {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return EXPONENT_SIGN_STATE;
   }
 
@@ -1324,7 +1420,10 @@ int exponent(int ch, dynamic_string_ptr tkn_str) {
  */
 int exponent_sign(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return DOUBLE_EXPONENT_STATE;
   }
 
@@ -1345,7 +1444,10 @@ int exponent_sign(int ch, dynamic_string_ptr tkn_str) {
 int double_exponent(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
                     dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return DOUBLE_EXPONENT_STATE;
   }
   // podržítko se konzumuje
@@ -1373,7 +1475,10 @@ int exponent_underscore(int ch, dynamic_string_ptr tkn_str) {
     return EXPONENT_UNDERSCORE_STATE;
   }
   if (isdigit(ch)) {
-    insert_last(tkn_str, ch);
+    if (insert_last(tkn_str, ch) == 1) {
+      destroy_dynamic_string(tkn_str);
+      return INTERNAL_ERROR_STATE;
+    }
     return DOUBLE_EXPONENT_STATE;
   }
 
