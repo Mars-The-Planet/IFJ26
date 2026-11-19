@@ -53,6 +53,32 @@ AST_Node *last_node(AST_Node *node) {
 }
 
 /**
+ * @brief zjistí, jestli uzel po sobě nechá na zásobníku hodnotu
+ * definice proměnné, přiřazení a cykly nenechávají nikdy nic, bez ohledu na to,
+ * co je v result, if bez else také ne
+ */
+static int leaves_value(AST_Node *node) {
+  if (node == NULL) {
+    return 0;
+  }
+  switch (node->type) {
+  case VAR_DEF:
+  case ASSIGN:
+  case WHILE_N:
+  case FOR_N:
+  case LITERAL_UNIT:
+    return 0;
+  case IF_N:
+    if (node->nodeData.ifData.else_part == NULL) {
+      return 0;
+    }
+    return node->result != TYPE_UNIT;
+  default:
+    return node->result != TYPE_UNIT;
+  }
+}
+
+/**
  * @brief typ i-tého parametru funkce (od nuly), hledá se v seznamu funkcí
  * @return typ parametru, nebo TYPE_UNDEF (funkce neexistuje / vestavěná)
  */
@@ -370,7 +396,7 @@ void divide(AST_Node *node) {
 void generate_block(AST_Node *node) {
   while (node) {
     generate_node(node);
-    if (node->next && node->result != TYPE_UNIT) {
+    if (node->next && leaves_value(node)) {
 
       printf("POPS GF@$t1\n");
     }
@@ -397,7 +423,7 @@ void generate_while(AST_Node *node) {
   // zjistí typ posledního příkazu v bloku, pokud není unit, tak ho zahodí,
   // jelikož while si nepotřebuje uchovávat hodnotu z těla cyklu
   AST_Node *last = last_node(node->nodeData.whileData.body);
-  if (last && last->result != TYPE_UNIT) {
+  if (last && leaves_value(node)) {
     printf("POPS GF@$t1\n");
   }
 
@@ -491,7 +517,7 @@ void generate_branch(AST_Node *block, dataType return_type) {
   }
 
   if (return_type == TYPE_UNIT) {
-    if (last->result != TYPE_UNIT) {
+    if (leaves_value(last)) {
       printf("POPS GF@$t1\n");
     }
   } else if (return_type == TYPE_DOUBLE && last->result == TYPE_INT) {
@@ -571,7 +597,7 @@ void generate_return(AST_Node *node) {
     // pokud funkce nemá vracet hodnotu a nějaká ji přece jen vyjde,
     // tak ji zahodí do pomocné proměnné
     if (function_return_type == TYPE_UNIT) {
-      if (value->result != TYPE_UNIT) {
+      if (leaves_value(value)) {
         printf("POPS GF@$t1\n");
       }
     } else if (function_return_type == TYPE_DOUBLE &&
@@ -690,8 +716,10 @@ void generate_fun(AST_Node *node) {
   AST_Node *function_return = last_node(body);
   function_return_type = node->nodeData.funData.return_type;
 
+  // návratový typ není uvedený, vezme se z posledního příkazu těla,
+  // ale jen pokud po sobě nechává hodnotu (jinak je to Unit)
   if (function_return_type == TYPE_UNDEF) {
-    if (function_return != NULL) {
+    if (leaves_value(function_return)) {
       function_return_type = function_return->result;
     } else {
       function_return_type = TYPE_UNIT;
@@ -718,11 +746,10 @@ void generate_fun(AST_Node *node) {
 
   if (function_return_type == TYPE_UNIT) {
 
-    if (function_return &&
-        function_return->result !=
-            TYPE_UNIT) { // tělo skončilo hodnotou (např. voláním funkce), ale
-                         // funkce má vracet Unit
-      printf("POPS GF@$t1\n"); // hodnotu zahoď
+    if (leaves_value(function_return)) { // tělo skončilo hodnotou (např.
+                                         // voláním funkce), ale funkce má
+                                         // vracet Unit
+      printf("POPS GF@$t1\n");           // hodnotu zahoď
     }
     printf("PUSHS nil@nil\n");
   } else if (function_return_type == TYPE_DOUBLE && function_return &&
