@@ -36,7 +36,6 @@ int main() {
 
   setup_builtins();
 
-
   code_prolog();
   the_parser();
 
@@ -54,8 +53,6 @@ int main() {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
     exit(10);
   }
-
-  printf("přeloženo\n");
 
   stackPtr func_stack = stack_ctor();
   avl_treePtr symtree = symbol_table->scopes->top->value;
