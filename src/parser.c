@@ -1093,6 +1093,7 @@ AST_Node *parse_for(int origin_indent) {
 
   if (active_token.type == ID_TYPE) {
     temp_for->nodeData.forData.var_name = strdup(active_token.value);
+    insert_symbol(symbol_table, temp_for->nodeData.forData.var_name, temp_for);
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
     exit(2);
