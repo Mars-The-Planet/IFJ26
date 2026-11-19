@@ -1797,5 +1797,6 @@ int main() {
 
   stack_dtor(stack_indent);
   symbol_table_dtor(symbol_table);
+  stack_dtor(used_symbols);
   return 0;
 }
