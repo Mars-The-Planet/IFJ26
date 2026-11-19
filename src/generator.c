@@ -1226,20 +1226,27 @@ void generate_node(AST_Node *node) {
  * @param functions linked list který dodá parser
  * @param main_name jméno mainu
  */
-void generate_program(AST_Node *functions, const char *main_name) {
-  function_list = functions;
-  printf(".IFJcode26\n");
-  printf("DEFVAR GF@$t1\n"); // vytvoří první pomocnou proměnou kterou využívá
-                             // několik funkcí
-  printf("DEFVAR GF@$t2\n"); // vytvoří druhou pomocnou proměnnou
-  printf("JUMP $program_start\n"); // přeskoč definice funkcí
+void generate_program(Stack *functions, const char *main_name) {
 
-  while (functions) {
-    generate_node(functions); // uzel FUN_DEF -> generate_fun
-    functions = functions->next;
+  function_list = NULL;
+  AST_Node *function;
+  while ((function = stack_top(functions)) != NULL) { 
+    stack_pop(functions);                  
+    function->next = function_list;
+    function_list = function;
   }
 
-  printf("LABEL $program_start\n"); // sem skočí první JUMP
+  printf(".IFJcode26\n");
+  printf("DEFVAR GF@$t1\n");
+  printf("DEFVAR GF@$t2\n");
+  printf("JUMP $program_start\n"); // přeskoč definice funkcí
+
+  for (AST_Node *function = function_list; function;
+       function = function->next) {
+    generate_node(function); // uzel FUN_DEF -> generate_fun
+  }
+
+  printf("LABEL $program_start\n");
   printf("CALL $function$%s\n", main_name);
   printf("EXIT int@0\n");
 }
