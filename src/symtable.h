@@ -13,7 +13,7 @@
 #define GLOBAL_SYMTABLE_ID 0
 #define PROTECT_GLOBAL_SYMTABLE 1
 
-#include "avl_tree.h"
+#include "bst_tree.h"
 #include "stack.h"
 
 /**

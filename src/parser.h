@@ -247,7 +247,17 @@ int count_args(AST_Node *node);
 
 int check_pop();
 
-void setup_globals();
+void setup_builtins();
+
+void allow_symbol_insert(char *symbol_name);
+
+void check_assign_types(AST_Node *var, AST_Node *expr);
+
+dataType get_operation_type(AST_Node *expr, bool allow_string);
+
+bool type_compatible(dataType a, AST_Node *expr);
+
+dataType literal_to_type(AST_Node *expr);
 
 AST_Node *parse_expression(AST_Node *past_node);
 
@@ -270,5 +280,7 @@ AST_Node *parse_list();
 AST_Node *parse_id();
 
 AST_Node *parse_return();
+
+int has_main;
 
 #endif // PARSER_H
