@@ -13,12 +13,6 @@
 
 #include "parser.h"
 
-scoped_symtablePtr symbol_table;
-token active_token;
-stackPtr stack_indent;
-
-stackPtr used_symbols;
-
 /**
  *
  * @brief funckce zavolá a zároveň zkontroluje next_token
