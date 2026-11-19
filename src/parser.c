@@ -1464,6 +1464,10 @@ int count_params(ListParam *list) {
   return count;
 }
 
+bool compare_param_arg(ListParam *param, AST_Node *arg) {
+  return type_compatible(param->type, arg, false);
+}
+
 int check_pop() {
   stackPtr used_top = stack_top(used_symbols);
   int failed = 0;
@@ -1482,6 +1486,16 @@ int check_pop() {
         if (count_args(temp->nodeData.callFunData.fun_args) !=
             count_params(found_node->nodeData.funData.param_list->first)) {
           exit(5);
+        }
+        ListParam *current_param = found_node->nodeData.funData.param_list->first;
+        AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
+        while (current_param != NULL) {
+          if (!compare_param_arg(current_param, current_arg)) {
+            printf("fun call fail\n");
+            failed = 1;
+          }
+          current_param = current_param->next;
+          current_arg = current_arg->next;
         }
       }
     } else {
@@ -1623,7 +1637,7 @@ void allow_symbol_insert(char *symbol_name) {
 
 dataType get_operation_type(AST_Node *expr, bool allow_string) {
   dataType right = literal_to_type(expr->nodeData.biData.right);
-  if (type_compatible(right, expr->nodeData.biData.left)) {
+  if (type_compatible(right, expr->nodeData.biData.left, true)) {
     if (right == TYPE_STRING && !allow_string) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
       exit(6);
@@ -1676,7 +1690,7 @@ dataType literal_to_type(AST_Node *expr) {
 
 }
 
-bool type_compatible(dataType a, AST_Node *expr) {
+bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   NodeType nodeType = expr->type;
   dataType b;
   if (nodeType == IDENT) {
@@ -1685,15 +1699,16 @@ bool type_compatible(dataType a, AST_Node *expr) {
     b = literal_to_type(expr);
   }
   if (a == b) return true;
-  if ((a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT)) return true;
+  if (imp_double_int && ((a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT))) return true;
   if (a == TYPE_UNDEF) return true;
+  if (a == TYPE_ANY) return true;
   return false;
 }
 
 void check_assign_types(AST_Node *var, AST_Node *expr) {
   AST_Node *current = expr;
   while (current != NULL) {
-    if (!type_compatible(var->nodeData.varData.varType, current)) {
+    if (!type_compatible(var->nodeData.varData.varType, current, true)) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
       exit(6);
     }

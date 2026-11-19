@@ -247,6 +247,8 @@ int count_args(AST_Node *node);
 
 int check_pop();
 
+bool compare_param_arg(ListParam *param, AST_Node *arg);
+
 void setup_builtins();
 
 void allow_symbol_insert(char *symbol_name);
@@ -255,7 +257,7 @@ void check_assign_types(AST_Node *var, AST_Node *expr);
 
 dataType get_operation_type(AST_Node *expr, bool allow_string);
 
-bool type_compatible(dataType a, AST_Node *expr);
+bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int);
 
 dataType literal_to_type(AST_Node *expr);
 
