@@ -12,7 +12,15 @@
 void insert_func(stackPtr stack, nodePtr node) {
   if (node == NULL)
     return;
-  stack_push(stack, node);
+  bool skip = false;
+  for (int i = 0; ignored_funcs[i]; i++) {
+    if (strcmp(node->key, ignored_funcs[i]) == 0) {
+      skip = true;
+    }
+  }
+  if (!skip) {
+    stack_push(stack, node);
+  }
   insert_func(stack, node->left);
   insert_func(stack, node->right);
 }
@@ -60,12 +68,14 @@ int main(int argc, char *argv[]) {
 
   printf("přeloženo\n");
 
-  stack_dtor(stack_indent);
-  symbol_table_dtor(symbol_table);
-  stack_dtor(used_symbols);
-
   stackPtr func_stack = stack_ctor();
   avl_treePtr symtree = symbol_table->scopes->top->value;
   insert_func(func_stack, symtree->root);
+
+  generate_program(func_stack, main_node->nodeData.funData.fun_name);
+
+  stack_dtor(stack_indent);
+  symbol_table_dtor(symbol_table);
+  stack_dtor(used_symbols);
   return 0;
 }

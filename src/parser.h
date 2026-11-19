@@ -291,16 +291,16 @@ NodeType type_to_literal(dataType data_type);
 
 int count_params(ListParam *list);
 
-int has_main;
+extern int has_main;
 
-bool youre_main_node;
+extern bool youre_main_node;
 
-AST_Node *main_node;
+extern AST_Node *main_node;
 
-scoped_symtablePtr symbol_table;
-token active_token;
-stackPtr stack_indent;
+extern scoped_symtablePtr symbol_table;
+extern token active_token;
+extern stackPtr stack_indent;
 
-stackPtr used_symbols;
+extern stackPtr used_symbols;
 
 #endif // PARSER_H

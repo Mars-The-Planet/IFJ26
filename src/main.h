@@ -15,5 +15,20 @@
 
 #include <stdio.h>
 #include "generator.h"
+#include "parser.h"
+
+int has_main;
+
+bool youre_main_node;
+
+AST_Node *main_node;
+
+scoped_symtablePtr symbol_table;
+token active_token;
+stackPtr stack_indent;
+
+stackPtr used_symbols;
+
+char *ignored_funcs[] = {"print", "readLine", "readInt", "readDouble", "toStr", "toInt", "strLength", "subStr", "ord", "chr", NULL};
 
 #endif // MAIN_H
