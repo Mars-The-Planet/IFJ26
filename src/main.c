@@ -9,6 +9,14 @@
 
 #include "main.h"
 
+void insert_func(stackPtr stack, nodePtr node) {
+  if (node == NULL)
+    return;
+  stack_push(stack, node);
+  insert_func(stack, node->left);
+  insert_func(stack, node->right);
+}
+
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -29,7 +37,7 @@ int main(int argc, char *argv[]) {
 
   setup_builtins();
 
-  if (set_target_file("test.txt") != 0)
+  if (set_target_file("test.txt") != 0) // TODO
     exit(99);
 
   code_prolog();
@@ -55,4 +63,9 @@ int main(int argc, char *argv[]) {
   stack_dtor(stack_indent);
   symbol_table_dtor(symbol_table);
   stack_dtor(used_symbols);
+
+  stackPtr func_stack = stack_ctor();
+  avl_treePtr symtree = symbol_table->scopes->top->value;
+  insert_func(func_stack, symtree->root);
+  return 0;
 }

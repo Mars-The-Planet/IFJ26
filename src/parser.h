@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "scanner.h"
 #include "stack.h"
@@ -235,6 +236,8 @@ struct AST_Node {
     } idVarData;
   } nodeData;
 };
+
+AST_Node *allocate_expression(AST_Node *expression);
 
 void code_prolog();
 
