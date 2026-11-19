@@ -106,12 +106,14 @@ typedef struct SToken {
 int set_target_file(char *file_name);
 
 /**
- * @brief Hlavní funkce LA., která čte z cílového souboru a postupně vrací
- * tokeny a odsazení z něj
+ * @brief Hlavní funkce LA, která čte z cílového souboru a postupně vrací tokeny
+ * a odsazení z něj
  * @param tkn_ptr ukazatel na token který bude využit na předání nasledujícího
  * tokenu
  * @param indent_stack_ptr ukazatal na zásobnik určující odsazení aktuálního
  * řádku
+ * @return vrátí 0 pokud se token vytvoří úspěšně, 1 pokud se skončí v chybném
+ * ERROR stavu, a nebo 99 pokud nastane interní chyba
  */
 int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 

@@ -277,7 +277,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
 /**
  * @brief Sčítá členy zásobníku, měl by být volán pouze nad zásobníkem naplňeným
- * inty tato funkce slouží hlavně k pomoci s testováním
+ * inty
  * @param stack_ptr ukazatel na zásobník jehož členové mají být posčítáni
  * @return hodnota součtu všech prvků v zásobníku
  */
