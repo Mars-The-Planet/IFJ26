@@ -934,7 +934,7 @@ void call_user_function(AST_Node *node, char *name, AST_Node *arguments) {
     generate_node(arguments);
     dataType param_type = get_param_type(name, index);
 
-    if (leaves_value(arguments)) {
+    if (arguments->result == TYPE_UNIT) {
 
       printf("PUSHS nil@nil\n");
     } else if (param_type == TYPE_DOUBLE && arguments->result == TYPE_INT) {
@@ -947,7 +947,7 @@ void call_user_function(AST_Node *node, char *name, AST_Node *arguments) {
   printf("CALL $function$%s\n", name);
 
   // funkce vrací vždy jednu hodnotu, výsledek typu Unit se zahodí
-  if (node->result == TYPE_UNIT) {
+  if (leaves_value(node)) {
     printf("POPS GF@$t1\n");
   }
 }
