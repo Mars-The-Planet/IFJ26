@@ -14,5 +14,6 @@
 #define FILE_NOT_FOUND_ERR   "File %s does not exist.\n"
 
 #include <stdio.h>
+#include "parser.h"
 
 #endif // MAIN_H
