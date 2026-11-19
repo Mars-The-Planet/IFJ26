@@ -47,25 +47,8 @@ const char *keywords[] = {"def", "do",     "Double",  "else", "if",   "import",
 int const internalError = 99;
 
 /**
- * @brief Nastaví soubor ze kterého čte LA
- * @param file_name název souboru který chceme nastavit
- * @return vrátí 0 pokud nastavení proběhlo úspěšně, nebo 1 pokud neúspěšně
- */
-int set_target_file(char *file_name) {
-  FILE *file = fopen(file_name, "r");
-
-  if (file == NULL) {
-    fprintf(stderr, "Nebylo mozne otevrit soubor\n");
-    return 1;
-  }
-
-  targetFile = file;
-  return 0;
-}
-
-/**
- * @brief Hlavní funkce LA, která čte z cílového souboru a postupně vrací tokeny
- * a odsazení z něj
+ * @brief Hlavní funkce LA, která čte z stdin a postupně vrací tokeny a odsazení
+ * z něj
  * @param tkn_ptr ukazatel na token který bude využit na předání nasledujícího
  * tokenu
  * @param indent_stack_ptr ukazatal na zásobnik určující odsazení aktuálního
@@ -86,7 +69,8 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
 
   int ch;
   while (1) {
-    ch = getc(targetFile);
+    ch = getchar();
+    // ch = getc(targetFile);
 
     switch (state) {
 
