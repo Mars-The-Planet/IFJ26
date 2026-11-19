@@ -1648,6 +1648,8 @@ dataType literal_to_type(AST_Node *expr) {
     return TYPE_BOOL;
   case LITERAL_UNIT:
     return TYPE_UNIT;
+  case FUN_CALL:
+    return expr->nodeData.funData.return_type;
   case ADD:
     return get_operation_type(expr, true);
   case SUB:
