@@ -284,13 +284,15 @@ AST_Node *parse_id();
 
 AST_Node *parse_return();
 
+NodeType type_to_literal(dataType data_type);
+
+int count_params(ListParam *list);
+
 int has_main;
 
 bool youre_main_node;
 
 AST_Node *main_node;
-
-NodeType type_to_literal(dataType data_type);
 
 scoped_symtablePtr symbol_table;
 token active_token;
