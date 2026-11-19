@@ -26,12 +26,7 @@ void insert_func(stackPtr stack, nodePtr node) {
 }
 
 
-int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    fprintf(stderr, USAGE_ERR);
-    return 1;
-  }
-
+int main() {
   stack_indent = stack_ctor();
   symbol_table = symbol_table_ctor();
   used_symbols = stack_ctor();
@@ -41,8 +36,6 @@ int main(int argc, char *argv[]) {
 
   setup_builtins();
 
-  if (set_target_file(argv[1]) != 0) // TODO
-    exit(99);
 
   code_prolog();
   the_parser();
