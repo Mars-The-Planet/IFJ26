@@ -99,7 +99,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       break;
 
     case EQUALS_STATE:
-      state = equals(ch, tkn_ptr, indent_stack_ptr);
+      state = equals_sign(ch, tkn_ptr, indent_stack_ptr);
       break;
 
     case GREATER_THAN_STATE:
@@ -584,7 +584,7 @@ int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
  * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
-int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
+int equals_sign(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
   switch (ch) {
 
   case '=':

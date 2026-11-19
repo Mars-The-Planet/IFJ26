@@ -32,6 +32,8 @@ int init_dynamic_string(dynamic_string_ptr string_ptr, int len) {
     fprintf(stderr, "Selhala alkoace noveho nafukovaciho retezce\n");
     return 1;
   }
+
+  return 0;
 }
 
 /**
@@ -43,7 +45,7 @@ int init_dynamic_string(dynamic_string_ptr string_ptr, int len) {
 int insert_last(dynamic_string_ptr string_ptr, int ch) {
 
   // kontrola zda int ch je znakem
-  if (ch < 0 && ch > 255) {
+  if (ch < 0 || ch > 255) {
     fprintf(
         stderr,
         "Prvek ktery ma byt vlozen neni znak, int ktery mel byt vlozen: %d\n",

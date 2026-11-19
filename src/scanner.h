@@ -209,7 +209,7 @@ int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
  * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
-int equals(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
+int equals_sign(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 /**
  * @brief Funkce rozhodující do kterého stavu KA se půjde po načtení jednoho >
