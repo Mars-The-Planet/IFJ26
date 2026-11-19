@@ -1465,6 +1465,9 @@ int count_params(ListParam *list) {
 }
 
 bool compare_param_arg(ListParam *param, AST_Node *arg) {
+  if (arg->type == IDENT) {
+    arg = get_symbol(symbol_table, arg->nodeData.assignData.var_name);
+  }
   return type_compatible(param->type, arg, false);
 }
 
@@ -1489,14 +1492,14 @@ int check_pop() {
         }
         ListParam *current_param = found_node->nodeData.funData.param_list->first;
         AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
-        while (current_param != NULL) {
-          if (!compare_param_arg(current_param, current_arg)) {
-            printf("fun call fail\n");
-            failed = 1;
-          }
-          current_param = current_param->next;
-          current_arg = current_arg->next;
-        }
+        // while (current_param != NULL) {
+        //   if (!compare_param_arg(current_param, current_arg)) {
+        //     printf("fun call fail\n");
+        //     failed = 1;
+        //   }
+        //   current_param = current_param->next;
+        //   current_arg = current_arg->next;
+        // }
       }
     } else {
       // printf("Somehow stored a value that isn't IDENT or FUN_CALL. Type is
@@ -1516,6 +1519,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
+    global_func->nodeData.funData.return_type = TYPE_UNIT;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "print", global_func);
@@ -1526,6 +1530,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
+    global_func->nodeData.funData.return_type = TYPE_STRING;
     insert_symbol(symbol_table, "readLine", global_func);
   }
 
@@ -1534,6 +1539,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
+    global_func->nodeData.funData.return_type = TYPE_INT;
     insert_symbol(symbol_table, "readInt", global_func);
   }
 
@@ -1542,6 +1548,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
+    global_func->nodeData.funData.return_type = TYPE_DOUBLE;
     insert_symbol(symbol_table, "readDouble", global_func);
   }
 
@@ -1551,6 +1558,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
+    global_func->nodeData.funData.return_type = TYPE_STRING;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "toStr", global_func);
@@ -1562,6 +1570,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
+    global_func->nodeData.funData.return_type = TYPE_INT;
     new_param->next = NULL;
     new_param->type = TYPE_DOUBLE;
     insert_symbol(symbol_table, "toInt", global_func);
@@ -1573,6 +1582,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
+    global_func->nodeData.funData.return_type = TYPE_INT;
     new_param->next = NULL;
     new_param->type = TYPE_STRING;
     insert_symbol(symbol_table, "strLength", global_func);
@@ -1586,6 +1596,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param1;
+    global_func->nodeData.funData.return_type = TYPE_STRING;
     new_param1->next = new_param2;
     new_param2->next = new_param3;
     new_param3->next = NULL;
@@ -1602,6 +1613,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param1;
+    global_func->nodeData.funData.return_type = TYPE_INT;
     new_param1->next = new_param2;
     new_param2->next = NULL;
     new_param1->type = TYPE_STRING;
@@ -1615,6 +1627,7 @@ void setup_builtins() {
     head *params = malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
+    global_func->nodeData.funData.return_type = TYPE_STRING;
     new_param->next = NULL;
     new_param->type = TYPE_INT;
     insert_symbol(symbol_table, "chr", global_func);
@@ -1662,6 +1675,13 @@ dataType literal_to_type(AST_Node *expr) {
     return TYPE_BOOL;
   case LITERAL_UNIT:
     return TYPE_UNIT;
+  case VAR_DEF:
+    return expr->nodeData.varData.varType;
+  case IDENT:
+    {
+      AST_Node *ident = get_symbol(symbol_table, expr->nodeData.assignData.var_name);
+      return literal_to_type(ident);
+    }
   case FUN_CALL:
     return expr->nodeData.funData.return_type;
   case ADD:
@@ -1694,13 +1714,15 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   NodeType nodeType = expr->type;
   dataType b;
   if (nodeType == IDENT) {
-    b = expr->nodeData.varData.varType;
+    AST_Node *ident = get_symbol(symbol_table, expr->nodeData.assignData.var_name);
+    b = literal_to_type(ident);
   } else {
     b = literal_to_type(expr);
   }
   if (a == b) return true;
   if (imp_double_int && ((a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT))) return true;
   if (a == TYPE_UNDEF) return true;
+  if (b == TYPE_UNDEF) return true;
   if (a == TYPE_ANY) return true;
   return false;
 }
