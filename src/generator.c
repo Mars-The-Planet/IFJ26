@@ -35,7 +35,8 @@
 #include "generator.h"
 
 /**
- * @brief funkce pro určení posledního uzlu, používal jsem často tak jsem udělal funkci
+ * @brief funkce pro určení posledního uzlu, používal jsem často tak jsem udělal
+ * funkci
  */
 AST_Node *last_node(AST_Node *node) {
   if (node == NULL) {
@@ -85,10 +86,7 @@ void literal_double(double value) { printf("PUSHS float@%a\n", value); }
 
 // opravit
 
-void literal_string(char* string){
-  printf("PUSHS string@%s", string);
-}
-
+void literal_string(char *string) { printf("PUSHS string@%s", string); }
 
 /**
  * @brief převod typu boolean
@@ -360,11 +358,6 @@ void generate_while(AST_Node *node) {
     printf("POPS GF@$t1\n");
   }
 
-  //
-  if (last->result != TYPE_UNIT) {
-    printf("POPS GF@$t1\n");
-  }
-
   printf("JUMP $while%d_start\n", label_number);
   printf("LABEL $while%d_end\n", label_number);
 }
@@ -448,9 +441,10 @@ void unar_minus(AST_Node *node) {
 void generate_branch(AST_Node *block, dataType return_type) {
   generate_block(block);
 
-  AST_Node *last = block;
-  while (last->next) {
-    last = last->next;
+  AST_Node *last = last_node(block);
+
+  if (last == NULL) {
+    return;
   }
 
   if (return_type == TYPE_UNIT) {
@@ -508,7 +502,7 @@ void generate_return(AST_Node *node) {
     // tak ji zahodí do pomocné proměnné
     if (function_return_type == TYPE_UNIT) {
       if (value->result != TYPE_UNIT) {
-        printf("POPS GF@t1\n");
+        printf("POPS GF@$t1\n");
       }
     } else if (function_return_type == TYPE_DOUBLE &&
                value->result == TYPE_INT) {
@@ -562,6 +556,7 @@ void collect_vars(AST_Node *node) {
     case LESS:
     case GREATER:
     case EQUALS:
+    case NOT_EQUAL:
     case LESS_EQUAL:
     case GREATER_EQUAL:
     case AND_N:
@@ -633,7 +628,7 @@ void generate_fun(AST_Node *node) {
     }
   }
 
-  printf("LABEL %s\n", node->nodeData.funData.fun_name);
+  printf("LABEL $function$%s\n", node->nodeData.funData.fun_name);
   printf("CREATEFRAME\n");
   printf("PUSHFRAME\n");
 
@@ -651,11 +646,18 @@ void generate_fun(AST_Node *node) {
   // vygeneruje tělo funkce
   generate_block(body);
 
-  if (function_return_type == TYPE_DOUBLE && function_return &&
-      function_return->result == TYPE_INT) {
-    int_to_float();
-  } else {
+  if (function_return_type == TYPE_UNIT) {
+
+    if (function_return &&
+        function_return->result !=
+            TYPE_UNIT) { // tělo skončilo hodnotou (např. voláním funkce), ale
+                         // funkce má vracet Unit
+      printf("POPS GF@$t1\n"); // hodnotu zahoď
+    }
     printf("PUSHS nil@nil\n");
+  } else if (function_return_type == TYPE_DOUBLE && function_return &&
+             function_return->result == TYPE_INT) {
+    int_to_float();
   }
 
   printf("POPFRAME\n");
@@ -859,7 +861,7 @@ void call_user_function(AST_Node *node, char *name, AST_Node *arguments) {
 void print(AST_Node *arguments) {
   generate_node(arguments);
   if (arguments->result == TYPE_UNIT) {
-    printf("WRITE STRING@()\n");
+    printf("WRITE string@()\n");
   } else {
     printf("POPS GF@$t1\n");
     printf("WRITE GF@$t1\n");
@@ -907,13 +909,20 @@ void builtin_floor() {
          label_number, 1.0, label_number);
 }
 /**
- * @brief vestavěná funkce tostring
+ * @brief vestavěná funkce toString, převede řetězec na string
+ * @param type typ vstupního řetězce
+ * @param arguments převáděný řetězec, neboli argument vestavěnné funkce
+ * toString
  */
 void to_string(dataType type, AST_Node *arguments) {
   generate_node(arguments);
   switch (type) {
   case TYPE_INT:
     printf("INT2STRS\n");
+    break;
+
+  case TYPE_DOUBLE:
+    printf("FLOAT2STRS\n");
     break;
 
   case TYPE_STRING:
@@ -940,7 +949,8 @@ void to_string(dataType type, AST_Node *arguments) {
 }
 
 /**
- *@brief pro volání funkcí 
+ * @brief pro volání funkcí
+ * @param node ukazatel na funkci kterou budeme volat
  */
 void call_fun(AST_Node *node) {
   char *name = node->nodeData.callFunData.call_fun_name;
@@ -1140,10 +1150,16 @@ void generate_node(AST_Node *node) {
   }
 }
 
+/**
+ * @brief hlavní funkce, spouští celý program
+ * @param functions linked list který dodá parser
+ * @param main_name jméno mainu
+ */
 void generate_program(AST_Node *functions, const char *main_name) {
   printf(".IFJcode26\n");
-  printf("DEFVAR GF@$t1\n");
-  printf("DEFVAR GF@$t2\n");
+  printf("DEFVAR GF@$t1\n"); // vytvoří první pomocnou proměnou kterou využívá
+                             // několik funkcí
+  printf("DEFVAR GF@$t2\n"); // vytvoří druhou pomocnou proměnnou
   printf("JUMP $program_start\n"); // přeskoč definice funkcí
 
   while (functions) {
