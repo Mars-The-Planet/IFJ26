@@ -19,9 +19,19 @@
  */
 void check_next_token() {
 
-  if (next_token(&active_token, stack_indent) == 1) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(1);
+  int err = next_token(&active_token, stack_indent);
+
+  if (err != 0) {
+
+    if (err == 99) {
+
+      fprintf(stderr, "ERROR: Memory allocation failed!");
+      exit(99);
+    } else {
+
+      fprintf(stderr, "Chyba scanneru %d\n", __LINE__);
+      exit(1);
+    }
   }
 }
 
@@ -58,12 +68,9 @@ dataType type_transfer() {
     return TYPE_BOOL;
   if (strcmp(active_token.value, "List") == 0)
     return TYPE_LIST;
-  {
-      /*
+
   fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-     exit(3);
-  */
-  };
+  exit(3);
 }
 
 /**
@@ -918,10 +925,11 @@ AST_Node *parse_fun_body(int origin_indent) {
         if (strcmp(active_token.value, "val") == 0 ||
             strcmp(active_token.value, "var") == 0) {
           temp_statement = parse_var();
-          char* var_name = temp_statement->nodeData.varData.var_name;
+          char *var_name = temp_statement->nodeData.varData.var_name;
           allow_symbol_insert(var_name);
           insert_symbol(symbol_table, var_name, temp_statement);
-          check_assign_types(temp_statement, temp_statement->nodeData.varData.expression);
+          check_assign_types(temp_statement,
+                             temp_statement->nodeData.varData.expression);
         } else if (strcmp(active_token.value, "while") == 0)
           temp_statement = parse_while(origin_indent);
         else if (strcmp(active_token.value, "if") == 0)
@@ -1388,7 +1396,8 @@ AST_Node *parse_id() {
 
     check_next_token();
     temp_id->nodeData.assignData.equal = parse_expression(NULL);
-    AST_Node* var = get_symbol(symbol_table, temp_id->nodeData.assignData.var_name);
+    AST_Node *var =
+        get_symbol(symbol_table, temp_id->nodeData.assignData.var_name);
     check_assign_types(var, temp_id->nodeData.assignData.equal);
 
     return temp_id;
@@ -1463,7 +1472,8 @@ int count_params(ListParam *list) {
 
 bool compare_param_arg(ListParam *param, AST_Node *arg) {
   if (arg->type == IDENT) {
-    arg = get_symbol(symbol_table, arg->nodeData.assignData.var_name); // fails for params
+    arg = get_symbol(symbol_table,
+                     arg->nodeData.assignData.var_name); // fails for params
   }
   return type_compatible(param->type, arg, false);
 }
@@ -1488,7 +1498,8 @@ int check_pop() {
           exit(5);
         }
 
-        ListParam *current_param = found_node->nodeData.funData.param_list->first;
+        ListParam *current_param =
+            found_node->nodeData.funData.param_list->first;
         AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
         while (current_param != NULL) {
           if (!compare_param_arg(current_param, current_arg)) {
@@ -1498,7 +1509,6 @@ int check_pop() {
           current_param = current_param->next;
           current_arg = current_arg->next;
         }
-
       }
     } else {
       // printf("Somehow stored a value that isn't IDENT or FUN_CALL. Type is
@@ -1635,13 +1645,16 @@ void setup_builtins() {
 
 void allow_symbol_insert(char *symbol_name) {
   if (tree_get(symbol_table->scopes->top->value, symbol_name) != NULL) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__); // nepovolená redefinice funkce nebo proměnné
+    fprintf(stderr, "Chyba syntaxe na radku %d\n",
+            __LINE__); // nepovolená redefinice funkce nebo proměnné
     exit(4);
   }
-  char* builtins[] = {"print", "readLine", "readInt", "readDouble", "toStr", "toInt", "strLength", "subStr", "ord", "chr"};
+  char *builtins[] = {"print", "readLine",  "readInt", "readDouble", "toStr",
+                      "toInt", "strLength", "subStr",  "ord",        "chr"};
   for (int i = 0; i < 10; i++) {
     if (strcmp(builtins[i], symbol_name) == 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__); // nepovolená redefinice vestavěné funkce
+      fprintf(stderr, "Chyba syntaxe na radku %d\n",
+              __LINE__); // nepovolená redefinice vestavěné funkce
       exit(4);
     }
   }
@@ -1676,11 +1689,11 @@ dataType literal_to_type(AST_Node *expr) {
     return TYPE_UNIT;
   case VAR_DEF:
     return expr->nodeData.varData.varType;
-  case IDENT:
-    {
-      AST_Node *ident = get_symbol(symbol_table, expr->nodeData.assignData.var_name);
-      return literal_to_type(ident);
-    }
+  case IDENT: {
+    AST_Node *ident =
+        get_symbol(symbol_table, expr->nodeData.assignData.var_name);
+    return literal_to_type(ident);
+  }
   case FUN_CALL:
     return expr->nodeData.funData.return_type;
   case ADD:
@@ -1706,23 +1719,22 @@ dataType literal_to_type(AST_Node *expr) {
   default:
     return TYPE_UNDEF;
   }
-
 }
 
 NodeType type_to_literal(dataType data_type) {
   switch (data_type) {
-    case TYPE_INT:
-      return LITERAL_INT;
-    case TYPE_DOUBLE:
-      return LITERAL_DOUBLE;
-    case TYPE_STRING:
-      return LITERAL_STRING;
-    case TYPE_BOOL:
-      return LITERAL_BOOL;
-    case TYPE_UNIT:
-      return LITERAL_UNIT;
-    default:
-      return LITERAL_STRING;
+  case TYPE_INT:
+    return LITERAL_INT;
+  case TYPE_DOUBLE:
+    return LITERAL_DOUBLE;
+  case TYPE_STRING:
+    return LITERAL_STRING;
+  case TYPE_BOOL:
+    return LITERAL_BOOL;
+  case TYPE_UNIT:
+    return LITERAL_UNIT;
+  default:
+    return LITERAL_STRING;
   }
 }
 
@@ -1730,16 +1742,23 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   NodeType nodeType = expr->type;
   dataType b;
   if (nodeType == IDENT) {
-    AST_Node *ident = get_symbol(symbol_table, expr->nodeData.assignData.var_name);
+    AST_Node *ident =
+        get_symbol(symbol_table, expr->nodeData.assignData.var_name);
     b = literal_to_type(ident);
   } else {
     b = literal_to_type(expr);
   }
-  if (a == b) return true;
-  if (imp_double_int && ((a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT))) return true;
-  if (a == TYPE_UNDEF) return true;
-  if (b == TYPE_UNDEF) return true;
-  if (a == TYPE_ANY) return true;
+  if (a == b)
+    return true;
+  if (imp_double_int && ((a == TYPE_INT && b == TYPE_DOUBLE) ||
+                         (a == TYPE_DOUBLE && b == TYPE_INT)))
+    return true;
+  if (a == TYPE_UNDEF)
+    return true;
+  if (b == TYPE_UNDEF)
+    return true;
+  if (a == TYPE_ANY)
+    return true;
   return false;
 }
 
