@@ -1490,8 +1490,8 @@ int check_pop() {
             count_params(found_node->nodeData.funData.param_list->first)) {
           exit(5);
         }
-        ListParam *current_param = found_node->nodeData.funData.param_list->first;
-        AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
+        // ListParam *current_param = found_node->nodeData.funData.param_list->first;
+        // AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
         // while (current_param != NULL) {
         //   if (!compare_param_arg(current_param, current_arg)) {
         //     printf("fun call fail\n");
