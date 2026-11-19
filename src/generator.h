@@ -46,6 +46,10 @@ void literal_double(double value);
  */
 void literal_bool(int value);
 
+/**
+ * @brief funkce pro stringy
+ * @param string string
+ */
 void literal_string(char* string);
 
 /**
