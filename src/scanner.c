@@ -10,11 +10,6 @@
 #include "scanner.h"
 
 /**
- * @brief Soubor ze kterého scanner čerpá jednotlivé znaky
- */
-FILE *targetFile;
-
-/**
  * @brief Počítadlo odsazení
  */
 int indentTotalCount = 0;
@@ -70,7 +65,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
   int ch;
   while (1) {
     ch = getchar();
-    // ch = getc(targetFile);
+    // ch = getc(stdin);
 
     switch (state) {
 
@@ -583,7 +578,7 @@ int exclamation_mark(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return DONE_STATE;
 
   default:
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
 
     create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "!");
     return DONE_STATE;
@@ -606,7 +601,7 @@ int equals_sign(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return DONE_STATE;
 
   default:
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
 
     create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "=");
     return DONE_STATE;
@@ -629,7 +624,7 @@ int greater_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return DONE_STATE;
 
   default:
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
 
     create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, ">");
     return DONE_STATE;
@@ -657,7 +652,7 @@ int less_than(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return DONE_STATE;
 
   default:
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
 
     create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "<");
     return DONE_STATE;
@@ -683,7 +678,7 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return MULTILINE_COMMENT_START_STATE;
 
   default:
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
 
     create_token(tkn_ptr, indent_stack_ptr, OPERATOR_TYPE, "/");
     return DONE_STATE;
@@ -816,7 +811,7 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr,
     return DONE_STATE;
 
   case EOF:
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
     create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOF");
     return DONE_STATE;
 
@@ -844,7 +839,7 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     }
     return AT_STATE;
   } else {
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
 
     if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
       create_token(tkn_ptr, indent_stack_ptr, KEYWORD_TYPE, tkn_str->val_ptr);
@@ -901,7 +896,7 @@ int empty_string(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     return MULTILINE_STRING_STATE;
   }
 
-  ungetc(ch, targetFile);
+  ungetc(ch, stdin);
   create_token(tkn_ptr, indent_stack_ptr, STRING_TYPE, tkn_str->val_ptr);
   return DONE_STATE;
 }
@@ -1090,7 +1085,7 @@ int mutliline_string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     return MULTILINE_STRING_DONE_STATE;
   }
 
-  ungetc(ch, targetFile);
+  ungetc(ch, stdin);
   create_token(tkn_ptr, indent_stack_ptr, STRING_TYPE, tkn_str->val_ptr);
   return DONE_STATE;
 }
@@ -1134,7 +1129,7 @@ int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     }
     return IDENTIFIER_STATE;
   } else {
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
 
     if (is_word_in_list(tkn_str->val_ptr, keywords, keywords_len)) {
       create_token(tkn_ptr, indent_stack_ptr, KEYWORD_TYPE, tkn_str->val_ptr);
@@ -1177,7 +1172,7 @@ int non_zero_integer(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     return EXPONENT_STATE;
   }
 
-  ungetc(ch, targetFile);
+  ungetc(ch, stdin);
   create_token(tkn_ptr, indent_stack_ptr, INT_TYPE, tkn_str->val_ptr);
   return DONE_STATE;
 }
@@ -1236,7 +1231,7 @@ int int_zero(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     return EXPONENT_STATE;
   }
 
-  ungetc(ch, targetFile);
+  ungetc(ch, stdin);
   create_token(tkn_ptr, indent_stack_ptr, INT_TYPE, tkn_str->val_ptr);
   return DONE_STATE;
 }
@@ -1262,7 +1257,7 @@ int radix_point(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     return INTERNAL_ERROR_STATE;
   }
 
-  ungetc(ch, targetFile);
+  ungetc(ch, stdin);
   create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ".");
   return DONE_STATE;
 }
@@ -1297,7 +1292,7 @@ int double_simple(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   }
   // nepovinné d/D na konci double se ignoruje
   else if (!(ch == 'd' || ch == 'D')) {
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
   }
 
   create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
@@ -1456,7 +1451,7 @@ int double_exponent(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   }
   // nepovinné d/D na konci double se ignoruje
   else if (!(ch == 'd' || ch == 'D')) {
-    ungetc(ch, targetFile);
+    ungetc(ch, stdin);
   }
 
   create_token(tkn_ptr, indent_stack_ptr, DOUBLE_TYPE, tkn_str->val_ptr);
