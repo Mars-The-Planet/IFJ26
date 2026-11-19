@@ -1490,6 +1490,7 @@ int check_pop() {
             count_params(found_node->nodeData.funData.param_list->first)) {
           exit(5);
         }
+
         // ListParam *current_param = found_node->nodeData.funData.param_list->first;
         // AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
         // while (current_param != NULL) {
@@ -1500,6 +1501,7 @@ int check_pop() {
         //   current_param = current_param->next;
         //   current_arg = current_arg->next;
         // }
+
       }
     } else {
       // printf("Somehow stored a value that isn't IDENT or FUN_CALL. Type is
