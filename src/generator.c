@@ -34,6 +34,10 @@
 
 #include "generator.h"
 
+/**list funkcí */
+static AST_Node *function_list = NULL;
+
+
 /**
  * @brief funkce pro určení posledního uzlu, používal jsem často tak jsem udělal
  * funkci
@@ -49,11 +53,33 @@ AST_Node *last_node(AST_Node *node) {
 }
 
 /**
- * @brief funkce pro urování typu parametrů (nedokončená)
+ * @brief typ i-tého parametru funkce (od nuly), hledá se v seznamu funkcí
+ * @return typ parametru, nebo TYPE_UNDEF (funkce neexistuje / vestavěná)
  */
 dataType get_param_type(const char *func_name, int index) {
-  (void)func_name;
-  (void)index;
+  for (AST_Node *fun = function_list; fun; fun = fun->next) {
+    if (fun->type == FUN_DEF &&
+        strcmp(fun->nodeData.funData.fun_name, func_name) == 0) {
+
+      head *params = fun->nodeData.funData.param_list;
+      ListParam *param;
+
+      if (params) {
+        param = params->first;
+      } else {
+        param = NULL;
+      }
+
+      for (int i = 0; param && i < index; i++) {
+        param = param->next;
+      }
+      if (param) {
+        return param->type;
+      } else {
+        return TYPE_UNDEF;
+      }
+    }
+  }
   return TYPE_UNDEF;
 }
 
@@ -86,7 +112,24 @@ void literal_double(double value) { printf("PUSHS float@%a\n", value); }
 
 // opravit
 
-void literal_string(char *string) { printf("PUSHS string@%s", string); }
+/**
+ * @brief string 
+ * 
+ * pužití ai, zeptal jsem se jak udělat funkci na string která bere všechny znaky, přečetl jsem si jak to funguje a při druhém odevzdání doplním komentáře
+ * 
+ * @param string string
+ */
+void literal_string(char *string) {
+  printf("PUSHS string@");
+  for ( unsigned char *c = ( unsigned char *)string; *c; c++) {
+    if (*c <= 32 || *c == 35 || *c == 92) {
+      printf("\\%03d", *c);
+    } else {
+      putchar(*c);
+    }
+  }
+  printf("\n");
+}
 
 /**
  * @brief převod typu boolean
@@ -486,6 +529,33 @@ void generate_if(AST_Node *node) {
   }
 }
 
+
+/**
+ * @brief reprezentace seznamu jako pole na indexu 0 délka, dál ostatní prvky
+ */
+void generate_list(AST_Node *node) {
+  AST_Node *list_head = node->nodeData.listData.list_var;
+
+  int element_count = 0;
+  AST_Node *current_element = list_head;
+  while (current_element) {
+    generate_node(current_element);
+    element_count++;
+    current_element = current_element->next;
+  }
+
+  printf("NEWARRAY GF@$t1 int@%d\n", element_count + 1);
+  printf("ARRAYSET GF@$t1 int@0 int@%d\n", element_count);
+
+  for (int i = element_count; i >= 1; i--) {
+    printf("POPS GF@$t2\n");
+    printf("ARRAYSET GF@$t1 int@%d GF@$t2\n", i);
+  }
+
+  printf("PUSHS GF@$t1");
+}
+
+
 /**
  * @brief pro generování return
  * @param node ukazatel na uzel ast
@@ -670,23 +740,23 @@ void generate_fun(AST_Node *node) {
  * @brief vestavěná funkce readInt
  */
 void read_int() {
-  int label_number = get_new_label();
-  printf("CREATEFRAME\n"
-         "PUSHFRAME\n"
+  int label_number = get_new_label();     //vytvoří návěští
+  printf("CREATEFRAME\n"    //nový dočasný rámec
+         "PUSHFRAME\n"      //dočasný rámec se stane lokálním
          "DEFVAR LF@$$input\n"      // načtená hodnota
-         "DEFVAR LF@$$comparator\n" // pomocná hodnota pro porovnání
-         "READ LF@$$input int\n"
-         "JUMPIFEQ $readInt%d_wrong LF@$$input nil@nil\n"
-         "GT LF@$$comparator LF@$$input int@2147483647\n"
-         "JUMPIFEQ $readInt%d_wrong LF@$$comparator bool@true\n"
-         "LT LF@$$comparator LF@$$input int@-2147483648\n"
-         "JUMPIFEQ $readInt%d_wrong LF@$$comparator bool@true\n"
-         "JUMP $readInt%d_ok\n"
-         "LABEL $readInt%d_wrong\n"
-         "MOVE LF@$$input int@0\n"
-         "LABEL $readInt%d_ok\n"
-         "PUSHS LF@$$input\n"
-         "POPFRAME\n",
+         "DEFVAR LF@$$comparator\n" // pomocná hodnota pro porovnávání
+         "READ LF@$$input int\n"    //načte řádek jako int, při chybě uloží nil
+         "JUMPIFEQ $readInt%d_wrong LF@$$input nil@nil\n" //pokud byl uložen nil=>chyba=>skočí na error výsledek 0
+         "GT LF@$$comparator LF@$$input int@2147483647\n" //porovná hodnotu s velikostí intu
+         "JUMPIFEQ $readInt%d_wrong LF@$$comparator bool@true\n"  //je mimo rozsah=>skok na error výsledek 0
+         "LT LF@$$comparator LF@$$input int@-2147483648\n"  //porovná hodnotu s velikostí intu
+         "JUMPIFEQ $readInt%d_wrong LF@$$comparator bool@true\n"  //je mimo rozsah=>skok na error výsledek 0
+         "JUMP $readInt%d_ok\n" //jestli doposud nehlásil chybu je v pořádku a skáče nakonec
+         "LABEL $readInt%d_wrong\n" //zde začíná oprava cyhby
+         "MOVE LF@$$input int@0\n"  //chybný vstup se podle specifikace převede na 0
+         "LABEL $readInt%d_ok\n"  //prostě label pokud je ok
+         "PUSHS LF@$$input\n" //výsledek na zásobník
+         "POPFRAME\n",  //zahodí rámec a vrátí původní
          label_number, label_number, label_number, label_number, label_number,
          label_number);
 }
@@ -695,16 +765,16 @@ void read_int() {
  * @brief vestavěná funkce readDouble, při chybě vrací 0.0
  */
 void read_double() {
-  int label_number = get_new_label();
-  printf("CREATEFRAME\n"
-         "PUSHFRAME\n"
-         "DEFVAR LF@$$input\n"
-         "READ LF@$$input float\n"
-         "JUMPIFNEQ $readDouble%d_end LF@$$input nil@nil\n"
-         "MOVE LF@$$input float@%a\n"
-         "LABEL $readDouble%d_end\n"
-         "PUSHS LF@$$input\n"
-         "POPFRAME\n",
+  int label_number = get_new_label(); //vytvoří návěští
+  printf("CREATEFRAME\n"  //nový dočasný rámec
+         "PUSHFRAME\n"   //dočasný rámec se stane lokálním
+         "DEFVAR LF@$$input\n"  // načtená hodnota
+         "READ LF@$$input float\n"  //opět načte řádek nebo nil pokud je špatný vstup
+         "JUMPIFNEQ $readDouble%d_end LF@$$input nil@nil\n" //není nil=>ok skočí na konec
+         "MOVE LF@$$input float@%a\n" //výsledek nil
+         "LABEL $readDouble%d_end\n"  //pro ok
+         "PUSHS LF@$$input\n" //výsledek na zásobník
+         "POPFRAME\n",  //zahodí rámec a vrátí původní
          label_number, 0.0, label_number);
 }
 
@@ -712,11 +782,11 @@ void read_double() {
  * @brief vestavěná funkce readLine, při EOF vrací prázdný řetězec
  */
 void read_line() {
-  int label_number = get_new_label();
-  printf("CREATEFRAME\n"
-         "PUSHFRAME\n"
-         "DEFVAR LF@$$input\n"
-         "READ LF@$$input string\n"
+  int label_number = get_new_label(); 
+  printf("CREATEFRAME\n"  
+         "PUSHFRAME\n"  
+         "DEFVAR LF@$$input\n"  //proměnná s načtenou hodnotou
+         "READ LF@$$input string\n" 
          "JUMPIFNEQ $readLine%d_end LF@$$input nil@nil\n"
          "MOVE LF@$$input string@\n"
          "LABEL $readLine%d_end\n"
@@ -1123,6 +1193,11 @@ void generate_node(AST_Node *node) {
     generate_fun(node);
     break;
 
+  case LIST:
+    generate_list(node);
+    break;
+
+
   case RETURN:
     generate_return(node);
     break;
@@ -1130,15 +1205,11 @@ void generate_node(AST_Node *node) {
     // todo: doplnit další uzly AST
 
   case FOR_N:
-    printf("Today is Saturday");
+  //opravit
     break;
 
-  case LIST:
-    printf("Today is Saturday");
-    break;
 
   case DOT_ACCESS:
-    printf("Today is Saturday");
     break;
 
   case FUN_CALL:
@@ -1156,6 +1227,7 @@ void generate_node(AST_Node *node) {
  * @param main_name jméno mainu
  */
 void generate_program(AST_Node *functions, const char *main_name) {
+  function_list = functions;
   printf(".IFJcode26\n");
   printf("DEFVAR GF@$t1\n"); // vytvoří první pomocnou proměnou kterou využívá
                              // několik funkcí

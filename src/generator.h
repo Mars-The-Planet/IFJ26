@@ -197,6 +197,11 @@ void generate_branch(AST_Node *block, dataType return_type);
 void generate_if(AST_Node *node);
 
 /**
+ * @brief reprezentace seznamu jako pole na indexu 0 délka, dál ostatní prvky
+ */
+void generate_list(AST_Node *node);
+
+/**
  * @brief pro generování return
  * @param node ukazatel na uzel ast
  * @param function_return_type není přímo parametr ale využívá globální proměnou, 
@@ -295,8 +300,10 @@ void to_string(dataType type, AST_Node *arguments);
  * @brief Volání funkcí (rozcestník)
  */
 void call_fun(AST_Node *node);
-
-
+/**
+ * @brief funkce získá parametry
+ */
+dataType get_param_type(const char *func_name, int index);
 /**
  * @brief Hlavní dispatcher – generátor kódu pro jednotlivé uzly AST
  * @param node Ukazatel na uzel AST
