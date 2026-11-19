@@ -19,7 +19,7 @@ void insert_func(stackPtr stack, nodePtr node) {
     }
   }
   if (!skip) {
-    stack_push(stack, node);
+    stack_push(stack, node->value);
   }
   insert_func(stack, node->left);
   insert_func(stack, node->right);
@@ -31,11 +31,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, USAGE_ERR);
     return 1;
   }
-  FILE *file = fopen(argv[1], "r");
-  if (file == NULL) {
-    fprintf(stderr, FILE_NOT_FOUND_ERR, argv[1]);
-    return 1;
-  }
+
   stack_indent = stack_ctor();
   symbol_table = symbol_table_ctor();
   used_symbols = stack_ctor();
@@ -45,7 +41,7 @@ int main(int argc, char *argv[]) {
 
   setup_builtins();
 
-  if (set_target_file("test.txt") != 0) // TODO
+  if (set_target_file(argv[1]) != 0) // TODO
     exit(99);
 
   code_prolog();

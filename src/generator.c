@@ -1230,8 +1230,8 @@ void generate_program(stack *functions, const char *main_name) {
 
   function_list = NULL;
   AST_Node *function;
-  while ((function = stack_top(functions)) != NULL) { 
-    stack_pop(functions);                  
+  while ((function = stack_top(functions)) != NULL) {
+    stack_pop(functions);
     function->next = function_list;
     function_list = function;
   }

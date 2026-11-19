@@ -11,7 +11,6 @@
 #define MAIN_H
 
 #define USAGE_ERR "Usage: ./main.exe FILE\n"
-#define FILE_NOT_FOUND_ERR   "File %s does not exist.\n"
 
 #include <stdio.h>
 #include "generator.h"

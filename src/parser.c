@@ -1440,6 +1440,29 @@ int count_args(AST_Node *node) {
       count++;
     } else if (node->type == FUN_CALL) {
       count++;
+    } else if (node->type == ADD) {
+      count++;
+    } else if (node->type == ADD) {
+      count++;
+    }
+    else if (node->type == SUB) {
+      count++;
+    } else if (node->type ==  MUL) {
+      count++;
+    } else if (node->type ==  DIV) {
+      count++;
+    } else if (node->type ==  LESS) {
+      count++;
+    } else if (node->type ==  LESS_EQUAL) {
+      count++;
+    } else if (node->type ==  GREATER) {
+      count++;
+    } else if (node->type ==  GREATER_EQUAL) {
+      count++;
+    } else if (node->type ==  EQUALS) {
+      count++;
+    } else if (node->type ==  NOT_EQUAL) {
+      count++;
     }
     node = node->next;
   }
