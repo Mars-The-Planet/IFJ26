@@ -143,6 +143,7 @@ void the_parser() {
         break;
       } else if (strcmp(active_token.value, "@main") == 0) {
         has_main++;
+        youre_main_node = true;
         check_next_token();
 
         if (active_token.type == KEYWORD_TYPE &&
@@ -756,6 +757,11 @@ void parse_fun() {
 
   new_fun->type = FUN_DEF;
   new_fun->next = NULL;
+
+  if (youre_main_node) {
+    youre_main_node = false;
+    main_node = new_fun;
+  }
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
@@ -1699,7 +1705,9 @@ int main() {
   stack_indent = stack_ctor();
   symbol_table = symbol_table_ctor();
   used_symbols = stack_ctor();
-  has_main = 0;
+  has_main = 0; // nesmí mít parametry a výsledkem je unit
+  youre_main_node = false;
+  main_node = NULL;
 
   setup_builtins();
 
@@ -1712,6 +1720,16 @@ int main() {
   if (has_main != 1) {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
     exit(3);
+  }
+
+  if (count_params(main_node->nodeData.funData.param_list->first) != 0) {
+    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    exit(5);
+  }
+
+  if (main_node->nodeData.funData.return_type != TYPE_UNIT) {
+    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    exit(10);
   }
 
   printf("přeloženo\n");

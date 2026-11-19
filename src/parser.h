@@ -283,4 +283,8 @@ AST_Node *parse_return();
 
 int has_main;
 
+bool youre_main_node;
+
+AST_Node *main_node;
+
 #endif // PARSER_H
