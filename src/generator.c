@@ -423,7 +423,7 @@ void generate_while(AST_Node *node) {
   // zjistí typ posledního příkazu v bloku, pokud není unit, tak ho zahodí,
   // jelikož while si nepotřebuje uchovávat hodnotu z těla cyklu
   AST_Node *last = last_node(node->nodeData.whileData.body);
-  if (last && leaves_value(node)) {
+  if (last && leaves_value(last)) {
     printf("POPS GF@$t1\n");
   }
 
@@ -578,7 +578,7 @@ void generate_list(AST_Node *node) {
     printf("ARRAYSET GF@$t1 int@%d GF@$t2\n", i);
   }
 
-  printf("PUSHS GF@$t1");
+  printf("PUSHS GF@$t1\n");
 }
 
 
@@ -934,7 +934,7 @@ void call_user_function(AST_Node *node, char *name, AST_Node *arguments) {
     generate_node(arguments);
     dataType param_type = get_param_type(name, index);
 
-    if (leaves_value(arguments)) {
+    if (!leaves_value(arguments)) {
 
       printf("PUSHS nil@nil\n");
     } else if (param_type == TYPE_DOUBLE && arguments->result == TYPE_INT) {
