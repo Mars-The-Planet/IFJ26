@@ -1505,7 +1505,7 @@ int check_pop() {
             count_params(found_node->nodeData.funData.param_list->first)) {
           exit(5);
         }
-
+        temp->result = found_node->result;
         ListParam *current_param = found_node->nodeData.funData.param_list->first;
         AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
         while (current_param != NULL) {
