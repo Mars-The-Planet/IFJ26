@@ -1,6 +1,6 @@
 /**
  * IFJ26 - Implementace překladače imperativního jazyka IFJ26
- * @file bst_tree.h
+ * @file bst.h
  * @author Radek Večeřa (xvecerr01)
  *
  * @brief Hlavička kódu pro implementaci AVL stromu pro tabulku symbolů.
@@ -29,7 +29,7 @@ typedef struct avl_node {
 /**
  * @brief Struktura AVL stromu
  */
-typedef struct bst_tree {
+typedef struct bst {
     nodePtr root;
 } avl_tree, *avl_treePtr;
 

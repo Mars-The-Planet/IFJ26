@@ -1,13 +1,13 @@
 /**
  * IFJ26 - Implementace překladače imperativního jazyka IFJ26
- * @file bst_tree.c
+ * @file bst.c
  * @author Radek Večeřa (xvecerr01)
  *
  * @brief Implementace AVL stromu pro tabulku symbolů.
  * @date 24.10.2026
  */
 
-#include "bst_tree.h"
+#include "bst.h"
 
 /**
  * @brief Konstruktor listů pro AVL strom

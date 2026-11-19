@@ -1,6 +1,7 @@
 /**
  * @file parser.h
  * @author Jonáš Vávra (x273960)
+ * @author Radek Večeřa (281687)
  *
  * @brief Imlementace syntaktického analyzátoru
  */
@@ -288,5 +289,7 @@ int has_main;
 bool youre_main_node;
 
 AST_Node *main_node;
+
+NodeType type_to_literal(dataType data_type);
 
 #endif // PARSER_H
