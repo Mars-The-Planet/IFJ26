@@ -292,4 +292,10 @@ AST_Node *main_node;
 
 NodeType type_to_literal(dataType data_type);
 
+scoped_symtablePtr symbol_table;
+token active_token;
+stackPtr stack_indent;
+
+stackPtr used_symbols;
+
 #endif // PARSER_H
