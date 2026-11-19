@@ -38,6 +38,7 @@ typedef enum ETokenType {
 typedef enum EScannerState {
   DONE_STATE,  // extra stav značící dokončení čtení
   ERROR_STATE, // extra stav značící že načtení neočekávaného znaku
+  INTERNAL_ERROR_STATE, // extra stav značící interní chybu neovlivnitelnou vstupním programem
 
   START_STATE,
 

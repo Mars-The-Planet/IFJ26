@@ -44,13 +44,7 @@ const char *keywords[] = {"def", "do",     "Double",  "else", "if",   "import",
 /**
  * @brief návratová hodnota interní chyby neovlivnitelnou vstupním programem
  */
-int const externalError = 99;
-
-/**
- * @brief návratová hodnota interní chyby neovlivnitelnou vstupním programem pro
- * KA
- */
-int const externalErrorState = -2;
+int const internalError = 99;
 
 /**
  * @brief Nastaví soubor ze kterého čte LA
@@ -87,7 +81,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
   dynamic_string_ptr tkn_str = &tkn_str_struct;
 
   if (init_dynamic_string(tkn_str, 8) == 1) {
-    return externalError;
+    return internalError;
   }
 
   int ch;
@@ -100,9 +94,9 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       state = start_state(ch, tkn_ptr, indent_stack_ptr, tkn_str);
       break;
 
-    // v některém ze stavů došlo selhání alokace paměti
-    case externalErrorState:
-      return externalError;
+    // v některém ze stavů došlo k selhání alokace paměti
+    case INTERNAL_ERROR_STATE:
+      return internalError;
 
     case AMPERSAND_STATE:
       state = ampersand(ch, tkn_ptr, indent_stack_ptr);
@@ -489,7 +483,7 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   case '@':
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return AT_STATE;
 
@@ -499,7 +493,7 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   case '_':
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return UNDERSCORE_STATE;
 
@@ -507,28 +501,28 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   case 'A' ... 'Z':
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return IDENTIFIER_STATE;
 
   case 'a' ... 'z':
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return IDENTIFIER_STATE;
 
   case '1' ... '9':
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return NON_ZERO_INTEGER_STATE;
 
   case '0':
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return INT_ZERO_STATE;
 
@@ -862,7 +856,7 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   if (can_be_in_IDs(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return AT_STATE;
   } else {
@@ -894,7 +888,7 @@ int string_open(int ch, dynamic_string_ptr tkn_str) {
   } else if (isprint(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return STRING_CHAR_STATE;
   }
@@ -948,7 +942,7 @@ int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   } else if (isprint(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return STRING_CHAR_STATE;
   }
@@ -976,35 +970,35 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
   case '\\':
     if (insert_last(tkn_str, '\\') == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return STRING_CHAR_STATE;
 
   case '"':
     if (insert_last(tkn_str, '\"') == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return STRING_CHAR_STATE;
 
   case 'n':
     if (insert_last(tkn_str, '\n') == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return STRING_CHAR_STATE;
 
   case 'r':
     if (insert_last(tkn_str, '\r') == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return STRING_CHAR_STATE;
 
   case 't':
     if (insert_last(tkn_str, '\t') == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return STRING_CHAR_STATE;
 
@@ -1036,7 +1030,7 @@ int multiline_string(int ch, dynamic_string_ptr tkn_str) {
 
   if (insert_last(tkn_str, ch) == 1) {
     destroy_dynamic_string(tkn_str);
-    return externalErrorState;
+    return INTERNAL_ERROR_STATE;
   }
   return MULTILINE_STRING_STATE;
 }
@@ -1063,7 +1057,7 @@ int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
     return MULTILINE_STRING_STATE;
   }
   destroy_dynamic_string(tkn_str);
-  return externalErrorState;
+  return INTERNAL_ERROR_STATE;
 }
 
 /**
@@ -1089,7 +1083,7 @@ int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
     return MULTILINE_STRING_STATE;
   }
   destroy_dynamic_string(tkn_str);
-  return externalErrorState;
+  return INTERNAL_ERROR_STATE;
 }
 
 /**
@@ -1107,7 +1101,7 @@ int mutliline_string_done(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   if (ch == '"') {
     if (insert_last(tkn_str, '"') == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return MULTILINE_STRING_DONE_STATE;
   }
@@ -1129,7 +1123,7 @@ int underscore(int ch, dynamic_string_ptr tkn_str) {
   if (can_be_in_IDs(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return IDENTIFIER_STATE;
   }
@@ -1152,7 +1146,7 @@ int identifier(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   if (can_be_in_IDs(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return IDENTIFIER_STATE;
   } else {
@@ -1182,7 +1176,7 @@ int non_zero_integer(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return NON_ZERO_INTEGER_STATE;
   }
@@ -1194,7 +1188,7 @@ int non_zero_integer(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   } else if (ch == 'e' || ch == 'E') {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return EXPONENT_STATE;
   }
@@ -1218,7 +1212,7 @@ int int_underscore(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return NON_ZERO_INTEGER_STATE;
   }
@@ -1241,7 +1235,7 @@ int int_zero(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return NON_ZERO_STATE;
   }
@@ -1253,7 +1247,7 @@ int int_zero(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   } else if (ch == 'e' || ch == 'E') {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return EXPONENT_STATE;
   }
@@ -1281,7 +1275,7 @@ int radix_point(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     }
 
     destroy_dynamic_string(tkn_str);
-    return externalErrorState;
+    return INTERNAL_ERROR_STATE;
   }
 
   ungetc(ch, targetFile);
@@ -1303,7 +1297,7 @@ int double_simple(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return DOUBLE_SIMPLE_STATE;
   }
@@ -1313,7 +1307,7 @@ int double_simple(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   } else if (ch == 'e' || ch == 'E') {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return EXPONENT_STATE;
   }
@@ -1340,7 +1334,7 @@ int radix_underscore(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return DOUBLE_SIMPLE_STATE;
   }
@@ -1360,7 +1354,7 @@ int non_zero(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return NON_ZERO_STATE;
   }
@@ -1370,7 +1364,7 @@ int non_zero(int ch, dynamic_string_ptr tkn_str) {
   } else if (ch == 'e' || ch == 'E') {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return EXPONENT_STATE;
   } else if (ch == '.') {
@@ -1397,7 +1391,7 @@ int zero_underscore(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return NON_ZERO_STATE;
   }
@@ -1417,13 +1411,13 @@ int exponent(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return DOUBLE_EXPONENT_STATE;
   } else if (ch == '-' || ch == '+') {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return EXPONENT_SIGN_STATE;
   }
@@ -1444,7 +1438,7 @@ int exponent_sign(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return DOUBLE_EXPONENT_STATE;
   }
@@ -1468,7 +1462,7 @@ int double_exponent(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return DOUBLE_EXPONENT_STATE;
   }
@@ -1499,7 +1493,7 @@ int exponent_underscore(int ch, dynamic_string_ptr tkn_str) {
   if (isdigit(ch)) {
     if (insert_last(tkn_str, ch) == 1) {
       destroy_dynamic_string(tkn_str);
-      return externalErrorState;
+      return INTERNAL_ERROR_STATE;
     }
     return DOUBLE_EXPONENT_STATE;
   }
