@@ -1074,16 +1074,21 @@ AST_Node *parse_for(int origin_indent) {
   temp_for->type = FOR_N;
   temp_for->next = NULL;
 
+  int base_indent;
+  bool is_indent = false;
+
   check_next_token();
   if (active_token.type == SYMBOL_TYPE &&
       strcmp(active_token.value, "EOL") == 0) {
+    is_indent = true;
     check_for_eol();
 
     if (sum_stack(stack_indent) <= origin_indent) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
       exit(2);
     };
-    origin_indent = sum_stack(stack_indent);
+
+    base_indent = sum_stack(stack_indent);
   }
 
   if (active_token.type == ID_TYPE) {
@@ -1106,6 +1111,28 @@ AST_Node *parse_for(int origin_indent) {
 
   check_next_token();
   temp_for->nodeData.forData.condition = parse_expression(NULL);
+
+  // pokud má odsazení
+  if (is_indent == true) {
+    check_for_eol();
+    // zkontroluj jestli je to if a jestli je správné odsazení
+    while (active_token.type == KEYWORD_TYPE &&
+           strcmp(active_token.value, "if") == 0 &&
+           sum_stack(stack_indent) == base_indent) {
+      check_next_token();
+
+      temp_for->nodeData.forData.if_condition = parse_expression(NULL);
+
+      check_for_eol();
+    }
+  }
+
+  // odsazení pro do musí být stejné jako pro for
+  if (sum_stack(stack_indent) != origin_indent) {
+
+    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    exit(2);
+  }
 
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "do") != 0) {

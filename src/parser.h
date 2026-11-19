@@ -172,6 +172,7 @@ struct AST_Node {
 
       char *var_name;
       AST_Node *condition;
+      AST_Node *if_condition;
       AST_Node *body;
 
     } forData;
