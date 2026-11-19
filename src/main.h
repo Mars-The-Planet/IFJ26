@@ -10,8 +10,6 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#define USAGE_ERR "Usage: ./main.exe FILE\n"
-
 #include <stdio.h>
 #include "generator.h"
 #include "parser.h"
