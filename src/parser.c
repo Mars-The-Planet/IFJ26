@@ -188,25 +188,28 @@ AST_Node *allocate_expression(AST_Node *expression) {
 }
 
 char precedence_table[11][11] = {
-    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '>',
-     '>'}, // 0. unární operátory
-    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '>',
-     '>'}, // 1. násobení a dělení
-    {'<', '<', '>', '>', '>', '>', '>', '>', '<', '>',
-     '>'}, // 2. sčítání, odčítání, konkatenace
-    {'<', '<', '<', 'E', '>', '>', '>', '>', '<', '>',
-     '>'}, // 3. relační operátory
-    {'<', '<', '<', '<', 'E', '>', '>', '>', '<', '>', '>'}, // 4. '==' a '!='
-    {'<', '<', '<', '<', '<', '>', '>', '>', '<', '>', '>'}, // 5. AND (&&)
-    {'<', '<', '<', '<', '<', '<', '>', '>', '<', '>', '>'}, // 6. OR (||)
-    {'<', '<', '<', '<', '<', '<', '<', '>', '<', '>',
-     '>'}, // 7. to, until, by (for cyklus)
-    {'<', '<', '<', '<', '<', '<', '<', '<', '<', '=',
-     'E'}, // 8. otevírací závorka
-    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '=',
-     '>'}, // 9. uzavírací závorka
-    {'<', '<', '<', '<', '<', '<', '<', '<', '<', 'E', 'E'} // 10. dno zásobníku
-};
+    // 0. unární operátory
+    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '>', '>'},
+    // 1. násobení a dělení
+    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '>', '>'},
+    // 2. sčítání, odčítání, konkatenace
+    {'<', '<', '>', '>', '>', '>', '>', '>', '<', '>', '>'},
+    // 3. relační operátory
+    {'<', '<', '<', 'E', '>', '>', '>', '>', '<', '>', '>'},
+    // 4. '==' a '!='
+    {'<', '<', '<', '<', 'E', '>', '>', '>', '<', '>', '>'},
+    // 5. AND (&&)
+    {'<', '<', '<', '<', '<', '>', '>', '>', '<', '>', '>'},
+    // 6. OR (||)
+    {'<', '<', '<', '<', '<', '<', '>', '>', '<', '>', '>'},
+    // 7. to, until, by (for cyklus)
+    {'<', '<', '<', '<', '<', '<', '<', '>', '<', '>', '>'},
+    // 8. otevírací závorka
+    {'<', '<', '<', '<', '<', '<', '<', '<', '<', '=', 'E'},
+    // 9. uzavírací závorka
+    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '=', '>'},
+    // 10. dno zásobníku
+    {'<', '<', '<', '<', '<', '<', '<', '<', '<', 'E', 'E'}};
 
 int get_table_index(NodeType type) {
 
@@ -358,7 +361,6 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
           stack_switch = 0;
           stack_push(node_stack, temp_expression);
-          check_next_token();
 
         } else {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
@@ -440,24 +442,17 @@ AST_Node *parse_expression(AST_Node *past_node) {
                 strdup(active_token.value);
 
             check_next_token();
-            if (active_token.type == SYMBOL_TYPE) {
-              if (strcmp(active_token.value, "(") == 0) {
+            if (active_token.type == SYMBOL_TYPE &&
+                strcmp(active_token.value, "(") == 0) {
+              temp_expression->nodeData.accessDotData.dot_args =
+                  exp_in_brackets();
+            } else
+              temp_expression->nodeData.accessDotData.dot_args = NULL;
 
-                temp_expression->nodeData.accessDotData.dot_args =
-                    exp_in_brackets();
-
-              } else if (strcmp(active_token.value, "EOL") == 0) {
-                temp_expression->nodeData.accessDotData.dot_args = NULL;
-
-                stack_push(node_stack, temp_expression);
-                stack_switch = 0;
-
-              } else {
-                stack_push(node_stack, temp_expression);
-                stack_switch = 0;
-              }
-            }
+            stack_push(node_stack, temp_expression);
+            stack_switch = 0;
           }
+          continue;
 
         } else if (strcmp(active_token.value, ")") == 0) {
           operator_type = BRACK_END;
@@ -470,6 +465,11 @@ AST_Node *parse_expression(AST_Node *past_node) {
         if (strcmp(active_token.value, "+") == 0) {
 
           operator_type = ADD;
+          index_horizontal = get_table_index(operator_type);
+
+        } else if (strcmp(active_token.value, "++") == 0) {
+
+          operator_type = CON_SEZNAM;
           index_horizontal = get_table_index(operator_type);
 
         } else if (strcmp(active_token.value, "-") == 0) {
@@ -1040,7 +1040,6 @@ AST_Node *parse_var() {
             exit(2);
           };
 
-          check_next_token();
           temp_var->nodeData.varData.varListType = type_transfer();
 
           check_next_token();
@@ -1318,6 +1317,9 @@ AST_Node *exp_in_brackets() {
         }
 
         continue;
+      } else if (strcmp(active_token.value, ")") == 0) {
+        check_next_token();
+        return expression_list;
 
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
