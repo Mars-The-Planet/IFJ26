@@ -6,11 +6,6 @@
  * @brief Imlementace syntaxtického analyzátoru
  */
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "parser.h"
 
 /**
@@ -131,8 +126,6 @@ void code_prolog() {
 
 void the_parser() {
 
-  int indent;
-
   check_next_token();
 
   while (1) {
@@ -147,6 +140,7 @@ void the_parser() {
         has_main++;
         youre_main_node = true;
         check_next_token();
+        check_for_eol();
 
         if (active_token.type == KEYWORD_TYPE &&
             strcmp(active_token.value, "def") == 0) {
@@ -194,28 +188,24 @@ AST_Node *allocate_expression(AST_Node *expression) {
 }
 
 char precedence_table[11][11] = {
-    '<', '>', '>', '>', '>', '>',
-    '>', '>', '<', '>', '>', // 0. unární operátory
-    '<', '>', '>', '>', '>', '>',
-    '>', '>', '<', '>', '>', // 1. násobení a dělení
-    '<', '<', '>', '>', '>', '>',
-    '>', '>', '<', '>', '>', // 2. sčítání, odčítání, konkatenace
-    '<', '<', '<', 'E', '>', '>',
-    '>', '>', '<', '>', '>', // 3. relační operátory
-    '<', '<', '<', '<', 'E', '>',
-    '>', '>', '<', '>', '>', // 4. '==' a '!='
-    '<', '<', '<', '<', '<', '>',
-    '>', '>', '<', '>', '>', // 5. AND (&&)
-    '<', '<', '<', '<', '<', '<',
-    '>', '>', '<', '>', '>', // 6. OR (||)
-    '<', '<', '<', '<', '<', '<',
-    '<', '>', '<', '>', '>', // 7. to, until, by (for cyklus)
-    '<', '<', '<', '<', '<', '<',
-    '<', '<', '<', '=', 'E', // 8. otevírací závorka
-    '<', '>', '>', '>', '>', '>',
-    '>', '>', '<', '=', '>', // 9. uzavírací závorka
-    '<', '<', '<', '<', '<', '<',
-    '<', '<', '<', 'E', 'E' // 10. dno zásobníku
+    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '>',
+     '>'}, // 0. unární operátory
+    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '>',
+     '>'}, // 1. násobení a dělení
+    {'<', '<', '>', '>', '>', '>', '>', '>', '<', '>',
+     '>'}, // 2. sčítání, odčítání, konkatenace
+    {'<', '<', '<', 'E', '>', '>', '>', '>', '<', '>',
+     '>'}, // 3. relační operátory
+    {'<', '<', '<', '<', 'E', '>', '>', '>', '<', '>', '>'}, // 4. '==' a '!='
+    {'<', '<', '<', '<', '<', '>', '>', '>', '<', '>', '>'}, // 5. AND (&&)
+    {'<', '<', '<', '<', '<', '<', '>', '>', '<', '>', '>'}, // 6. OR (||)
+    {'<', '<', '<', '<', '<', '<', '<', '>', '<', '>',
+     '>'}, // 7. to, until, by (for cyklus)
+    {'<', '<', '<', '<', '<', '<', '<', '<', '<', '=',
+     'E'}, // 8. otevírací závorka
+    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '=',
+     '>'}, // 9. uzavírací závorka
+    {'<', '<', '<', '<', '<', '<', '<', '<', '<', 'E', 'E'} // 10. dno zásobníku
 };
 
 int get_table_index(NodeType type) {
@@ -429,11 +419,12 @@ AST_Node *parse_expression(AST_Node *past_node) {
                 stack_nodes->nodeData.idVarData.id_name;
 
             temp_expression->nodeData.callFunData.fun_args = exp_in_brackets();
-            stack_switch = 1;
+            stack_switch = 0;
 
             stack_push(stack_top(used_symbols), temp_expression);
 
-            return temp_expression;
+            stack_push(node_stack, temp_expression);
+            continue;
           }
         } else if (strcmp(active_token.value, ".") == 0) {
 
@@ -906,7 +897,15 @@ AST_Node *parse_fun_body(int origin_indent) {
     origin_indent = sum_stack(stack_indent);
 
     while (1) {
-      check_for_eol();
+
+      // jakoby vylepšení check for eol který přeskakuje aji středníky
+      while (active_token.type == SYMBOL_TYPE &&
+             (strcmp(active_token.value, "EOL") == 0 ||
+              strcmp(active_token.value, ";") == 0)) {
+
+        check_next_token();
+      }
+
       if (active_token.type == SYMBOL_TYPE &&
           strcmp(active_token.value, "EOF") == 0)
         return statements;
@@ -921,23 +920,32 @@ AST_Node *parse_fun_body(int origin_indent) {
       switch (active_token.type) {
 
       case KEYWORD_TYPE:
+
         // var(1) a val(0) se rozlišuje podle bool
         if (strcmp(active_token.value, "val") == 0 ||
             strcmp(active_token.value, "var") == 0) {
+
           temp_statement = parse_var();
+
           char *var_name = temp_statement->nodeData.varData.var_name;
+
           allow_symbol_insert(var_name);
           insert_symbol(symbol_table, var_name, temp_statement);
           check_assign_types(temp_statement,
                              temp_statement->nodeData.varData.expression);
+
         } else if (strcmp(active_token.value, "while") == 0)
           temp_statement = parse_while(origin_indent);
+
         else if (strcmp(active_token.value, "if") == 0)
           temp_statement = parse_if(origin_indent);
+
         else if (strcmp(active_token.value, "for") == 0)
           temp_statement = parse_for(origin_indent);
+
         else if (strcmp(active_token.value, "return") == 0)
           temp_statement = parse_return();
+
         else {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
           exit(2);
@@ -1454,6 +1462,28 @@ int count_args(AST_Node *node) {
       count++;
     } else if (node->type == FUN_CALL) {
       count++;
+    } else if (node->type == ADD) {
+      count++;
+    } else if (node->type == ADD) {
+      count++;
+    } else if (node->type == SUB) {
+      count++;
+    } else if (node->type == MUL) {
+      count++;
+    } else if (node->type == DIV) {
+      count++;
+    } else if (node->type == LESS) {
+      count++;
+    } else if (node->type == LESS_EQUAL) {
+      count++;
+    } else if (node->type == GREATER) {
+      count++;
+    } else if (node->type == GREATER_EQUAL) {
+      count++;
+    } else if (node->type == EQUALS) {
+      count++;
+    } else if (node->type == NOT_EQUAL) {
+      count++;
     }
     node = node->next;
   }
@@ -1497,7 +1527,7 @@ int check_pop() {
             count_params(found_node->nodeData.funData.param_list->first)) {
           exit(5);
         }
-
+        temp->result = found_node->result;
         ListParam *current_param =
             found_node->nodeData.funData.param_list->first;
         AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
@@ -1529,6 +1559,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_UNIT;
+    global_func->result = TYPE_UNIT;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "print", global_func);
@@ -1540,6 +1571,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_STRING;
+    global_func->result = TYPE_STRING;
     insert_symbol(symbol_table, "readLine", global_func);
   }
 
@@ -1549,6 +1581,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_INT;
+    global_func->result = TYPE_INT;
     insert_symbol(symbol_table, "readInt", global_func);
   }
 
@@ -1558,6 +1591,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_DOUBLE;
+    global_func->result = TYPE_DOUBLE;
     insert_symbol(symbol_table, "readDouble", global_func);
   }
 
@@ -1568,6 +1602,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_STRING;
+    global_func->result = TYPE_STRING;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "toStr", global_func);
@@ -1580,6 +1615,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_INT;
+    global_func->result = TYPE_INT;
     new_param->next = NULL;
     new_param->type = TYPE_DOUBLE;
     insert_symbol(symbol_table, "toInt", global_func);
@@ -1592,6 +1628,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_INT;
+    global_func->result = TYPE_INT;
     new_param->next = NULL;
     new_param->type = TYPE_STRING;
     insert_symbol(symbol_table, "strLength", global_func);
@@ -1606,6 +1643,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param1;
     global_func->nodeData.funData.return_type = TYPE_STRING;
+    global_func->result = TYPE_STRING;
     new_param1->next = new_param2;
     new_param2->next = new_param3;
     new_param3->next = NULL;
@@ -1623,6 +1661,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param1;
     global_func->nodeData.funData.return_type = TYPE_INT;
+    global_func->result = TYPE_INT;
     new_param1->next = new_param2;
     new_param2->next = NULL;
     new_param1->type = TYPE_STRING;
@@ -1637,6 +1676,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_STRING;
+    global_func->result = TYPE_STRING;
     new_param->next = NULL;
     new_param->type = TYPE_INT;
     insert_symbol(symbol_table, "chr", global_func);
@@ -1771,45 +1811,4 @@ void check_assign_types(AST_Node *var, AST_Node *expr) {
     }
     current = current->next;
   }
-}
-
-// dočasný main
-int main() {
-
-  stack_indent = stack_ctor();
-  symbol_table = symbol_table_ctor();
-  used_symbols = stack_ctor();
-  has_main = 0; // nesmí mít parametry a výsledkem je unit
-  youre_main_node = false;
-  main_node = NULL;
-
-  setup_builtins();
-
-  if (set_target_file("test.txt") != 0)
-    exit(99);
-
-  code_prolog();
-  the_parser();
-
-  if (has_main != 1) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
-  }
-
-  if (count_params(main_node->nodeData.funData.param_list->first) != 0) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(5);
-  }
-
-  if (main_node->nodeData.funData.return_type != TYPE_UNIT) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(10);
-  }
-
-  printf("přeloženo\n");
-
-  stack_dtor(stack_indent);
-  symbol_table_dtor(symbol_table);
-  stack_dtor(used_symbols);
-  return 0;
 }
