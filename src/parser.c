@@ -1309,11 +1309,15 @@ AST_Node *exp_in_brackets() {
     if (active_token.type == SYMBOL_TYPE) {
       if (strcmp(active_token.value, ",") == 0) {
         check_next_token();
-        continue;
-      } else if (strcmp(active_token.value, ")") == 0) {
+        check_for_eol();
+        if (active_token.type == SYMBOL_TYPE &&
+            strcmp(active_token.value, ")") == 0) {
 
-        check_next_token();
-        return expression_list;
+          check_next_token();
+          return expression_list;
+        }
+
+        continue;
 
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
@@ -1324,8 +1328,6 @@ AST_Node *exp_in_brackets() {
       exit(2);
     };
   }
-
-  return expression_list;
 }
 
 AST_Node *parse_list() {
