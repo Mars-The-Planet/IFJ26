@@ -1789,6 +1789,9 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
     AST_Node *ident =
         get_symbol(symbol_table, expr->nodeData.assignData.var_name);
     b = literal_to_type(ident);
+  } else if (nodeType == FUN_CALL) {
+    AST_Node *b_node = get_symbol(symbol_table, expr->nodeData.callFunData.call_fun_name);
+    b = b_node->nodeData.funData.return_type;
   } else {
     b = literal_to_type(expr);
   }
