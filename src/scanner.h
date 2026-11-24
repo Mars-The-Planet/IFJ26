@@ -82,6 +82,7 @@ typedef enum EScannerState {
   INT_ZERO_STATE,
 
   NON_ZERO_STATE,
+  DOT_STATE,
   RADIX_POINT_STATE,
   EXPONENT_STATE,
   EXPONENT_SIGN_STATE,
@@ -490,8 +491,18 @@ int int_zero(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
  * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
-int radix_point(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
-                dynamic_string_ptr tkn_str);
+int dot(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
+        dynamic_string_ptr tkn_str);
+
+/**
+ * @brief Funkce reprezentující stav desetinné čárky desetinného literálu
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState
+ */
+int radix_point(int ch, dynamic_string_ptr tkn_str);
 
 /**
  * @brief Funkce reprezentující stav desetinného literálu bez exponentu či

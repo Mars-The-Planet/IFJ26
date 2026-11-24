@@ -198,7 +198,11 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       break;
 
     case RADIX_POINT_STATE:
-      state = radix_point(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+      state = radix_point(ch, tkn_str);
+      break;
+
+    case DOT_STATE:
+      state = dot(ch, tkn_ptr, indent_stack_ptr, tkn_str);
       break;
 
     case DOUBLE_SIMPLE_STATE:
@@ -425,7 +429,7 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     return DONE_STATE;
 
   case '.':
-    return RADIX_POINT_STATE;
+    return DOT_STATE;
 
   case ',':
     create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ",");
@@ -1321,8 +1325,9 @@ int int_zero(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
  * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
-int radix_point(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
-                dynamic_string_ptr tkn_str) {
+int dot(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
+        dynamic_string_ptr tkn_str) {
+  printf("ahoj\n");
   if (isdigit(ch)) {
     // vloží se tečka až zde aby se nekomplikovalo uvolňování paměti
     if (insert_last(tkn_str, '.') == 0 && insert_last(tkn_str, ch) == 0) {
@@ -1336,6 +1341,30 @@ int radix_point(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   ungetc(ch, stdin);
   create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ".");
   return DONE_STATE;
+}
+
+/**
+ * @brief Funkce reprezentující stav desetinné čárky desetinného literálu
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState
+ */
+int radix_point(int ch, dynamic_string_ptr tkn_str) {
+  if (isdigit(ch)) {
+    // vloží se tečka až zde aby se nekomplikovalo uvolňování paměti
+    if (insert_last(tkn_str, '.') == 0 && insert_last(tkn_str, ch) == 0) {
+      return DOUBLE_SIMPLE_STATE;
+    }
+
+    destroy_dynamic_string(tkn_str);
+    return INTERNAL_ERROR_STATE;
+  }
+
+  fprintf(stderr,
+          "ERROR: za desetinnou carkou musi byt alespon jedna cifra \'_\'\n");
+  return ERROR_STATE;
 }
 
 /**
