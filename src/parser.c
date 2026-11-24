@@ -1809,7 +1809,7 @@ void check_assign_types(AST_Node *var, AST_Node *expr) {
 
 
 void *special_malloc(size_t size) {
-  void *ptr = malloc(size);
+  void *ptr = calloc(1, size);
   if (ptr == NULL) {
     fprintf(stderr, MALLOC_FAIL);
     special_exit(99);
