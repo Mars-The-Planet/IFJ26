@@ -1362,8 +1362,7 @@ int radix_point(int ch, dynamic_string_ptr tkn_str) {
     return INTERNAL_ERROR_STATE;
   }
 
-  fprintf(stderr,
-          "ERROR: za desetinnou carkou musi byt alespon jedna cifra \'_\'\n");
+  fprintf(stderr, "ERROR: za desetinnou carkou musi byt alespon jedna cifra\n");
   return ERROR_STATE;
 }
 
