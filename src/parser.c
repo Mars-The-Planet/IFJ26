@@ -1142,6 +1142,7 @@ AST_Node *parse_for(int origin_indent) {
 
   check_next_token();
   temp_for->nodeData.forData.condition = parse_expression(NULL);
+  literal_to_type(temp_for->nodeData.forData.condition);
 
   // pokud má odsazení
   if (is_indent == true) {
@@ -1153,6 +1154,7 @@ AST_Node *parse_for(int origin_indent) {
       check_next_token();
 
       temp_for->nodeData.forData.if_condition = parse_expression(NULL);
+      literal_to_type(temp_for->nodeData.forData.if_condition);
 
       check_for_eol();
     }
@@ -1247,6 +1249,7 @@ AST_Node *parse_while(int origin_indent) {
 
   check_next_token();
   temp_while->nodeData.whileData.condition = parse_expression(NULL);
+  literal_to_type(temp_while->nodeData.whileData.condition);
 
   // nevolám next_token protože počítám stím že ho zavolal funkce
   // parse_expression
