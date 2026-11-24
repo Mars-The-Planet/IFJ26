@@ -33,14 +33,14 @@
 #include <string.h>
 
 #include "generator.h"
+#include "symtable.h"
 
 /**list funkcí */
 static AST_Node *function_list = NULL;
 
-
 /**
- * @brief funkce pro určení posledního uzlu, používal jsem často tak jsem udělal
- * funkci
+ * @brief funkce pro určení posledního uzlu, používal jsem často tak jsem
+ * udělal funkci
  */
 AST_Node *last_node(AST_Node *node) {
   if (node == NULL) {
@@ -110,8 +110,442 @@ dataType get_param_type(const char *func_name, int index) {
 }
 
 /**
- * @brief vrací nové unikátní číslo pro návěští (skoky)
+ * @brief informace o jedné proměnné (nebo parametru funkce)
  */
+typedef struct VariableInfo {
+  const char *original_name; // jméno ve zdrojovém kódu
+  char *unique_name;         // jméno v IFJcode26, unikátní v rámci funkce
+  dataType type;             // typ proměnné
+  dataType element_type;     // typ prvků, pokud je proměnná seznam
+  int function_id;           // ve které funkci proměnná je
+  int scope_depth;           // hloubka bloku, ve kterém je definovaná
+  bool visible;              // false, jakmile blok skončí
+} VariableInfo;
+
+static VariableInfo *all_variables = NULL;
+static int all_variables_count = 0;
+static int all_variables_capacity = 0;
+
+static int current_function_id = 0;
+static int next_function_id = 1;
+static int current_scope_depth = 0;
+
+// stav zjišťování typů funkcí: 0 = ještě ne, 1 = právě probíhá, 2 = hotovo
+static unsigned char *function_states = NULL;
+static int function_count = 0;
+
+/**
+ * @brief kopie řetězce (strdup není v striktním C11 dostupný)
+ */
+static char *copy_string(const char *source) {
+  size_t length = strlen(source) + 1;
+  char *copy = malloc(length);
+  if (copy == NULL) {
+    fprintf(stderr, "ERROR: Memory allocation failed!\n");
+    exit(99);
+  }
+  memcpy(copy, source, length);
+  return copy;
+}
+
+/**
+ * @brief najde uživatelskou funkci podle jména
+ * @return uzel FUN_DEF, nebo NULL (vestavěná funkce / neexistuje)
+ */
+static AST_Node *find_function(const char *name) {
+  for (AST_Node *fun = function_list; fun; fun = fun->next) {
+    if (fun->type == FUN_DEF &&
+        strcmp(fun->nodeData.funData.fun_name, name) == 0) {
+      return fun;
+    }
+  }
+  return NULL;
+}
+
+/**
+ * @brief otevře nový blok (tělo if, while, for)
+ */
+static void scope_open(void) { current_scope_depth++; }
+
+/**
+ * @brief zavře blok, proměnné z něj už nejsou vidět
+ */
+static void scope_close(void) {
+  for (int i = 0; i < all_variables_count; i++) {
+    if (all_variables[i].function_id == current_function_id &&
+        all_variables[i].scope_depth == current_scope_depth) {
+      all_variables[i].visible = false;
+    }
+  }
+  current_scope_depth--;
+}
+
+/**
+ * @brief je jméno už použité jako unikátní jméno v aktuální funkci?
+ */
+static bool unique_name_in_use(const char *name) {
+  for (int i = 0; i < all_variables_count; i++) {
+    if (all_variables[i].function_id == current_function_id &&
+        strcmp(all_variables[i].unique_name, name) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief vytvoří jméno, které se v aktuální funkci ještě nepoužilo
+ */
+static char *make_unique_name(const char *original_name) {
+  if (!unique_name_in_use(original_name)) {
+    return copy_string(original_name);
+  }
+
+  char candidate[512];
+  int suffix = 2;
+  while (true) {
+    int written =
+        snprintf(candidate, sizeof(candidate), "%s$%d", original_name, suffix);
+    (void)written;
+    if (!unique_name_in_use(candidate)) {
+      return copy_string(candidate);
+    }
+    suffix++;
+  }
+}
+
+/**
+ * @brief zaregistruje proměnnou v aktuálním bloku
+ * @return ukazatel na záznam (platí jen do další registrace)
+ */
+static VariableInfo *declare_variable(const char *original_name, dataType type,
+                                      dataType element_type) {
+  if (all_variables_count == all_variables_capacity) {
+    if (all_variables_capacity == 0) {
+      all_variables_capacity = 64;
+    } else {
+      all_variables_capacity = all_variables_capacity * 2;
+    }
+    VariableInfo *bigger = realloc(
+        all_variables, (size_t)all_variables_capacity * sizeof(VariableInfo));
+    if (bigger == NULL) {
+      fprintf(stderr, "ERROR: Memory allocation failed!\n");
+      exit(99);
+    }
+    all_variables = bigger;
+  }
+  VariableInfo *info = &all_variables[all_variables_count];
+  all_variables_count++;
+
+  info->original_name = original_name;
+  info->unique_name = make_unique_name(original_name);
+  info->type = type;
+  info->element_type = element_type;
+  info->function_id = current_function_id;
+  info->scope_depth = current_scope_depth;
+  info->visible = true;
+  return info;
+}
+
+/**
+ * @brief najde proměnnou podle jména ze zdrojáku mezi viditelnými
+ * (nejvnitřnější definice má přednost)
+ */
+static VariableInfo *find_visible_variable(const char *name) {
+  for (int i = all_variables_count - 1; i >= 0; i--) {
+    if (all_variables[i].visible &&
+        all_variables[i].function_id == current_function_id &&
+        strcmp(all_variables[i].original_name, name) == 0) {
+      return &all_variables[i];
+    }
+  }
+  return NULL;
+}
+
+/**
+ * @brief najde proměnnou podle ukazatele na její unikátní jméno
+ * (uzly stromu po průchodu ukazují přímo na tento řetězec)
+ */
+static VariableInfo *find_variable_by_unique(const char *unique_name) {
+  for (int i = 0; i < all_variables_count; i++) {
+    if (all_variables[i].unique_name == unique_name) {
+      return &all_variables[i];
+    }
+  }
+  return NULL;
+}
+
+/**
+ * @brief výsledný typ aritmetické operace: Double, pokud je některý operand
+ * Double, jinak Int
+ */
+static dataType unify_numeric(dataType left, dataType right) {
+  if (left == TYPE_DOUBLE || right == TYPE_DOUBLE) {
+    return TYPE_DOUBLE;
+  }
+  if (left == TYPE_UNDEF) {
+    return right;
+  }
+  return left;
+}
+// opravit
+static void infer_node(AST_Node *node);
+static void infer_function(AST_Node *fun);
+
+/**
+ * @brief návratový typ uživatelské funkce, pokud není uvedený, dopočítá se z
+ * těla funkce (při rekurzi bez uvedeného typu zůstane TYPE_UNDEF)
+ */
+static dataType user_function_return_type(AST_Node *fun) {
+  infer_function(fun);
+  return fun->nodeData.funData.return_type;
+}
+
+/**
+ * @brief projde posloupnost příkazů a vrátí typ hodnoty bloku: typ posledního
+ * příkazu, nebo Unit, pokud po sobě poslední příkaz hodnotu nenechává
+ */
+static dataType infer_block(AST_Node *first) {
+  dataType block_type = TYPE_UNIT;
+  for (AST_Node *node = first; node; node = node->next) {
+    infer_node(node);
+    if (leaves_value(node)) {
+      block_type = node->result;
+    } else {
+      block_type = TYPE_UNIT;
+    }
+  }
+  return block_type;
+}
+
+/**
+ * @brief doplní result do uzlu a všech jeho potomků a přejmenuje proměnné
+ */
+static void infer_node(AST_Node *node) {
+  if (node == NULL) {
+    return;
+  }
+
+  switch (node->type) {
+  case LITERAL_INT:
+    node->result = TYPE_INT;
+    break;
+
+  case LITERAL_DOUBLE:
+    node->result = TYPE_DOUBLE;
+    break;
+
+  case LITERAL_STRING:
+    node->result = TYPE_STRING;
+    break;
+
+  case LITERAL_BOOL:
+    node->result = TYPE_BOOL;
+    break;
+
+  case LITERAL_UNIT:
+    node->result = TYPE_UNIT;
+    break;
+
+  case IDENT: {
+    VariableInfo *info =
+        find_visible_variable(node->nodeData.idVarData.id_name);
+    if (info) {
+      node->nodeData.idVarData.id_name = info->unique_name;
+      node->result = info->type;
+    } else {
+      node->result = TYPE_UNDEF;
+    }
+    break;
+  }
+
+  case ADD:
+    infer_node(node->nodeData.biData.left);
+    infer_node(node->nodeData.biData.right);
+    if (node->nodeData.biData.left->result == TYPE_STRING ||
+        node->nodeData.biData.right->result == TYPE_STRING) {
+      node->result = TYPE_STRING;
+    } else {
+      node->result = unify_numeric(node->nodeData.biData.left->result,
+                                   node->nodeData.biData.right->result);
+    }
+    break;
+
+  case SUB:
+  case MUL:
+  case DIV:
+    infer_node(node->nodeData.biData.left);
+    infer_node(node->nodeData.biData.right);
+    node->result = unify_numeric(node->nodeData.biData.left->result,
+                                 node->nodeData.biData.right->result);
+    break;
+
+  case LESS:
+  case LESS_EQUAL:
+  case GREATER:
+  case GREATER_EQUAL:
+  case EQUALS:
+  case NOT_EQUAL:
+  case AND_N:
+  case OR_N:
+    infer_node(node->nodeData.biData.left);
+    infer_node(node->nodeData.biData.right);
+    node->result = TYPE_BOOL;
+    break;
+
+  case NOT_N:
+    infer_node(node->nodeData.uData.single);
+    node->result = TYPE_BOOL;
+    break;
+
+  case UMINUS:
+  case UPLUS:
+    infer_node(node->nodeData.uData.single);
+    node->result = node->nodeData.uData.single->result;
+    break;
+
+  case FUN_CALL: {
+    for (AST_Node *argument = node->nodeData.callFunData.fun_args; argument;
+         argument = argument->next) {
+      infer_node(argument);
+    }
+
+    char *name = node->nodeData.callFunData.call_fun_name;
+
+    AST_Node *fun = find_function(name);
+    if (fun) {
+      node->result = user_function_return_type(fun);
+    } else {
+      node->result = TYPE_UNDEF;
+    }
+    break;
+  }
+
+  case VAR_DEF: {
+    AST_Node *expression = node->nodeData.varData.expression;
+    infer_node(expression);
+
+    dataType declared_type = node->nodeData.varData.varType;
+    dataType variable_type = declared_type;
+    dataType element_type = TYPE_UNDEF;
+
+    // typ není uveden, vezme se z výrazu
+    if (variable_type == TYPE_UNDEF && expression) {
+      variable_type = expression->result;
+    }
+
+    VariableInfo *info = declare_variable(node->nodeData.varData.var_name,
+                                          variable_type, element_type);
+    node->nodeData.varData.var_name = info->unique_name;
+    node->nodeData.varData.varType = variable_type;
+    node->result = TYPE_UNIT;
+    break;
+  }
+
+  case ASSIGN: {
+    infer_node(node->nodeData.assignData.equal);
+    VariableInfo *info =
+        find_visible_variable(node->nodeData.assignData.var_name);
+    if (info) {
+      node->nodeData.assignData.var_name = info->unique_name;
+    }
+    node->result = TYPE_UNIT;
+    break;
+  }
+
+  case RETURN: {
+    AST_Node *expression = node->nodeData.returnData.expression;
+    infer_node(expression);
+    if (expression) {
+      node->result = expression->result;
+    } else {
+      node->result = TYPE_UNIT;
+    }
+    break;
+  }
+
+  case IF_N: {
+    infer_node(node->nodeData.ifData.condition);
+
+    scope_open();
+    dataType then_type = infer_block(node->nodeData.ifData.then_part);
+    scope_close();
+
+    if (node->nodeData.ifData.else_part == NULL) {
+      node->result = TYPE_UNIT;
+      break;
+    }
+
+    scope_open();
+    dataType else_type = infer_block(node->nodeData.ifData.else_part);
+    scope_close();
+
+    if (then_type == else_type) {
+      node->result = then_type;
+    } else if ((then_type == TYPE_INT && else_type == TYPE_DOUBLE) ||
+               (then_type == TYPE_DOUBLE && else_type == TYPE_INT)) {
+      node->result = TYPE_DOUBLE;
+    } else if (then_type == TYPE_UNIT || else_type == TYPE_UNIT) {
+      node->result = TYPE_UNIT;
+    } else {
+      node->result = then_type;
+    }
+    break;
+  }
+
+  case WHILE_N:
+    infer_node(node->nodeData.whileData.condition);
+    scope_open();
+    infer_block(node->nodeData.whileData.body);
+    scope_close();
+    node->result = TYPE_UNIT;
+    break;
+
+  default:
+    break;
+  }
+}
+
+/**
+ * @brief projde jednu funkci (parametry, tělo) a dopočítá její návratový typ
+ * pokud není uvedený. Funkce se projde nejvýše jednou, volá se i při
+ * zjišťování typu volání (volaná funkce se projde dřív než volající).
+ */
+static void infer_function(AST_Node *fun) {
+  int index = 0;
+  for (AST_Node *current = function_list; current && current != fun;
+       current = current->next) {
+    index++;
+  }
+  if (index >= function_count || function_states[index] != 0) {
+    return;
+  }
+  function_states[index] = 1;
+
+  // rozpracovaná funkce se uloží, protože se může projít uprostřed jiné
+  int saved_function_id = current_function_id;
+  int saved_scope_depth = current_scope_depth;
+  current_function_id = next_function_id;
+  next_function_id++;
+  current_scope_depth = 0;
+
+  head *params = fun->nodeData.funData.param_list;
+  if (params) {
+    for (ListParam *param = params->first; param; param = param->next) {
+      declare_variable(param->param_name, param->type, param->list_type);
+    }
+  }
+
+  dataType body_type = infer_block(fun->nodeData.funData.body);
+
+  if (fun->nodeData.funData.return_type == TYPE_UNDEF) {
+    fun->nodeData.funData.return_type = body_type;
+  }
+
+  function_states[index] = 2;
+  current_function_id = saved_function_id;
+  current_scope_depth = saved_scope_depth;
+}
 
 static int actual_label_number = 0;
 
@@ -139,15 +573,17 @@ void literal_double(double value) { printf("PUSHS float@%a\n", value); }
 // opravit
 
 /**
- * @brief string 
- * 
- * pužití ai, zeptal jsem se jak udělat funkci na string která bere všechny znaky, přečetl jsem si jak to funguje a při druhém odevzdání doplním komentáře
- * 
+ * @brief string
+ *
+ * pužití ai, zeptal jsem se jak udělat funkci na string která bere všechny
+ * znaky, přečetl jsem si jak to funguje a při druhém odevzdání doplním
+ * komentáře
+ *
  * @param string string
  */
 void literal_string(char *string) {
   printf("PUSHS string@");
-  for ( unsigned char *c = ( unsigned char *)string; *c; c++) {
+  for (unsigned char *c = (unsigned char *)string; *c; c++) {
     if (*c <= 32 || *c == 35 || *c == 92) {
       printf("\\%03d", *c);
     } else {
@@ -189,11 +625,12 @@ void int_to_float(void) { printf("INT2FLOATS\n"); }
  * @brief pomocná funkce pro generátor kódu pro relace, vygeneruje kód pro oba
  * operandy a pokud je potřeba provede konverzi z int na float
  *
- * jeden příklad funkce pomocí ai, původně jsem chtěl zjiťovat typ pomocí makra
- * _Generic, které jsem si dohledal na internetu když jsem nad tímto problémem
- * přemýšlel, nebyl jsem si ale úplně jistý jak funguje, tak jsem se zeptal ai
- * konkrétně Claude, zda je možné to použít v tomto případě, dostal jsem odpověď
- * že ne, jelikož makro by vzalo typ v C, nikoliv v mnou požadovaných jazycích.
+ * jeden příklad funkce pomocí ai, původně jsem chtěl zjiťovat typ pomocí
+ * makra _Generic, které jsem si dohledal na internetu když jsem nad tímto
+ * problémem přemýšlel, nebyl jsem si ale úplně jistý jak funguje, tak jsem se
+ * zeptal ai konkrétně Claude, zda je možné to použít v tomto případě, dostal
+ * jsem odpověď že ne, jelikož makro by vzalo typ v C, nikoliv v mnou
+ * požadovaných jazycích.
  *
  * @param node ukazatel na uzel AST
  */
@@ -471,17 +908,18 @@ void assign(AST_Node *node) {
   char *name = node->nodeData.assignData.var_name;
   AST_Node *expression = node->nodeData.assignData.equal;
 
-  dataType var_type = expression->result;
-
   generate_node(expression);
 
   // pokud je uzel typu UNIT
-  if (var_type == TYPE_UNIT) {
+  if (!leaves_value(expression)) {
     printf("MOVE LF@%s nil@nil\n", name);
     return;
   }
 
-  if (var_type == TYPE_DOUBLE && expression->result == TYPE_INT) {
+  // typ proměnné se hledá v tabulce proměnných (jména jsou unikátní)
+  VariableInfo *variable = find_variable_by_unique(name);
+  if (variable && variable->type == TYPE_DOUBLE &&
+      expression->result == TYPE_INT) {
     int_to_float();
   }
 
@@ -555,7 +993,6 @@ void generate_if(AST_Node *node) {
   }
 }
 
-
 /**
  * @brief reprezentace seznamu jako pole na indexu 0 délka, dál ostatní prvky
  */
@@ -580,7 +1017,6 @@ void generate_list(AST_Node *node) {
 
   printf("PUSHS GF@$t1\n");
 }
-
 
 /**
  * @brief pro generování return
@@ -767,23 +1203,35 @@ void generate_fun(AST_Node *node) {
  * @brief vestavěná funkce readInt
  */
 void read_int() {
-  int label_number = get_new_label();     //vytvoří návěští
-  printf("CREATEFRAME\n"    //nový dočasný rámec
-         "PUSHFRAME\n"      //dočasný rámec se stane lokálním
-         "DEFVAR LF@$$input\n"      // načtená hodnota
-         "DEFVAR LF@$$comparator\n" // pomocná hodnota pro porovnávání
-         "READ LF@$$input int\n"    //načte řádek jako int, při chybě uloží nil
-         "JUMPIFEQ $readInt%d_wrong LF@$$input nil@nil\n" //pokud byl uložen nil=>chyba=>skočí na error výsledek 0
-         "GT LF@$$comparator LF@$$input int@2147483647\n" //porovná hodnotu s velikostí intu
-         "JUMPIFEQ $readInt%d_wrong LF@$$comparator bool@true\n"  //je mimo rozsah=>skok na error výsledek 0
-         "LT LF@$$comparator LF@$$input int@-2147483648\n"  //porovná hodnotu s velikostí intu
-         "JUMPIFEQ $readInt%d_wrong LF@$$comparator bool@true\n"  //je mimo rozsah=>skok na error výsledek 0
-         "JUMP $readInt%d_ok\n" //jestli doposud nehlásil chybu je v pořádku a skáče nakonec
-         "LABEL $readInt%d_wrong\n" //zde začíná oprava cyhby
-         "MOVE LF@$$input int@0\n"  //chybný vstup se podle specifikace převede na 0
-         "LABEL $readInt%d_ok\n"  //prostě label pokud je ok
-         "PUSHS LF@$$input\n" //výsledek na zásobník
-         "POPFRAME\n",  //zahodí rámec a vrátí původní
+  int label_number = get_new_label(); // vytvoří návěští
+  printf("CREATEFRAME\n"              // nový dočasný rámec
+         "PUSHFRAME\n"                // dočasný rámec se stane lokálním
+         "DEFVAR LF@$$input\n"        // načtená hodnota
+         "DEFVAR LF@$$comparator\n"   // pomocná hodnota pro porovnávání
+         "READ LF@$$input int\n" // načte řádek jako int, při chybě uloží nil
+         "JUMPIFEQ $readInt%d_wrong LF@$$input nil@nil\n" // pokud byl uložen
+                                                          // nil=>chyba=>skočí
+                                                          // na error výsledek 0
+         "GT LF@$$comparator LF@$$input int@2147483647\n" // porovná hodnotu s
+                                                          // velikostí intu
+         "JUMPIFEQ $readInt%d_wrong LF@$$comparator bool@true\n" // je mimo
+                                                                 // rozsah=>skok
+                                                                 // na error
+                                                                 // výsledek 0
+         "LT LF@$$comparator LF@$$input int@-2147483648\n" // porovná hodnotu s
+                                                           // velikostí intu
+         "JUMPIFEQ $readInt%d_wrong LF@$$comparator bool@true\n" // je mimo
+                                                                 // rozsah=>skok
+                                                                 // na error
+                                                                 // výsledek 0
+         "JUMP $readInt%d_ok\n" // jestli doposud nehlásil chybu je v pořádku a
+                                // skáče nakonec
+         "LABEL $readInt%d_wrong\n" // zde začíná oprava cyhby
+         "MOVE LF@$$input int@0\n"  // chybný vstup se podle specifikace převede
+                                    // na 0
+         "LABEL $readInt%d_ok\n"    // prostě label pokud je ok
+         "PUSHS LF@$$input\n"       // výsledek na zásobník
+         "POPFRAME\n",              // zahodí rámec a vrátí původní
          label_number, label_number, label_number, label_number, label_number,
          label_number);
 }
@@ -792,16 +1240,18 @@ void read_int() {
  * @brief vestavěná funkce readDouble, při chybě vrací 0.0
  */
 void read_double() {
-  int label_number = get_new_label(); //vytvoří návěští
-  printf("CREATEFRAME\n"  //nový dočasný rámec
-         "PUSHFRAME\n"   //dočasný rámec se stane lokálním
-         "DEFVAR LF@$$input\n"  // načtená hodnota
-         "READ LF@$$input float\n"  //opět načte řádek nebo nil pokud je špatný vstup
-         "JUMPIFNEQ $readDouble%d_end LF@$$input nil@nil\n" //není nil=>ok skočí na konec
-         "MOVE LF@$$input float@%a\n" //výsledek nil
-         "LABEL $readDouble%d_end\n"  //pro ok
-         "PUSHS LF@$$input\n" //výsledek na zásobník
-         "POPFRAME\n",  //zahodí rámec a vrátí původní
+  int label_number = get_new_label(); // vytvoří návěští
+  printf("CREATEFRAME\n"              // nový dočasný rámec
+         "PUSHFRAME\n"                // dočasný rámec se stane lokálním
+         "DEFVAR LF@$$input\n"        // načtená hodnota
+         "READ LF@$$input float\n"    // opět načte řádek nebo nil pokud je
+                                      // špatný vstup
+         "JUMPIFNEQ $readDouble%d_end LF@$$input nil@nil\n" // není nil=>ok
+                                                            // skočí na konec
+         "MOVE LF@$$input float@%a\n"                       // výsledek nil
+         "LABEL $readDouble%d_end\n"                        // pro ok
+         "PUSHS LF@$$input\n" // výsledek na zásobník
+         "POPFRAME\n",        // zahodí rámec a vrátí původní
          label_number, 0.0, label_number);
 }
 
@@ -809,11 +1259,11 @@ void read_double() {
  * @brief vestavěná funkce readLine, při EOF vrací prázdný řetězec
  */
 void read_line() {
-  int label_number = get_new_label(); 
-  printf("CREATEFRAME\n"  
-         "PUSHFRAME\n"  
-         "DEFVAR LF@$$input\n"  //proměnná s načtenou hodnotou
-         "READ LF@$$input string\n" 
+  int label_number = get_new_label();
+  printf("CREATEFRAME\n"
+         "PUSHFRAME\n"
+         "DEFVAR LF@$$input\n" // proměnná s načtenou hodnotou
+         "READ LF@$$input string\n"
          "JUMPIFNEQ $readLine%d_end LF@$$input nil@nil\n"
          "MOVE LF@$$input string@\n"
          "LABEL $readLine%d_end\n"
@@ -1224,7 +1674,6 @@ void generate_node(AST_Node *node) {
     generate_list(node);
     break;
 
-
   case RETURN:
     generate_return(node);
     break;
@@ -1232,9 +1681,8 @@ void generate_node(AST_Node *node) {
     // todo: doplnit další uzly AST
 
   case FOR_N:
-  //opravit
+    // opravit
     break;
-
 
   case DOT_ACCESS:
     break;
@@ -1253,14 +1701,29 @@ void generate_node(AST_Node *node) {
  * @param functions linked list který dodá parser
  * @param main_name jméno mainu
  */
-void generate_program(stack *functions, const char *main_name) {
+void generate_program(stackPtr functions, const char *main_name) {
 
+  // ze zásobníku se vyndají funkce a poskládají se do linked listu
   function_list = NULL;
   AST_Node *function;
   while ((function = stack_top(functions)) != NULL) {
     stack_pop(functions);
     function->next = function_list;
     function_list = function;
+  }
+
+  // dopočítá typy (result) a unikátní jména proměnných pro všechny funkce
+  function_count = 0;
+  for (AST_Node *fun = function_list; fun; fun = fun->next) {
+    function_count++;
+  }
+  function_states = calloc((size_t)function_count + 1, 1);
+  if (function_states == NULL) {
+    fprintf(stderr, "ERROR: Memory allocation failed!\n");
+    exit(99);
+  }
+  for (AST_Node *fun = function_list; fun; fun = fun->next) {
+    infer_function(fun);
   }
 
   printf(".IFJcode26\n");
@@ -1276,4 +1739,9 @@ void generate_program(stack *functions, const char *main_name) {
   printf("LABEL $program_start\n");
   printf("CALL $function$%s\n", main_name);
   printf("EXIT int@0\n");
+
+  free(function_states);
+  function_states = NULL;
+  free(all_variables);
+  all_variables = NULL;
 }
