@@ -62,9 +62,5 @@ int main() {
 
   generate_program(func_stack, main_node->nodeData.funData.fun_name);
 
-  stack_dtor(stack_indent);
-  symbol_table_dtor(symbol_table);
-  stack_dtor(used_symbols);
-  stack_dtor(memory_allocs);
-  return 0;
+  special_exit(0);
 }

@@ -1855,6 +1855,9 @@ void special_exit(int code) {
     free(stack_top(memory_allocs));
     stack_pop(memory_allocs);
   }
-  free(memory_allocs);
+  stack_dtor(stack_indent);
+  symbol_table_dtor(symbol_table);
+  stack_dtor(used_symbols);
+  stack_dtor(memory_allocs);
   exit(code);
 }
