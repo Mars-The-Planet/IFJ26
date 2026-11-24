@@ -1508,6 +1508,7 @@ int check_pop() {
         }
         if (count_args(temp->nodeData.callFunData.fun_args) !=
             count_params(found_node->nodeData.funData.param_list->first)) {
+          fprintf(stderr, INVALID_ARG_AMOUNT, found_node->nodeData.funData.fun_name);
           special_exit(5);
         }
         temp->result = found_node->result;
@@ -1516,7 +1517,8 @@ int check_pop() {
         AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
         while (current_param != NULL) {
           if (!compare_param_arg(current_param, current_arg)) {
-            failed = 1;
+            fprintf(stderr, INVALID_ARG_TYPE, found_node->nodeData.funData.fun_name);
+            special_exit(5);
           }
           current_param = current_param->next;
           current_arg = current_arg->next;
@@ -1784,8 +1786,7 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   }
   if (a == b)
     return true;
-  if (imp_double_int && ((a == TYPE_INT && b == TYPE_DOUBLE) ||
-                         (a == TYPE_DOUBLE && b == TYPE_INT)))
+  if ((imp_double_int && a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT))
     return true;
   if (a == TYPE_UNDEF)
     return true;
