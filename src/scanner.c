@@ -20,6 +20,11 @@ int indentTotalCount = 0;
 int indentLineCount = 0;
 
 /**
+ * @brief Počítadlo vnořených několikařádkových komentářů
+ */
+int nestedCommentsCount = 0;
+
+/**
  * @brief Sleduje zda poslední token byl EOL pro výpočet odsazení
  */
 bool lastTokenWasEOL = false;
@@ -118,8 +123,16 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       state = simple_multiline_comment_end(ch);
       break;
 
+    case SIMPLE_MULTILINE_COMMENT_START_NESTED_STATE:
+      state = simple_multiline_comment_nested_start(ch);
+      break;
+
     case MULTILINE_COMMENT_STATE:
       state = multiline_comment(ch);
+      break;
+
+    case MULTILINE_COMMENT_NESTED_STATE:
+      state = multiline_comment_nested(ch);
       break;
 
     case MULTILINE_COMMENT_END_STATE:
@@ -185,7 +198,11 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       break;
 
     case RADIX_POINT_STATE:
-      state = radix_point(ch, tkn_ptr, indent_stack_ptr, tkn_str);
+      state = radix_point(ch, tkn_str);
+      break;
+
+    case DOT_STATE:
+      state = dot(ch, tkn_ptr, indent_stack_ptr, tkn_str);
       break;
 
     case DOUBLE_SIMPLE_STATE:
@@ -225,7 +242,8 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       break;
 
     default:
-      fprintf(stderr, "Neznamy stav, stav: %d, znak char: %c, znak ascii: %d\n",
+      fprintf(stderr,
+              "ERROR: Neznamy stav, stav: %d, znak char: %c, znak ascii: %d\n",
               state, ch, ch);
       return 1;
     }
@@ -241,8 +259,6 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       return 0;
     } else if (state == ERROR_STATE) {
       destroy_dynamic_string(tkn_str);
-      fprintf(stderr, "Neznamy token, stav: %d, znak: %c, znak ascii: %d\n",
-              state, ch, ch);
       return 1;
     }
   }
@@ -413,7 +429,7 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     return DONE_STATE;
 
   case '.':
-    return RADIX_POINT_STATE;
+    return DOT_STATE;
 
   case ',':
     create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ",");
@@ -514,7 +530,8 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     return START_STATE;
 
   default:
-    fprintf(stderr, "Znak \'%c\', Decimal: %d, neni podporovany vstupni znak\n",
+    fprintf(stderr,
+            "ERROR: Znak \'%c\', Decimal: %d, neni podporovany vstupni znak\n",
             ch, ch);
     return ERROR_STATE;
   }
@@ -535,8 +552,8 @@ int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return DONE_STATE;
 
   default:
-    fprintf(stderr,
-            "Po jednom znaku \'&\' muze nasledovat pouze dalsi znak \'&\'\n");
+    fprintf(stderr, "ERROR: Po jednom znaku \'&\' muze nasledovat pouze dalsi "
+                    "znak \'&\'\n");
     return ERROR_STATE;
   }
 }
@@ -556,8 +573,8 @@ int bar(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return DONE_STATE;
 
   default:
-    fprintf(stderr,
-            "Po jednom znaku \'|\' muze nasledovat pouze dalsi znak \'|\'\n");
+    fprintf(stderr, "ERROR: Po jednom znaku \'|\' muze nasledovat pouze dalsi "
+                    "znak \'|\'\n");
     return ERROR_STATE;
   }
 }
@@ -675,6 +692,7 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return SINGLELINE_COMMENT_STATE;
 
   case '*':
+    nestedCommentsCount++;
     return MULTILINE_COMMENT_START_STATE;
 
   default:
@@ -715,13 +733,39 @@ int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
 int multiline_comment_start(int ch) {
+  if (ch == '/') {
+    return SIMPLE_MULTILINE_COMMENT_START_NESTED_STATE;
+  }
   if (ch == '*') {
     return SIMPLE_MULTILINE_COMMENT_END_STATE;
   } else if (ch == '\n') {
     return MULTILINE_COMMENT_STATE;
   }
   if (ch == EOF) {
-    fprintf(stderr, "EOF pred ukoncenim nekolikaradkoveho komentare\n");
+    fprintf(stderr, "ERROR: EOF pred ukoncenim nekolikaradkoveho komentare\n");
+    return ERROR_STATE;
+  }
+
+  return MULTILINE_COMMENT_START_STATE;
+}
+
+/**
+ * @brief Funkce reprezentující stav začátku několikařádkového komentáře kde
+ * znak '\' značí začátek vnořeného komentáře LF značí že se bude jednat o
+ * několikařádkový komentář, který bude doopravdy na několik řádků obsah
+ * komentáře konzumujeme
+ * @param ch načtený znak do automatu
+ * @return vrací int reprezntující stav KA. LA. scannerState
+ */
+int simple_multiline_comment_nested_start(int ch) {
+  if (ch == '*') {
+    nestedCommentsCount++;
+    return MULTILINE_COMMENT_START_STATE;
+  } else if (ch == '\n') {
+    return MULTILINE_COMMENT_STATE;
+  }
+  if (ch == EOF) {
+    fprintf(stderr, "ERROR: EOF pred ukoncenim nekolikaradkoveho komentare\n");
     return ERROR_STATE;
   }
 
@@ -743,6 +787,10 @@ int simple_multiline_comment_end(int ch) {
   switch (ch) {
 
   case '/':
+    nestedCommentsCount--;
+    if (nestedCommentsCount > 0) {
+      return MULTILINE_COMMENT_START_STATE;
+    }
     return START_STATE;
 
   case '*':
@@ -767,6 +815,26 @@ int multiline_comment(int ch) {
   if (ch == '*') {
     return MULTILINE_COMMENT_END_STATE;
   }
+  if (ch == '/') {
+    return MULTILINE_COMMENT_NESTED_STATE;
+  }
+
+  return MULTILINE_COMMENT_STATE;
+}
+
+/**
+ * @brief Funkce reprezentující stav obsha několikařádkového komentáře s
+ * možností vzniku zanořeného komentáře
+ * * nás připraví na případné ukočnení komentáře
+ * LF a tisknutelné znaky konzumujeme
+ * @param ch načtený znak do automatu
+ * @return vrací int reprezntující stav KA. LA. scannerState
+ */
+int multiline_comment_nested(int ch) {
+  if (ch == '*') {
+    nestedCommentsCount++;
+    return MULTILINE_COMMENT_END_STATE;
+  }
 
   return MULTILINE_COMMENT_STATE;
 }
@@ -781,6 +849,10 @@ int multiline_comment(int ch) {
  */
 int multiline_comment_end(int ch) {
   if (ch == '/') {
+    nestedCommentsCount--;
+    if (nestedCommentsCount > 0) {
+      return MULTILINE_COMMENT_STATE;
+    }
     return MULTILINE_COMMENT_TAIL_STATE;
   } else if (ch == '*') {
     return MULTILINE_COMMENT_END_STATE;
@@ -816,8 +888,9 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr,
     return DONE_STATE;
 
   default:
-    fprintf(stderr, "Po nekolika radkovem blokovem komentari mohou nasledovat "
-                    "pouze mezery ukoncene LF nebo EOL\n");
+    fprintf(stderr,
+            "ERROR: Po nekolika radkovem blokovem komentari mohou nasledovat "
+            "pouze mezery ukoncene LF nebo EOL\n");
     return ERROR_STATE;
   }
 }
@@ -847,7 +920,7 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     }
   }
 
-  fprintf(stderr, "Jedina podporovana anotace je @main\n");
+  fprintf(stderr, "ERROR: Jedina podporovana anotace je @main\n");
   return ERROR_STATE;
 }
 
@@ -873,7 +946,8 @@ int string_open(int ch, dynamic_string_ptr tkn_str) {
   }
 
   fprintf(stderr,
-          "Retezce mohou obsahovat pouze tisknutelne znaky, uvozovky a escape "
+          "ERROR: Retezce mohou obsahovat pouze tisknutelne znaky, uvozovky a "
+          "escape "
           "sekvence (\\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, "
           "neni podporovany znak\n",
           ch, ch);
@@ -927,7 +1001,8 @@ int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   }
 
   fprintf(stderr,
-          "Retezcove literaly mohou obsahovat pouze tisknutelne znaky a escape "
+          "ERROR: Retezcove literaly mohou obsahovat pouze tisknutelne znaky a "
+          "escape "
           "sekvence (\\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, "
           "neni podporovany znak\n",
           ch, ch);
@@ -983,7 +1058,8 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
 
   default:
     fprintf(stderr,
-            "Jedine podporovane escape sekvence jsou: \\\\, \\\", \\n, \\r a "
+            "ERROR: Jedine podporovane escape sekvence jsou: \\\\, \\\", \\n, "
+            "\\r a "
             "\\t. Znak \'%c\', Decimal: %d, neni podporovany znak\n",
             ch, ch);
     return ERROR_STATE;
@@ -1003,7 +1079,8 @@ int multiline_string(int ch, dynamic_string_ptr tkn_str) {
     return MULTILINE_STRING_CLOSING_STATE;
   }
   if (ch == EOF) {
-    fprintf(stderr, "EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
+    fprintf(stderr,
+            "ERROR: EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
     return ERROR_STATE;
   }
 
@@ -1027,7 +1104,8 @@ int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
     return MULTILINE_STRING_END_STATE;
   }
   if (ch == EOF) {
-    fprintf(stderr, "EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
+    fprintf(stderr,
+            "ERROR: EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
     return ERROR_STATE;
   }
 
@@ -1052,7 +1130,8 @@ int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
     return MULTILINE_STRING_DONE_STATE;
   }
   if (ch == EOF) {
-    fprintf(stderr, "EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
+    fprintf(stderr,
+            "ERROR: EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
     return ERROR_STATE;
   }
 
@@ -1107,8 +1186,9 @@ int underscore(int ch, dynamic_string_ptr tkn_str) {
     return IDENTIFIER_STATE;
   }
 
-  fprintf(stderr,
-          "Samotne podrzitko \'_\' nemuze byt pouzito jako identifikator\n");
+  fprintf(
+      stderr,
+      "ERROR: Samotne podrzitko \'_\' nemuze byt pouzito jako identifikator\n");
   return ERROR_STATE;
 }
 
@@ -1196,7 +1276,7 @@ int int_underscore(int ch, dynamic_string_ptr tkn_str) {
     return NON_ZERO_INTEGER_STATE;
   }
 
-  fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
+  fprintf(stderr, "ERROR: Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
   return ERROR_STATE;
 }
 
@@ -1245,8 +1325,9 @@ int int_zero(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
  * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
-int radix_point(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
-                dynamic_string_ptr tkn_str) {
+int dot(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
+        dynamic_string_ptr tkn_str) {
+  printf("ahoj\n");
   if (isdigit(ch)) {
     // vloží se tečka až zde aby se nekomplikovalo uvolňování paměti
     if (insert_last(tkn_str, '.') == 0 && insert_last(tkn_str, ch) == 0) {
@@ -1260,6 +1341,30 @@ int radix_point(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   ungetc(ch, stdin);
   create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, ".");
   return DONE_STATE;
+}
+
+/**
+ * @brief Funkce reprezentující stav desetinné čárky desetinného literálu
+ * @param ch načtený znak do automatu
+ * @param tkn_ptr token který vytváříme a budeme předávat
+ * @param indent_stack_ptr zásobník který vytváříme a budeme předávat
+ * @param tkn_str nafukovací řetězec do nějž ukládáme hodnotu tokenu
+ * @return vrací int reprezntující stav KA. LA. scannerState
+ */
+int radix_point(int ch, dynamic_string_ptr tkn_str) {
+  if (isdigit(ch)) {
+    // vloží se tečka až zde aby se nekomplikovalo uvolňování paměti
+    if (insert_last(tkn_str, '.') == 0 && insert_last(tkn_str, ch) == 0) {
+      return DOUBLE_SIMPLE_STATE;
+    }
+
+    destroy_dynamic_string(tkn_str);
+    return INTERNAL_ERROR_STATE;
+  }
+
+  fprintf(stderr,
+          "ERROR: za desetinnou carkou musi byt alespon jedna cifra \'_\'\n");
+  return ERROR_STATE;
 }
 
 /**
@@ -1318,7 +1423,7 @@ int radix_underscore(int ch, dynamic_string_ptr tkn_str) {
     return DOUBLE_SIMPLE_STATE;
   }
 
-  fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
+  fprintf(stderr, "ERROR: Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
   return ERROR_STATE;
 }
 
@@ -1350,7 +1455,7 @@ int non_zero(int ch, dynamic_string_ptr tkn_str) {
     return RADIX_POINT_STATE;
   }
 
-  fprintf(stderr, "Cislo zacinajici nulou muze byt nasledovano dalsimi "
+  fprintf(stderr, "ERROR: Cislo zacinajici nulou muze byt nasledovano dalsimi "
                   "cislicemi, pote teckou \'.\' a nebo e ci E znaci exponent, "
                   "a muze mit zaroven cifry rozdelene podrzitkem \'_\'\n");
   return ERROR_STATE;
@@ -1375,7 +1480,7 @@ int zero_underscore(int ch, dynamic_string_ptr tkn_str) {
     return NON_ZERO_STATE;
   }
 
-  fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
+  fprintf(stderr, "ERROR: Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
   return ERROR_STATE;
 }
 
@@ -1401,9 +1506,10 @@ int exponent(int ch, dynamic_string_ptr tkn_str) {
     return EXPONENT_SIGN_STATE;
   }
 
-  fprintf(stderr,
-          "Exponent desetinneho literalu muze zacinat znakem plus \'+\' ci "
-          "minus \'-\' a jinak se sklada z alespon jedne cislice\n");
+  fprintf(
+      stderr,
+      "ERROR: Exponent desetinneho literalu muze zacinat znakem plus \'+\' ci "
+      "minus \'-\' a jinak se sklada z alespon jedne cislice\n");
   return ERROR_STATE;
 }
 
@@ -1422,8 +1528,9 @@ int exponent_sign(int ch, dynamic_string_ptr tkn_str) {
     return DOUBLE_EXPONENT_STATE;
   }
 
-  fprintf(stderr, "Exponent desetinneho literalu muze po znaku plus \'+\' ci "
-                  "minus \'-\' musi obsahovat alespon jednu cislici\n");
+  fprintf(stderr,
+          "ERROR: Exponent desetinneho literalu muze po znaku plus \'+\' ci "
+          "minus \'-\' musi obsahovat alespon jednu cislici\n");
   return ERROR_STATE;
 }
 
@@ -1477,6 +1584,6 @@ int exponent_underscore(int ch, dynamic_string_ptr tkn_str) {
     return DOUBLE_EXPONENT_STATE;
   }
 
-  fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
+  fprintf(stderr, "ERROR: Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
   return ERROR_STATE;
 }
