@@ -71,7 +71,7 @@ int main() {
 
   if (main_node->nodeData.funData.return_type != TYPE_UNIT) {
     fprintf(stderr, MAIN_WRONG_RETURN);
-    special_exit(10);
+    special_exit(6);
   }
 
   stackPtr func_stack = stack_ctor();
