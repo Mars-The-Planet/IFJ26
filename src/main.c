@@ -33,6 +33,8 @@ int main() {
   has_main = 0; // nesmí mít parametry a výsledkem je unit
   youre_main_node = false;
   main_node = NULL;
+  exit_code = 0;
+  memory_allocs = stack_ctor();
 
   setup_builtins();
 
@@ -63,5 +65,6 @@ int main() {
   stack_dtor(stack_indent);
   symbol_table_dtor(symbol_table);
   stack_dtor(used_symbols);
+  stack_dtor(memory_allocs);
   return 0;
 }

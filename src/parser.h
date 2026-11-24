@@ -291,6 +291,10 @@ NodeType type_to_literal(dataType data_type);
 
 int count_params(ListParam *list);
 
+void* special_malloc(size_t size);
+
+void special_exit(int code);
+
 extern int has_main;
 
 extern bool youre_main_node;
@@ -302,5 +306,9 @@ extern token active_token;
 extern stackPtr stack_indent;
 
 extern stackPtr used_symbols;
+
+extern int exit_code;
+
+extern stackPtr memory_allocs;
 
 #endif // PARSER_H

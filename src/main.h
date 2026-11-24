@@ -26,6 +26,10 @@ stackPtr stack_indent;
 
 stackPtr used_symbols;
 
+int exit_code;
+
+stackPtr memory_allocs;
+
 char *ignored_funcs[] = {"print", "readLine", "readInt", "readDouble", "toStr", "toInt", "strLength", "subStr", "ord", "chr", NULL};
 
 #endif // MAIN_H
