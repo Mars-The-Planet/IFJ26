@@ -42,17 +42,17 @@ int main() {
   the_parser();
 
   if (has_main != 1) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    fprintf(stderr, NO_MAIN);
     special_exit(3);
   }
 
   if (count_params(main_node->nodeData.funData.param_list->first) != 0) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    fprintf(stderr, MAIN_HAS_PARAMS);
     special_exit(5);
   }
 
   if (main_node->nodeData.funData.return_type != TYPE_UNIT) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+    fprintf(stderr, MAIN_WRONG_RETURN);
     special_exit(10);
   }
 
