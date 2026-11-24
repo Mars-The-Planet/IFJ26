@@ -1796,9 +1796,9 @@ dataType literal_to_type(AST_Node *expr) {
   case GREATER_EQUAL:
     return get_operation_type(expr, false);
   case EQUALS:
-    return get_operation_type(expr, false);
+    return get_operation_type(expr, true);
   case NOT_EQUAL:
-    return get_operation_type(expr, false);
+    return get_operation_type(expr, true);
   case UMINUS:
     return get_operation_type(expr, false);
   case UPLUS:
