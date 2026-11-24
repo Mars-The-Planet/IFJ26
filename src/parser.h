@@ -35,7 +35,7 @@
  * @brief Výčet datových typů
  */
 typedef enum dataType {
-
+  TYPE_UNASSIGNED,
   TYPE_INT,
   TYPE_DOUBLE,
   TYPE_STRING,
@@ -307,6 +307,8 @@ void* special_malloc(size_t size);
 char* special_strdup(char *str);
 
 void special_exit(int code);
+
+dataType getVarType(AST_Node *var);
 
 extern int has_main;
 

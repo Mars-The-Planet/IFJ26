@@ -1726,8 +1726,11 @@ dataType literal_to_type(AST_Node *expr) {
         get_symbol(symbol_table, expr->nodeData.assignData.var_name);
     return literal_to_type(ident);
   }
-  case FUN_CALL:
-    return expr->nodeData.funData.return_type;
+  case FUN_CALL: {
+    AST_Node *func_def =
+    get_symbol(symbol_table, expr->nodeData.funData.fun_name);
+    return func_def->nodeData.funData.return_type;
+  }
   case ADD:
     return get_operation_type(expr, true);
   case SUB:
@@ -1797,10 +1800,19 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   return false;
 }
 
+
+dataType getVarType(AST_Node *var) {
+  if (var->nodeData.varData.varType == TYPE_UNDEF) {
+    return literal_to_type(var->nodeData.varData.expression);
+  } else
+    return var->nodeData.varData.varType;
+}
+
+
 void check_assign_types(AST_Node *var, AST_Node *expr) {
   AST_Node *current = expr;
   while (current != NULL) {
-    if (!type_compatible(var->nodeData.varData.varType, current, true)) {
+    if (!type_compatible(getVarType(var), current, true)) {
       fprintf(stderr, ASSIGN_TYPE_FAIL, var->nodeData.varData.var_name);
       special_exit(6);
     }
