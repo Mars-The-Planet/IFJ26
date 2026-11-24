@@ -122,6 +122,7 @@ typedef struct VariableInfo {
   bool visible;              // false, jakmile blok skončí
 } VariableInfo;
 
+// inicializace
 static VariableInfo *all_variables = NULL;
 static int all_variables_count = 0;
 static int all_variables_capacity = 0;
@@ -135,13 +136,13 @@ static unsigned char *function_states = NULL;
 static int function_count = 0;
 
 /**
- * @brief kopie řetězce (strdup není v striktním C11 dostupný)
+ * @brief kopie řetězce
  */
 static char *copy_string(const char *source) {
   size_t length = strlen(source) + 1;
   char *copy = malloc(length);
   if (copy == NULL) {
-    fprintf(stderr, "generátor: chyba alokace paměti při copy_string!\n");
+    fprintf(stderr, "generator: chyba alokace pameti pri copy_string!\n");
     exit(99);
   }
   memcpy(copy, source, length);
@@ -229,7 +230,7 @@ static VariableInfo *declare_variable(const char *original_name, dataType type,
     VariableInfo *bigger = realloc(
         all_variables, (size_t)all_variables_capacity * sizeof(VariableInfo));
     if (bigger == NULL) {
-      fprintf(stderr, "ERROR: Memory allocation failed!\n");
+      fprintf(stderr, "chyba alokace pameti v declare_variable !\n");
       exit(99);
     }
     all_variables = bigger;
@@ -407,8 +408,9 @@ static void infer_node(AST_Node *node) {
   case TO_N:
   case UNTIL_N:
   case BY_N:
-    infer_node(node->nodeData.uData.single);
-    node->result = node->nodeData.uData.single->result;
+    infer_node(node->nodeData.biData.left);
+    infer_node(node->nodeData.biData.right);
+    node->result = node->nodeData.biData.left->result;
     break;
 
   case FUN_CALL: {
@@ -422,6 +424,10 @@ static void infer_node(AST_Node *node) {
     AST_Node *fun = find_function(name);
     if (fun) {
       node->result = user_function_return_type(fun);
+    }
+
+    else if (strcmp(name, "readBoolean") == 0) {
+      node->result = TYPE_BOOL;
     }
   } break;
 
@@ -1144,6 +1150,9 @@ void generate_for(AST_Node *node) {
   generate_node(range->nodeData.biData.left);
   printf("POPS LF@%s\n", name);
 
+  generate_node(range->nodeData.biData.right);
+  printf("POPS LF@%s\n", end);
+
   printf("LABEL $for%d_top\n", label_number);
 
   for_exit(label_number, name, end, 1, included);
@@ -1836,7 +1845,7 @@ void generate_program(stackPtr functions, const char *main_name) {
   }
   function_states = calloc((size_t)function_count + 1, 1);
   if (function_states == NULL) {
-    fprintf(stderr, "ERROR: Memory allocation failed!\n");
+    fprintf(stderr, "generator: chyba pri alokaci pameti v generate_program!\n");
     exit(99);
   }
   for (AST_Node *fun = function_list; fun; fun = fun->next) {
