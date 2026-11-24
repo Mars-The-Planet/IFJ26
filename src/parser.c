@@ -8,6 +8,13 @@
 
 #include "parser.h"
 
+void syntax_error(char *errmsg, int line) {
+
+  fprintf(stderr, "ERROR: Syntaxe (radek %d): %s | token: '%s' (typ %d)\n",
+          line, errmsg, active_token.value, active_token.type);
+  special_exit(2);
+}
+
 /**
  *
  * @brief funckce zavolá a zároveň zkontroluje next_token
@@ -44,8 +51,7 @@ void check_stack_pop(stackPtr stack) {
     return;
   } else {
 
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Popnuti prazdného zásobníku", __LINE__);
   }
 }
 
@@ -80,45 +86,40 @@ void code_prolog() {
 
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "import") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekávano 'import'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+
+    syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
   };
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
     if (strcmp(active_token.value, "ifj26") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekávano 'ifj26'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno ID", __LINE__);
   };
 
   check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, ".") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+      syntax_error("Špatná hodnota tokenu, očekávano '.'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
   };
 
   check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
     if (strcmp(active_token.value, "*") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+      syntax_error("Špatná hodnota tokenu, očekávano '*'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno OPERATOR", __LINE__);
   };
 
   return;
@@ -148,12 +149,11 @@ void the_parser() {
           break;
 
         } else {
-          fprintf(stderr, "Špatně definovaný main %d\n", __LINE__);
-          special_exit(2);
+          syntax_error("Špatně typ tokenu, očekáván KEYWORD", __LINE__);
         }
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        special_exit(2);
+        syntax_error("Špatná hodnota tokenu, očekáváno '@main'", __LINE__);
       };
 
     case SYMBOL_TYPE:
@@ -165,8 +165,7 @@ void the_parser() {
         return;
 
     default: {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+      syntax_error("Žádná hlavička funkce", __LINE__);
     };
     }
   }
@@ -190,9 +189,9 @@ char precedence_table[11][11] = {
     // 2. sčítání, odčítání, konkatenace
     {'<', '<', '>', '>', '>', '>', '>', '>', '<', '>', '>'},
     // 3. relační operátory
-    {'<', '<', '<', 'E', '>', '>', '>', '>', '<', '>', '>'},
+    {'<', '<', '<', '>', '>', '>', '>', '>', '<', '>', '>'},
     // 4. '==' a '!='
-    {'<', '<', '<', '<', 'E', '>', '>', '>', '<', '>', '>'},
+    {'<', '<', '<', '<', '>', '>', '>', '>', '<', '>', '>'},
     // 5. AND (&&)
     {'<', '<', '<', '<', '<', '>', '>', '>', '<', '>', '>'},
     // 6. OR (||)
@@ -369,8 +368,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
           stack_push(node_stack, temp_expression);
 
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+          syntax_error("Špatná hondota tokenu, očekáváno 'if' nebo 'List'",
+                       __LINE__);
         };
 
       } else if (active_token.type == OPERATOR_TYPE) {
@@ -390,8 +389,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
           check_next_token();
 
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+          syntax_error("Špatná hodnota tokenu, očekáván unární operátor",
+                       __LINE__);
         };
       } else if (active_token.type == SYMBOL_TYPE &&
                  strcmp(active_token.value, "(") == 0) {
@@ -413,8 +412,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
           stack_push(operator_stack, (void *)(uintptr_t)BRACK_START);
       } else {
 
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        special_exit(2);
+        syntax_error("Špatná hodnota tokenu, očekáváno '('", __LINE__);
       }
       // Režim pro čtení operátorů
     } else if (stack_switch == 0) {
@@ -631,17 +629,11 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
         } else {
 
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+          syntax_error("Očekáván konec zásobníku", __LINE__);
         }
       }
-    } else {
-      fprintf(stderr, "ERROR: Memory allocation failed!"); // ????
-      special_exit(99);
     }
   }
-
-  return NULL;
 }
 
 head *parse_param() {
@@ -652,17 +644,31 @@ head *parse_param() {
 
   params->first = NULL;
 
+  // existuje čárka
+  bool after_comma = false;
+  // je za čárkou EOL
+  bool had_eol = false;
+
   while (1) {
     check_next_token();
 
     if (active_token.type == SYMBOL_TYPE) {
 
-      if (strcmp(active_token.value, "EOL") == 0)
+      if (strcmp(active_token.value, "EOL") == 0) {
+        had_eol = true;
         continue;
-      if (strcmp(active_token.value, ")") == 0)
-        return params;
+      }
+      if (strcmp(active_token.value, ")") == 0) {
+        if (after_comma && !had_eol) {
+          syntax_error("Špatná hodnota tokenu, očekáváno 'EOL'", __LINE__);
+        }
 
+        return params;
+      }
     } else if (active_token.type == ID_TYPE) {
+
+      after_comma = false;
+      had_eol = false;
 
       ListParam *new_param = special_malloc(sizeof(ListParam));
 
@@ -682,15 +688,15 @@ head *parse_param() {
 
       if (active_token.type == SYMBOL_TYPE) {
         if (strcmp(active_token.value, ":") != 0) {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+
+          syntax_error("Špatná hodnota tokenu, očekáváno ':'", __LINE__);
         };
 
         check_next_token();
         check_for_eol();
         if (active_token.type != KEYWORD_TYPE) {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+
+          syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
         };
         list_end->type = type_transfer();
 
@@ -698,48 +704,51 @@ head *parse_param() {
           check_next_token();
           check_for_eol();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "[") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '['", __LINE__);
           };
 
           check_next_token();
           check_for_eol();
           if (active_token.type != KEYWORD_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
           };
           list_end->list_type = type_transfer();
 
           check_next_token();
           check_for_eol();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "]") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+            syntax_error("Špatná hodnota tokenu, očekáváno ']'", __LINE__);
           };
         }
         check_next_token();
         check_for_eol();
         if (active_token.type != SYMBOL_TYPE) {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+          syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
         };
         if (strcmp(active_token.value, ")") == 0)
           return params;
-        if (strcmp(active_token.value, ",") == 0)
+        if (strcmp(active_token.value, ",") == 0) {
+          after_comma = true;
+          had_eol = false;
           continue;
+        }
+
+        syntax_error("Špatná hodnota tokenu, očekáváno ',' nebo ')'", __LINE__);
 
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        special_exit(2);
-      };
+        syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
+      }
+    } else {
+      syntax_error("Ocekavan parametr nebo ')'", __LINE__);
     }
   }
 }
@@ -762,8 +771,7 @@ void parse_fun() {
   if (active_token.type == ID_TYPE) {
     new_fun->nodeData.funData.fun_name = special_strdup(active_token.value);
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno ID", __LINE__);
   };
 
   // může být redefinovaný print, pokud není v global scope???
@@ -777,13 +785,11 @@ void parse_fun() {
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, "(") != 0) {
       {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        special_exit(2);
+        syntax_error("Špatná hodnota tokenu, očekáváno '('", __LINE__);
       };
     }
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
   };
 
   new_fun->nodeData.funData.param_list = parse_param();
@@ -810,30 +816,30 @@ void parse_fun() {
 
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "[") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '[' ", __LINE__);
           };
 
           check_next_token();
           if (active_token.type != KEYWORD_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
           };
           // Uložení hodnoty které bude mít vracený list v sobě uložené
           new_fun->nodeData.funData.return_list = type_transfer();
 
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "]") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno ']'", __LINE__);
           };
         }
 
@@ -842,26 +848,24 @@ void parse_fun() {
           if (strcmp(active_token.value, "=") == 0) {
             new_fun->nodeData.funData.body = parse_fun_body(indent);
           } else {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '='", __LINE__);
           };
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+
+          syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
         };
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        special_exit(2);
+        syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
       };
     } else if (strcmp(active_token.value, "=") == 0) {
       new_fun->nodeData.funData.body = parse_fun_body(indent);
     } else {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekáváno '='", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
   };
 
   if (check_pop() == 1) {
@@ -888,13 +892,13 @@ AST_Node *parse_fun_body(int origin_indent) {
 
     if (active_token.type == SYMBOL_TYPE &&
         strcmp(active_token.value, "EOF") == 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+
+      syntax_error("Nečekená konec souboru", __LINE__);
     };
-    // tady může mít stack_indent mít hodnotu 0
+    // stack_indent můžu mít hodnotu 0
     if (sum_stack(stack_indent) <= origin_indent) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+
+      syntax_error("Chyba odsazení", __LINE__);
     };
     origin_indent = sum_stack(stack_indent);
 
@@ -915,8 +919,8 @@ AST_Node *parse_fun_body(int origin_indent) {
         return statements;
       // odsazení se nesmí jen tak zvětšit
       if (sum_stack(stack_indent) > origin_indent) {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        special_exit(2);
+
+        syntax_error("Chyba odsazení", __LINE__);
       };
 
       switch (active_token.type) {
@@ -949,8 +953,9 @@ AST_Node *parse_fun_body(int origin_indent) {
           temp_statement = parse_return();
 
         else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+          syntax_error("Špatná hodnota tokenu, očekáváno 'while', 'if', 'for' "
+                       "nebo 'return'",
+                       __LINE__);
         };
         break;
 
@@ -960,7 +965,9 @@ AST_Node *parse_fun_body(int origin_indent) {
         //       temp_statement); // tohle rozbije symbol table, co se tu
         //       vlastně vůbec děje???
         temp_statement = parse_id();
-        if (temp_statement->type == IDENT && get_symbol(symbol_table, temp_statement->nodeData.idVarData.id_name) == NULL) {
+        if (temp_statement->type == IDENT &&
+            get_symbol(symbol_table,
+                       temp_statement->nodeData.idVarData.id_name) == NULL) {
           fprintf(stderr, UNKNOWN_ID);
           special_exit(3);
         }
@@ -1012,8 +1019,7 @@ AST_Node *parse_var() {
   if (active_token.type == ID_TYPE) {
     temp_var->nodeData.varData.var_name = special_strdup(active_token.value);
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno ID", __LINE__);
   };
 
   check_next_token();
@@ -1028,49 +1034,48 @@ AST_Node *parse_var() {
 
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "[") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '['", __LINE__);
           };
 
           check_next_token();
           if (active_token.type != KEYWORD_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
           };
 
           temp_var->nodeData.varData.varListType = type_transfer();
 
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "]") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno ']'", __LINE__);
           };
         }
 
         check_next_token();
         if (active_token.type == SYMBOL_TYPE) {
           if (strcmp(active_token.value, "=") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            special_exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '='", __LINE__);
           };
           check_next_token();
           temp_var->nodeData.varData.expression = parse_expression(NULL);
 
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+          syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
         };
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        special_exit(2);
+
+        syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
       };
       // rovná se znamená že proměnná nemá ještě definovaný typ
     } else if (strcmp(active_token.value, "=") == 0) {
@@ -1078,12 +1083,12 @@ AST_Node *parse_var() {
       check_next_token();
       temp_var->nodeData.varData.expression = parse_expression(NULL);
     } else {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekáváno '='", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+
+    syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
   };
 
   return temp_var;
@@ -1109,8 +1114,8 @@ AST_Node *parse_for(int origin_indent) {
     check_for_eol();
 
     if (sum_stack(stack_indent) <= origin_indent) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+
+      syntax_error("Chyba odsazení", __LINE__);
     };
 
     base_indent = sum_stack(stack_indent);
@@ -1122,19 +1127,16 @@ AST_Node *parse_for(int origin_indent) {
     allow_symbol_insert(var_name);
     insert_symbol(symbol_table, var_name, temp_for);
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno ID", __LINE__);
   };
 
   check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
     if (strcmp(active_token.value, "<-") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+      syntax_error("Špatná hodnota tokenu, očekáváno '<-'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno OPERATOR", __LINE__);
   };
 
   check_next_token();
@@ -1158,18 +1160,16 @@ AST_Node *parse_for(int origin_indent) {
   // odsazení pro do musí být stejné jako pro for
   if (sum_stack(stack_indent) != origin_indent) {
 
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Chyba odsazení", __LINE__);
   }
 
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "do") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+      syntax_error("Špatná hodnota tokenu, očekáváno 'do'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
   };
 
   temp_for->nodeData.forData.body = parse_fun_body(origin_indent);
@@ -1199,12 +1199,12 @@ AST_Node *parse_if(int origin_indent) {
 
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "then") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekáváno 'then'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+
+    syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
   };
 
   temp_if->nodeData.ifData.then_part = parse_fun_body(origin_indent);
@@ -1251,11 +1251,10 @@ AST_Node *parse_while(int origin_indent) {
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "do") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+      syntax_error("Špatná hodnota tokenu, očekáváno 'do'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    special_exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
   };
 
   temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
@@ -1275,6 +1274,7 @@ AST_Node *exp_in_brackets() {
   AST_Node *expression_list_end = NULL;
 
   check_next_token();
+  check_for_eol();
   if (active_token.type == SYMBOL_TYPE &&
       strcmp(active_token.value, ")") == 0) {
     check_next_token();
@@ -1284,6 +1284,7 @@ AST_Node *exp_in_brackets() {
   while (1) {
 
     temp_expression_list = parse_expression(NULL);
+    check_for_eol();
 
     if (expression_list == NULL) {
       expression_list = temp_expression_list;
@@ -1298,9 +1299,21 @@ AST_Node *exp_in_brackets() {
     if (active_token.type == SYMBOL_TYPE) {
       if (strcmp(active_token.value, ",") == 0) {
         check_next_token();
+
+        bool had_eol = false;
+        if (active_token.type == SYMBOL_TYPE &&
+            strcmp(active_token.value, "EOL") == 0) {
+
+          had_eol = true;
+        }
         check_for_eol();
+
         if (active_token.type == SYMBOL_TYPE &&
             strcmp(active_token.value, ")") == 0) {
+
+          if (!had_eol) {
+            syntax_error("Špatná hodnota tokenu, očekáváno 'EOL'", __LINE__);
+          }
 
           check_next_token();
           return expression_list;
@@ -1312,12 +1325,10 @@ AST_Node *exp_in_brackets() {
         return expression_list;
 
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        special_exit(2);
+        syntax_error("Špatná hodnota tokenu, očekáváno ')'", __LINE__);
       };
     } else {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+      syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
     };
   }
 }
@@ -1344,19 +1355,17 @@ AST_Node *parse_list() {
           temp_list->nodeData.listData.list_var = exp_in_brackets();
 
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          special_exit(2);
+          syntax_error("Špatná hodnota tokenu, očekáváno '('", __LINE__);
         };
 
         temp_list->type = DOT_ACCESS;
 
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        special_exit(2);
+        syntax_error("Špatná hodnota tokenu, očekáváno 'range'", __LINE__);
       };
     } else {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      special_exit(2);
+      syntax_error("Špatná hodnota tokenu, očekáváno '.'", __LINE__);
+      ;
     };
   }
 
@@ -1524,7 +1533,8 @@ int check_pop() {
         }
         if (count_args(temp->nodeData.callFunData.fun_args) !=
             count_params(found_node->nodeData.funData.param_list->first)) {
-          fprintf(stderr, INVALID_ARG_AMOUNT, found_node->nodeData.funData.fun_name);
+          fprintf(stderr, INVALID_ARG_AMOUNT,
+                  found_node->nodeData.funData.fun_name);
           special_exit(5);
         }
         temp->result = found_node->result;
@@ -1533,7 +1543,8 @@ int check_pop() {
         AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
         while (current_param != NULL) {
           if (!compare_param_arg(current_param, current_arg)) {
-            fprintf(stderr, INVALID_ARG_TYPE, found_node->nodeData.funData.fun_name);
+            fprintf(stderr, INVALID_ARG_TYPE,
+                    found_node->nodeData.funData.fun_name);
             special_exit(5);
           }
           current_param = current_param->next;
@@ -1703,14 +1714,16 @@ void setup_builtins() {
 
 void allow_symbol_insert(char *symbol_name) {
   if (tree_get(symbol_table->scopes->top->value, symbol_name) != NULL) {
-    fprintf(stderr, REDEF_ATTEMPT); // nepovolená redefinice funkce nebo proměnné
+    fprintf(stderr,
+            REDEF_ATTEMPT); // nepovolená redefinice funkce nebo proměnné
     special_exit(4);
   }
   char *builtins[] = {"print", "readLine",  "readInt", "readDouble", "toStr",
                       "toInt", "strLength", "subStr",  "ord",        "chr"};
   for (int i = 0; i < 10; i++) {
     if (strcmp(builtins[i], symbol_name) == 0) {
-      fprintf(stderr, BUILTIN_REDEF_ATTEMPT); // nepovolená redefinice vestavěné funkce
+      fprintf(stderr,
+              BUILTIN_REDEF_ATTEMPT); // nepovolená redefinice vestavěné funkce
       special_exit(4);
     }
   }
@@ -1752,7 +1765,7 @@ dataType literal_to_type(AST_Node *expr) {
   }
   case FUN_CALL: {
     AST_Node *func_def =
-    get_symbol(symbol_table, expr->nodeData.funData.fun_name);
+        get_symbol(symbol_table, expr->nodeData.funData.fun_name);
     return func_def->nodeData.funData.return_type;
   }
   case ADD:
@@ -1813,7 +1826,8 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   }
   if (a == b)
     return true;
-  if ((imp_double_int && a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT))
+  if ((imp_double_int && a == TYPE_INT && b == TYPE_DOUBLE) ||
+      (a == TYPE_DOUBLE && b == TYPE_INT))
     return true;
   if (a == TYPE_UNDEF)
     return true;
@@ -1824,14 +1838,12 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   return false;
 }
 
-
 dataType getVarType(AST_Node *var) {
   if (var->nodeData.varData.varType == TYPE_UNDEF) {
     return literal_to_type(var->nodeData.varData.expression);
   } else
     return var->nodeData.varData.varType;
 }
-
 
 void check_assign_types(AST_Node *var, AST_Node *expr) {
   AST_Node *current = expr;
@@ -1844,7 +1856,6 @@ void check_assign_types(AST_Node *var, AST_Node *expr) {
   }
 }
 
-
 void *special_malloc(size_t size) {
   void *ptr = calloc(1, size);
   if (ptr == NULL) {
@@ -1855,7 +1866,7 @@ void *special_malloc(size_t size) {
   return ptr;
 }
 
-char* special_strdup(char *str) {
+char *special_strdup(char *str) {
   char *new_str = strdup(str);
   if (new_str == NULL) {
     fprintf(stderr, MALLOC_FAIL);
