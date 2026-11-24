@@ -19,6 +19,15 @@
 #include "stack.h"
 #include "symtable.h"
 
+#define ERROR "[Chyba] "
+#define MALLOC_FAIL ERROR"Selhalo alokování paměti.\n"
+#define ASSIGN_TYPE_FAIL ERROR"Proměnné '%s' byla přiřazena hodnota se špatným typem.\n"
+#define TYPE_CONVERSION_FAIL ERROR"Chyba typové kompatibility.\n"
+#define BUILTIN_REDEF_ATTEMPT ERROR"Pokus o nepovolenou redefinici vestavěné funkce.\n"
+#define REDEF_ATTEMPT ERROR"Pokus o nepovolenou redefinici proměnné nebo funkce.\n"
+#define CONST_REDEF_ATTEMPT ERROR"Pokud o nepovolenou redefinici konstanty.\n"
+#define UNKNOWN_ID ERROR"Pokus o použití neznámé proměnné nebo funkce.\n"
+
 /**
  *
  * @brief Výčet datových typů

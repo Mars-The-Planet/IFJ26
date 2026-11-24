@@ -18,6 +18,7 @@
 #define NO_MAIN ERROR"Programu chybí @main.\n"
 #define MAIN_HAS_PARAMS ERROR"Funkce označená @main nesmí mít parametry.\n"
 #define MAIN_WRONG_RETURN ERROR"Funkce označená @main musí vracet Unit.\n"
+#define MALLOC_FAIL ERROR"Selhalo alokování paměti.\n"
 
 int has_main;
 
