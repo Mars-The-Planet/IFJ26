@@ -1465,6 +1465,10 @@ int count_args(AST_Node *node) {
       count++;
     } else if (node->type == NOT_EQUAL) {
       count++;
+    } else if (node->type == UMINUS) {
+      count++;
+    } else if (node->type == UPLUS) {
+      count++;
     }
     node = node->next;
   }
