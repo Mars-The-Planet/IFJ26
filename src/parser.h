@@ -293,6 +293,8 @@ int count_params(ListParam *list);
 
 void* special_malloc(size_t size);
 
+char* special_strdup(char *str);
+
 void special_exit(int code);
 
 extern int has_main;

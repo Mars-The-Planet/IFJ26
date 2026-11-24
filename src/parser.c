@@ -308,7 +308,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
       } else if (active_token.type == STRING_TYPE) {
         temp_expression->type = LITERAL_STRING;
         temp_expression->nodeData.elemData.valueType.string_value =
-            strdup(active_token.value);
+            special_strdup(active_token.value);
 
         stack_switch = 0;
         stack_push(node_stack, temp_expression);
@@ -334,7 +334,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
         } else {
           temp_expression->type = IDENT;
           temp_expression->nodeData.idVarData.id_name =
-              strdup(active_token.value);
+              special_strdup(active_token.value);
 
           stack_switch = 0;
           stack_push(node_stack, temp_expression);
@@ -439,7 +439,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
             check_stack_pop(node_stack);
 
             temp_expression->nodeData.accessDotData.name_after_dot =
-                strdup(active_token.value);
+                special_strdup(active_token.value);
 
             check_next_token();
             if (active_token.type == SYMBOL_TYPE &&
@@ -665,7 +665,7 @@ head *parse_param() {
       }
 
       new_param->next = NULL;
-      new_param->param_name = strdup(active_token.value);
+      new_param->param_name = special_strdup(active_token.value);
 
       if (params->first == NULL) {
         params->first = new_param;
@@ -762,7 +762,7 @@ void parse_fun() {
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
-    new_fun->nodeData.funData.fun_name = strdup(active_token.value);
+    new_fun->nodeData.funData.fun_name = special_strdup(active_token.value);
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
     special_exit(2);
@@ -958,7 +958,7 @@ AST_Node *parse_fun_body(int origin_indent) {
 
       case ID_TYPE:
         // funkce která už bude rozhodovat co s id vlastně dělat
-        // update_symbol(symbol_table, strdup(active_token.value),
+        // update_symbol(symbol_table, special_strdup(active_token.value),
         //       temp_statement); // tohle rozbije symbol table, co se tu
         //       vlastně vůbec děje???
         temp_statement = parse_id();
@@ -1016,7 +1016,7 @@ AST_Node *parse_var() {
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
-    temp_var->nodeData.varData.var_name = strdup(active_token.value);
+    temp_var->nodeData.varData.var_name = special_strdup(active_token.value);
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
     special_exit(2);
@@ -1127,7 +1127,7 @@ AST_Node *parse_for(int origin_indent) {
   }
 
   if (active_token.type == ID_TYPE) {
-    temp_for->nodeData.forData.var_name = strdup(active_token.value);
+    temp_for->nodeData.forData.var_name = special_strdup(active_token.value);
     char *var_name = temp_for->nodeData.forData.var_name;
     allow_symbol_insert(var_name);
     insert_symbol(symbol_table, var_name, temp_for);
@@ -1389,7 +1389,7 @@ AST_Node *parse_list() {
 AST_Node *parse_id() {
 
   // uložení jména proměnné, protože ještě nevím o jaký typ výrazu se jedná
-  char *temp_name = strdup(active_token.value);
+  char *temp_name = special_strdup(active_token.value);
 
   AST_Node *temp_id = special_malloc(sizeof(AST_Node));
   if (temp_id == NULL) {
@@ -1829,7 +1829,7 @@ void check_assign_types(AST_Node *var, AST_Node *expr) {
 }
 
 
-void *special_malloc(size_t size) { // TODO: přidat strdup
+void *special_malloc(size_t size) {
   void *ptr = malloc(size);
   if (ptr == NULL) {
     fprintf(stderr, "Memory allocation failed!");
@@ -1837,6 +1837,16 @@ void *special_malloc(size_t size) { // TODO: přidat strdup
   }
   stack_push(memory_allocs, ptr);
   return ptr;
+}
+
+char* special_strdup(char *str) {
+  char *new_str = strdup(str);
+  if (new_str == NULL) {
+    fprintf(stderr, "Memory allocation failed!");
+    special_exit(99);
+  }
+  stack_push(memory_allocs, new_str);
+  return new_str;
 }
 
 void special_exit(int code) {
