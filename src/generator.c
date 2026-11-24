@@ -404,6 +404,13 @@ static void infer_node(AST_Node *node) {
     node->result = node->nodeData.uData.single->result;
     break;
 
+  case TO_N:
+  case UNTIL_N:
+  case BY_N:
+    infer_node(node->nodeData.uData.single);
+    node->result = node->nodeData.uData.single->result;
+    break;
+
   case FUN_CALL: {
     for (AST_Node *argument = node->nodeData.callFunData.fun_args; argument;
          argument = argument->next) {
@@ -497,6 +504,25 @@ static void infer_node(AST_Node *node) {
     scope_close();
     node->result = TYPE_UNIT;
     break;
+
+  case FOR_N: {
+    AST_Node *source = node->nodeData.forData.condition;
+    infer_node(source);
+
+    // řídící proměnná je int, s rozšířeními je to jinak, ale ty teprve budu
+    // dělat
+    dataType control_type = TYPE_INT;
+
+    scope_open();
+    VariableInfo *info = declare_variable(node->nodeData.forData.var_name,
+                                          control_type, TYPE_UNDEF);
+    node->nodeData.forData.var_name = info->unique_name;
+
+    infer_block(node->nodeData.forData.body);
+    scope_close();
+    node->result = TYPE_UNIT;
+    break;
+  }
 
   default:
     break;
@@ -1048,6 +1074,86 @@ void generate_return(AST_Node *node) {
 }
 
 /**
+ * @brief test konce cyklu for
+ *
+ * @param label_number číslo návěští cyklu
+ * @param var jméno řídicí proměnné
+ * @param end jméno proměnné s koncovou hodnotou
+ * @param direction směr kterým jde cyklus, 1 => roste, -1 => klesá
+ * @param included 1 => to, 0 => until
+ *
+ */
+
+void for_exit(int label_number, char *var, char *end, int direction,
+              int included) {
+  char *relation;
+
+  if (direction > 0) {
+    // Cyklus roste
+    if (included == 1) {
+      // Jde o "to"
+      relation = "GT";
+    } else {
+      // Jde o "until"
+      relation = "LT";
+    }
+  } else {
+    // Cyklus klesá
+    if (included == 1) {
+      // Jde o "to" končí když je "klesne" pod konec
+      relation = "LT";
+    } else {
+      // Jde o "until"
+      // Končí když klesne na/pod hranici => větší než (GT)
+      relation = "GT";
+    }
+  }
+  // porovná aktuální hornotu var s end, použije vybraný operátor dříve
+  // přiřazený do relation
+  printf("%s GF@$t1 LF@%s LF@%s\n", relation, var, end);
+
+  printf("JUMPIFEQ $for%d_done GF@$t1 bool@%s\n", label_number,
+         included ? "true"
+                  : "false"); // vrátí true nebo false, podle toho jestli je
+                              // included nebo ne skočí na konec cyklu
+}
+
+/**
+ * @brief vytvoří tělo cyklu
+ */
+void generate_loop_body(AST_Node *body) {
+  generate_block(body);
+
+  AST_Node *last = last_node(body);
+  if (last && leaves_value(last)) {
+    printf("POPS GF@$t1\n");
+  }
+}
+/**
+ * @brief
+ */
+void generate_for(AST_Node *node) {
+  int label_number = get_new_label(); // nové návěští
+
+  char *name = node->nodeData.forData.var_name;       // název proměnné
+  AST_Node *range = node->nodeData.forData.condition; // rozsah
+  int included = (range->type == TO_N); // 1 když je TO 0 ldyž je UNTIL
+  char end[128];
+  snprintf(end, sizeof(end), "%s$end", name);
+
+  generate_node(range->nodeData.biData.left);
+  printf("POPS LF@%s\n", name);
+
+  printf("LABEL $for%d_top\n", label_number);
+
+  for_exit(label_number, name, end, 1, included);
+
+  generate_loop_body(node->nodeData.forData.body);
+  printf("ADD LF@%s LF@%s int@1\n", name, name);
+  printf("JUMP $for%d_top\n", label_number);
+  printf("LABEL $for%d_done\n", label_number);
+}
+/**
  * @brief sbírá definici proměnných, jelikož mohou být definované jen jednou,
  * nemůžou být uvnitř cyklů, proměnné se definují hned při začátku funkce
  *
@@ -1072,6 +1178,17 @@ void collect_vars(AST_Node *node) {
       collect_vars(node->nodeData.ifData.else_part);
       break;
       // TO DO: CASE_FOR_N
+
+    case FOR_N: {
+      // řídicí proměnná a pomocné proměnné cyklu
+      char *name = node->nodeData.forData.var_name;
+      printf("DEFVAR LF@%s\n", name);
+      printf("DEFVAR LF@%s$end\n", name);
+      collect_vars(node->nodeData.forData.condition);
+      collect_vars(node->nodeData.forData.body);
+      break;
+    }
+
     case WHILE_N:
       collect_vars(node->nodeData.whileData.condition);
       collect_vars(node->nodeData.whileData.body);
@@ -1090,6 +1207,9 @@ void collect_vars(AST_Node *node) {
     case GREATER_EQUAL:
     case AND_N:
     case OR_N:
+    case TO_N:
+    case UNTIL_N:
+    case BY_N:
       collect_vars(node->nodeData.biData.left);
       collect_vars(node->nodeData.biData.right);
       break;
@@ -1678,7 +1798,7 @@ void generate_node(AST_Node *node) {
     // todo: doplnit další uzly AST
 
   case FOR_N:
-    // opravit
+    generate_for(node);
     break;
 
   case DOT_ACCESS:
