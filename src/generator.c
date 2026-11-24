@@ -18,7 +18,7 @@
  * 3. vytváří vždy unikátní návěští pomocí funkce get new label, čímž brání tomu
  * aby se návěští se stejným názvem definovalao dvakrát
  * 4. DEFVAR se vypisuje naráz pomocí collect vars, jelikož kdyby byla definice
- * v cyklu tak by se opakovala, pozn.: ještě jsem nevyřešil scope
+ * v cyklu, tak by se opakovala, pozn.: ještě jsem nevyřešil scope
  *
  * ROZŠÍŘENÍ:
  * FUNEXP, BOOLTHEN, CONTROL, LISTS
@@ -122,6 +122,7 @@ typedef struct VariableInfo {
   bool visible;              // false, jakmile blok skončí
 } VariableInfo;
 
+// inicializace
 static VariableInfo *all_variables = NULL;
 static int all_variables_count = 0;
 static int all_variables_capacity = 0;
@@ -135,13 +136,13 @@ static unsigned char *function_states = NULL;
 static int function_count = 0;
 
 /**
- * @brief kopie řetězce (strdup není v striktním C11 dostupný)
+ * @brief kopie řetězce
  */
 static char *copy_string(const char *source) {
   size_t length = strlen(source) + 1;
   char *copy = malloc(length);
   if (copy == NULL) {
-    fprintf(stderr, "ERROR: Memory allocation failed!\n");
+    fprintf(stderr, "generator: chyba alokace pameti pri copy_string!\n");
     exit(99);
   }
   memcpy(copy, source, length);
@@ -229,7 +230,7 @@ static VariableInfo *declare_variable(const char *original_name, dataType type,
     VariableInfo *bigger = realloc(
         all_variables, (size_t)all_variables_capacity * sizeof(VariableInfo));
     if (bigger == NULL) {
-      fprintf(stderr, "ERROR: Memory allocation failed!\n");
+      fprintf(stderr, "chyba alokace pameti v declare_variable !\n");
       exit(99);
     }
     all_variables = bigger;
@@ -404,6 +405,14 @@ static void infer_node(AST_Node *node) {
     node->result = node->nodeData.uData.single->result;
     break;
 
+  case TO_N:
+  case UNTIL_N:
+  case BY_N:
+    infer_node(node->nodeData.biData.left);
+    infer_node(node->nodeData.biData.right);
+    node->result = node->nodeData.biData.left->result;
+    break;
+
   case FUN_CALL: {
     for (AST_Node *argument = node->nodeData.callFunData.fun_args; argument;
          argument = argument->next) {
@@ -415,11 +424,12 @@ static void infer_node(AST_Node *node) {
     AST_Node *fun = find_function(name);
     if (fun) {
       node->result = user_function_return_type(fun);
-    } else {
-      node->result = TYPE_UNDEF;
     }
-    break;
-  }
+
+    else if (strcmp(name, "readBoolean") == 0) {
+      node->result = TYPE_BOOL;
+    }
+  } break;
 
   case VAR_DEF: {
     AST_Node *expression = node->nodeData.varData.expression;
@@ -500,6 +510,25 @@ static void infer_node(AST_Node *node) {
     scope_close();
     node->result = TYPE_UNIT;
     break;
+
+  case FOR_N: {
+    AST_Node *source = node->nodeData.forData.condition;
+    infer_node(source);
+
+    // řídící proměnná je int, s rozšířeními je to jinak, ale ty teprve budu
+    // dělat
+    dataType control_type = TYPE_INT;
+
+    scope_open();
+    VariableInfo *info = declare_variable(node->nodeData.forData.var_name,
+                                          control_type, TYPE_UNDEF);
+    node->nodeData.forData.var_name = info->unique_name;
+
+    infer_block(node->nodeData.forData.body);
+    scope_close();
+    node->result = TYPE_UNIT;
+    break;
+  }
 
   default:
     break;
@@ -1051,6 +1080,89 @@ void generate_return(AST_Node *node) {
 }
 
 /**
+ * @brief test konce cyklu for
+ *
+ * @param label_number číslo návěští cyklu
+ * @param var jméno řídicí proměnné
+ * @param end jméno proměnné s koncovou hodnotou
+ * @param direction směr kterým jde cyklus, 1 => roste, -1 => klesá
+ * @param included 1 => to, 0 => until
+ *
+ */
+
+void for_exit(int label_number, char *var, char *end, int direction,
+              int included) {
+  char *relation;
+
+  if (direction > 0) {
+    // Cyklus roste
+    if (included == 1) {
+      // Jde o "to"
+      relation = "GT";
+    } else {
+      // Jde o "until"
+      relation = "LT";
+    }
+  } else {
+    // Cyklus klesá
+    if (included == 1) {
+      // Jde o "to" končí když je "klesne" pod konec
+      relation = "LT";
+    } else {
+      // Jde o "until"
+      // Končí když klesne na/pod hranici => větší než (GT)
+      relation = "GT";
+    }
+  }
+  // porovná aktuální hornotu var s end, použije vybraný operátor dříve
+  // přiřazený do relation
+  printf("%s GF@$t1 LF@%s LF@%s\n", relation, var, end);
+
+  printf("JUMPIFEQ $for%d_done GF@$t1 bool@%s\n", label_number,
+         included ? "true"
+                  : "false"); // vrátí true nebo false, podle toho jestli je
+                              // included nebo ne skočí na konec cyklu
+}
+
+/**
+ * @brief vytvoří tělo cyklu
+ */
+void generate_loop_body(AST_Node *body) {
+  generate_block(body);
+
+  AST_Node *last = last_node(body);
+  if (last && leaves_value(last)) {
+    printf("POPS GF@$t1\n");
+  }
+}
+/**
+ * @brief
+ */
+void generate_for(AST_Node *node) {
+  int label_number = get_new_label(); // nové návěští
+
+  char *name = node->nodeData.forData.var_name;       // název proměnné
+  AST_Node *range = node->nodeData.forData.condition; // rozsah
+  int included = (range->type == TO_N); // 1 když je TO 0 ldyž je UNTIL
+  char end[128];
+  snprintf(end, sizeof(end), "%s$end", name);
+
+  generate_node(range->nodeData.biData.left);
+  printf("POPS LF@%s\n", name);
+
+  generate_node(range->nodeData.biData.right);
+  printf("POPS LF@%s\n", end);
+
+  printf("LABEL $for%d_top\n", label_number);
+
+  for_exit(label_number, name, end, 1, included);
+
+  generate_loop_body(node->nodeData.forData.body);
+  printf("ADD LF@%s LF@%s int@1\n", name, name);
+  printf("JUMP $for%d_top\n", label_number);
+  printf("LABEL $for%d_done\n", label_number);
+}
+/**
  * @brief sbírá definici proměnných, jelikož mohou být definované jen jednou,
  * nemůžou být uvnitř cyklů, proměnné se definují hned při začátku funkce
  *
@@ -1075,6 +1187,17 @@ void collect_vars(AST_Node *node) {
       collect_vars(node->nodeData.ifData.else_part);
       break;
       // TO DO: CASE_FOR_N
+
+    case FOR_N: {
+      // řídicí proměnná a pomocné proměnné cyklu
+      char *name = node->nodeData.forData.var_name;
+      printf("DEFVAR LF@%s\n", name);
+      printf("DEFVAR LF@%s$end\n", name);
+      collect_vars(node->nodeData.forData.condition);
+      collect_vars(node->nodeData.forData.body);
+      break;
+    }
+
     case WHILE_N:
       collect_vars(node->nodeData.whileData.condition);
       collect_vars(node->nodeData.whileData.body);
@@ -1093,6 +1216,9 @@ void collect_vars(AST_Node *node) {
     case GREATER_EQUAL:
     case AND_N:
     case OR_N:
+    case TO_N:
+    case UNTIL_N:
+    case BY_N:
       collect_vars(node->nodeData.biData.left);
       collect_vars(node->nodeData.biData.right);
       break;
@@ -1681,7 +1807,7 @@ void generate_node(AST_Node *node) {
     // todo: doplnit další uzly AST
 
   case FOR_N:
-    // opravit
+    generate_for(node);
     break;
 
   case DOT_ACCESS:
@@ -1719,7 +1845,7 @@ void generate_program(stackPtr functions, const char *main_name) {
   }
   function_states = calloc((size_t)function_count + 1, 1);
   if (function_states == NULL) {
-    fprintf(stderr, "ERROR: Memory allocation failed!\n");
+    fprintf(stderr, "generator: chyba pri alokaci pameti v generate_program!\n");
     exit(99);
   }
   for (AST_Node *fun = function_list; fun; fun = fun->next) {
