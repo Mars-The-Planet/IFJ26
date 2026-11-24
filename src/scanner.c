@@ -535,8 +535,8 @@ int ampersand(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return DONE_STATE;
 
   default:
-    fprintf(stderr,
-            "Po jednom znaku \'&\' muze nasledovat pouze dalsi znak \'&\'\n");
+    fprintf(stderr, "ERROR: Po jednom znaku \'&\' muze nasledovat pouze dalsi "
+                    "znak \'&\'\n");
     return ERROR_STATE;
   }
 }
@@ -556,8 +556,8 @@ int bar(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return DONE_STATE;
 
   default:
-    fprintf(stderr,
-            "Po jednom znaku \'|\' muze nasledovat pouze dalsi znak \'|\'\n");
+    fprintf(stderr, "ERROR: Po jednom znaku \'|\' muze nasledovat pouze dalsi "
+                    "znak \'|\'\n");
     return ERROR_STATE;
   }
 }
@@ -874,7 +874,8 @@ int string_open(int ch, dynamic_string_ptr tkn_str) {
   }
 
   fprintf(stderr,
-          "Retezce mohou obsahovat pouze tisknutelne znaky, uvozovky a escape "
+          "ERROR: Retezce mohou obsahovat pouze tisknutelne znaky, uvozovky a "
+          "escape "
           "sekvence (\\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, "
           "neni podporovany znak\n",
           ch, ch);
@@ -928,7 +929,8 @@ int string_char(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
   }
 
   fprintf(stderr,
-          "Retezcove literaly mohou obsahovat pouze tisknutelne znaky a escape "
+          "ERROR: Retezcove literaly mohou obsahovat pouze tisknutelne znaky a "
+          "escape "
           "sekvence (\\\\, \\\", \\n, \\r a \\t), Znak \'%c\', Decimal: %d, "
           "neni podporovany znak\n",
           ch, ch);
@@ -984,7 +986,8 @@ int string_escape_sequence(int ch, dynamic_string_ptr tkn_str) {
 
   default:
     fprintf(stderr,
-            "Jedine podporovane escape sekvence jsou: \\\\, \\\", \\n, \\r a "
+            "ERROR: Jedine podporovane escape sekvence jsou: \\\\, \\\", \\n, "
+            "\\r a "
             "\\t. Znak \'%c\', Decimal: %d, neni podporovany znak\n",
             ch, ch);
     return ERROR_STATE;
@@ -1111,8 +1114,9 @@ int underscore(int ch, dynamic_string_ptr tkn_str) {
     return IDENTIFIER_STATE;
   }
 
-  fprintf(stderr,
-          "Samotne podrzitko \'_\' nemuze byt pouzito jako identifikator\n");
+  fprintf(
+      stderr,
+      "ERROR: Samotne podrzitko \'_\' nemuze byt pouzito jako identifikator\n");
   return ERROR_STATE;
 }
 
@@ -1405,9 +1409,10 @@ int exponent(int ch, dynamic_string_ptr tkn_str) {
     return EXPONENT_SIGN_STATE;
   }
 
-  fprintf(stderr,
-          "Exponent desetinneho literalu muze zacinat znakem plus \'+\' ci "
-          "minus \'-\' a jinak se sklada z alespon jedne cislice\n");
+  fprintf(
+      stderr,
+      "ERROR: Exponent desetinneho literalu muze zacinat znakem plus \'+\' ci "
+      "minus \'-\' a jinak se sklada z alespon jedne cislice\n");
   return ERROR_STATE;
 }
 

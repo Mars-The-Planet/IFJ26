@@ -18,7 +18,7 @@
 int init_dynamic_string(dynamic_string_ptr string_ptr, int len) {
 
   if (len <= 0) {
-    fprintf(stderr, "Velikost nafukovaciho retezce musi byt kladna\n");
+    fprintf(stderr, "ERROR: Velikost nafukovaciho retezce musi byt kladna\n");
     return 1;
   }
 
@@ -29,7 +29,7 @@ int init_dynamic_string(dynamic_string_ptr string_ptr, int len) {
   string_ptr->val_ptr = calloc(len, sizeof(char));
 
   if (string_ptr->val_ptr == NULL) {
-    fprintf(stderr, "Selhala alkoace noveho nafukovaciho retezce\n");
+    fprintf(stderr, "ERROR: Selhala alkoace noveho nafukovaciho retezce\n");
     return 1;
   }
 
@@ -46,10 +46,10 @@ int insert_last(dynamic_string_ptr string_ptr, int ch) {
 
   // kontrola zda int ch je znakem
   if (ch < 0 || ch > 255) {
-    fprintf(
-        stderr,
-        "Prvek ktery ma byt vlozen neni znak, int ktery mel byt vlozen: %d\n",
-        ch);
+    fprintf(stderr,
+            "ERROR: Prvek ktery ma byt vlozen neni znak, int ktery mel byt "
+            "vlozen: %d\n",
+            ch);
     return 1;
   }
   char c = (char)ch;
@@ -60,7 +60,7 @@ int insert_last(dynamic_string_ptr string_ptr, int ch) {
     char *temp = realloc(string_ptr->val_ptr, new_max_size * sizeof(char));
 
     if (temp == NULL) {
-      fprintf(stderr, "Selhalo rozsireni dynamickeho retezce\n");
+      fprintf(stderr, "ERROR: Selhalo rozsireni dynamickeho retezce\n");
       return 1;
     }
 
