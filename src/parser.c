@@ -1439,6 +1439,10 @@ int count_args(AST_Node *node) {
       count++;
     } else if (node->type == NOT_EQUAL) {
       count++;
+    } else if (node->type == UMINUS) {
+      count++;
+    } else if (node->type == UPLUS) {
+      count++;
     }
     node = node->next;
   }
@@ -1459,6 +1463,10 @@ bool compare_param_arg(ListParam *param, AST_Node *arg) {
   if (arg->type == IDENT) {
     arg = get_symbol(symbol_table,
                      arg->nodeData.assignData.var_name); // fails for params
+  }
+  if (arg == NULL) {
+    fprintf(stderr, UNKNOWN_ID);
+    special_exit(3);
   }
   return type_compatible(param->type, arg, false);
 }
@@ -1482,6 +1490,7 @@ int check_pop() {
         }
         if (count_args(temp->nodeData.callFunData.fun_args) !=
             count_params(found_node->nodeData.funData.param_list->first)) {
+          fprintf(stderr, INVALID_ARG_AMOUNT, found_node->nodeData.funData.fun_name);
           special_exit(5);
         }
         temp->result = found_node->result;
@@ -1490,7 +1499,8 @@ int check_pop() {
         AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
         while (current_param != NULL) {
           if (!compare_param_arg(current_param, current_arg)) {
-            failed = 1;
+            fprintf(stderr, INVALID_ARG_TYPE, found_node->nodeData.funData.fun_name);
+            special_exit(5);
           }
           current_param = current_param->next;
           current_arg = current_arg->next;
@@ -1700,8 +1710,11 @@ dataType literal_to_type(AST_Node *expr) {
         get_symbol(symbol_table, expr->nodeData.assignData.var_name);
     return literal_to_type(ident);
   }
-  case FUN_CALL:
-    return expr->nodeData.funData.return_type;
+  case FUN_CALL: {
+    AST_Node *func_def =
+    get_symbol(symbol_table, expr->nodeData.funData.fun_name);
+    return func_def->nodeData.funData.return_type;
+  }
   case ADD:
     return get_operation_type(expr, true);
   case SUB:
@@ -1760,8 +1773,7 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   }
   if (a == b)
     return true;
-  if (imp_double_int && ((a == TYPE_INT && b == TYPE_DOUBLE) ||
-                         (a == TYPE_DOUBLE && b == TYPE_INT)))
+  if ((imp_double_int && a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT))
     return true;
   if (a == TYPE_UNDEF)
     return true;
@@ -1772,10 +1784,19 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   return false;
 }
 
+
+dataType getVarType(AST_Node *var) {
+  if (var->nodeData.varData.varType == TYPE_UNDEF) {
+    return literal_to_type(var->nodeData.varData.expression);
+  } else
+    return var->nodeData.varData.varType;
+}
+
+
 void check_assign_types(AST_Node *var, AST_Node *expr) {
   AST_Node *current = expr;
   while (current != NULL) {
-    if (!type_compatible(var->nodeData.varData.varType, current, true)) {
+    if (!type_compatible(getVarType(var), current, true)) {
       fprintf(stderr, ASSIGN_TYPE_FAIL, var->nodeData.varData.var_name);
       special_exit(6);
     }

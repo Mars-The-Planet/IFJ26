@@ -27,13 +27,15 @@
 #define REDEF_ATTEMPT ERROR"Pokus o nepovolenou redefinici proměnné nebo funkce.\n"
 #define CONST_REDEF_ATTEMPT ERROR"Pokud o nepovolenou redefinici konstanty.\n"
 #define UNKNOWN_ID ERROR"Pokus o použití neznámé proměnné nebo funkce.\n"
+#define INVALID_ARG_TYPE ERROR"Funkce '%s' je volána s nesprávným typem argumentů.\n"
+#define INVALID_ARG_AMOUNT ERROR"Funkce '%s' je volána s nesprávným počtem argumentů.\n"
 
 /**
  *
  * @brief Výčet datových typů
  */
 typedef enum dataType {
-
+  TYPE_UNASSIGNED,
   TYPE_INT,
   TYPE_DOUBLE,
   TYPE_STRING,
@@ -305,6 +307,8 @@ void* special_malloc(size_t size);
 char* special_strdup(char *str);
 
 void special_exit(int code);
+
+dataType getVarType(AST_Node *var);
 
 extern int has_main;
 
