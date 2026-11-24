@@ -21,11 +21,11 @@ void check_next_token() {
     if (err == 99) {
 
       fprintf(stderr, "ERROR: Memory allocation failed!");
-      exit(99);
+      special_exit(99);
     } else {
 
       fprintf(stderr, "Chyba scanneru %d\n", __LINE__);
-      exit(1);
+      special_exit(1);
     }
   }
 }
@@ -45,7 +45,7 @@ void check_stack_pop(stackPtr stack) {
   } else {
 
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   }
 }
 
@@ -65,7 +65,7 @@ dataType type_transfer() {
     return TYPE_LIST;
 
   fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-  exit(3);
+  special_exit(3);
 }
 
 /**
@@ -81,44 +81,44 @@ void code_prolog() {
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "import") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
     if (strcmp(active_token.value, "ifj26") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, ".") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
     if (strcmp(active_token.value, "*") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   return;
@@ -149,11 +149,11 @@ void the_parser() {
 
         } else {
           fprintf(stderr, "Špatně definovaný main %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         }
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        special_exit(2);
       };
 
     case SYMBOL_TYPE:
@@ -166,7 +166,7 @@ void the_parser() {
 
     default: {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
     }
   }
@@ -176,10 +176,10 @@ void the_parser() {
 
 AST_Node *allocate_expression(AST_Node *expression) {
 
-  expression = calloc(1, sizeof(AST_Node));
+  expression = special_malloc(sizeof(AST_Node));
   if (expression == NULL) {
     fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   return expression;
@@ -314,7 +314,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
         temp_expression->type = LITERAL_STRING;
         temp_expression->nodeData.elemData.valueType.string_value =
-            strdup(active_token.value);
+            special_strdup(active_token.value);
 
         stack_switch = 0;
         stack_push(node_stack, temp_expression);
@@ -343,7 +343,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
         } else {
           temp_expression->type = IDENT;
           temp_expression->nodeData.idVarData.id_name =
-              strdup(active_token.value);
+              special_strdup(active_token.value);
 
           stack_switch = 0;
           stack_push(node_stack, temp_expression);
@@ -373,7 +373,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
         } else {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         };
 
       } else if (active_token.type == OPERATOR_TYPE) {
@@ -394,7 +394,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
         } else {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         };
       } else if (active_token.type == SYMBOL_TYPE &&
                  strcmp(active_token.value, "(") == 0) {
@@ -417,7 +417,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
       } else {
 
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        special_exit(2);
       }
       // Režim pro čtení operátorů
     } else if (stack_switch == 0) {
@@ -456,7 +456,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
             check_stack_pop(node_stack);
 
             temp_expression->nodeData.accessDotData.name_after_dot =
-                strdup(active_token.value);
+                special_strdup(active_token.value);
 
             check_next_token();
             if (active_token.type == SYMBOL_TYPE &&
@@ -635,12 +635,12 @@ AST_Node *parse_expression(AST_Node *past_node) {
         } else {
 
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         }
       }
     } else {
       fprintf(stderr, "ERROR: Memory allocation failed!");
-      exit(99);
+      special_exit(99);
     }
   }
 
@@ -649,11 +649,11 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
 head *parse_param() {
 
-  head *params = malloc(sizeof(head));
+  head *params = special_malloc(sizeof(head));
   if (params == NULL) {
 
     fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   ListParam *list_end = NULL;
@@ -672,15 +672,15 @@ head *parse_param() {
 
     } else if (active_token.type == ID_TYPE) {
 
-      ListParam *new_param = malloc(sizeof(ListParam));
+      ListParam *new_param = special_malloc(sizeof(ListParam));
       if (new_param == NULL) {
 
         fprintf(stderr, "ERROR: Memory allocation failed!");
-        exit(99);
+        special_exit(99);
       }
 
       new_param->next = NULL;
-      new_param->param_name = strdup(active_token.value);
+      new_param->param_name = special_strdup(active_token.value);
 
       if (params->first == NULL) {
         params->first = new_param;
@@ -696,14 +696,14 @@ head *parse_param() {
       if (active_token.type == SYMBOL_TYPE) {
         if (strcmp(active_token.value, ":") != 0) {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         };
 
         check_next_token();
         check_for_eol();
         if (active_token.type != KEYWORD_TYPE) {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         };
         list_end->type = type_transfer();
 
@@ -712,18 +712,18 @@ head *parse_param() {
           check_for_eol();
           if (active_token.type != SYMBOL_TYPE) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
           if (strcmp(active_token.value, "[") != 0) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
 
           check_next_token();
           check_for_eol();
           if (active_token.type != KEYWORD_TYPE) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
           list_end->list_type = type_transfer();
 
@@ -731,18 +731,18 @@ head *parse_param() {
           check_for_eol();
           if (active_token.type != SYMBOL_TYPE) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
           if (strcmp(active_token.value, "]") != 0) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
         }
         check_next_token();
         check_for_eol();
         if (active_token.type != SYMBOL_TYPE) {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         };
         if (strcmp(active_token.value, ")") == 0)
           return params;
@@ -751,7 +751,7 @@ head *parse_param() {
 
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        special_exit(2);
       };
     }
   }
@@ -761,10 +761,10 @@ void parse_fun() {
 
   int indent = sum_stack(stack_indent);
 
-  AST_Node *new_fun = malloc(sizeof(AST_Node));
+  AST_Node *new_fun = special_malloc(sizeof(AST_Node));
   if (new_fun == NULL) {
     fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   new_fun->type = FUN_DEF;
@@ -777,10 +777,10 @@ void parse_fun() {
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
-    new_fun->nodeData.funData.fun_name = strdup(active_token.value);
+    new_fun->nodeData.funData.fun_name = special_strdup(active_token.value);
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   // může být redefinovaný print, pokud není v global scope???
@@ -795,12 +795,12 @@ void parse_fun() {
     if (strcmp(active_token.value, "(") != 0) {
       {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        special_exit(2);
       };
     }
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   new_fun->nodeData.funData.param_list = parse_param();
@@ -828,17 +828,17 @@ void parse_fun() {
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
           if (strcmp(active_token.value, "[") != 0) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
 
           check_next_token();
           if (active_token.type != KEYWORD_TYPE) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
           // Uložení hodnoty které bude mít vracený list v sobě uložené
           new_fun->nodeData.funData.return_list = type_transfer();
@@ -846,11 +846,11 @@ void parse_fun() {
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
           if (strcmp(active_token.value, "]") != 0) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
         }
 
@@ -860,30 +860,30 @@ void parse_fun() {
             new_fun->nodeData.funData.body = parse_fun_body(indent);
           } else {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
         } else {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         };
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        special_exit(2);
       };
     } else if (strcmp(active_token.value, "=") == 0) {
       new_fun->nodeData.funData.body = parse_fun_body(indent);
     } else {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   if (check_pop() == 1) {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
+    special_exit(3);
   }
 
   scope_leave(symbol_table);
@@ -906,12 +906,12 @@ AST_Node *parse_fun_body(int origin_indent) {
     if (active_token.type == SYMBOL_TYPE &&
         strcmp(active_token.value, "EOF") == 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
     // tady může mít stack_indent mít hodnotu 0
     if (sum_stack(stack_indent) <= origin_indent) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
     origin_indent = sum_stack(stack_indent);
 
@@ -933,7 +933,7 @@ AST_Node *parse_fun_body(int origin_indent) {
       // odsazení se nesmí jen tak zvětšit
       if (sum_stack(stack_indent) > origin_indent) {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        special_exit(2);
       };
 
       switch (active_token.type) {
@@ -967,16 +967,20 @@ AST_Node *parse_fun_body(int origin_indent) {
 
         else {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         };
         break;
 
       case ID_TYPE:
         // funkce která už bude rozhodovat co s id vlastně dělat
-        // update_symbol(symbol_table, strdup(active_token.value),
+        // update_symbol(symbol_table, special_strdup(active_token.value),
         //       temp_statement); // tohle rozbije symbol table, co se tu
         //       vlastně vůbec děje???
         temp_statement = parse_id();
+        if (temp_statement->type == IDENT && get_symbol(symbol_table, temp_statement->nodeData.idVarData.id_name) == NULL) {
+          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+          special_exit(3);
+        }
         break;
 
       // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem
@@ -1011,10 +1015,10 @@ AST_Node *parse_fun_body(int origin_indent) {
 
 AST_Node *parse_var() {
 
-  AST_Node *temp_var = malloc(sizeof(AST_Node));
+  AST_Node *temp_var = special_malloc(sizeof(AST_Node));
   if (temp_var == NULL) {
     fprintf(stderr, "Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   temp_var->type = VAR_DEF;
@@ -1027,10 +1031,10 @@ AST_Node *parse_var() {
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
-    temp_var->nodeData.varData.var_name = strdup(active_token.value);
+    temp_var->nodeData.varData.var_name = special_strdup(active_token.value);
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   check_next_token();
@@ -1046,17 +1050,17 @@ AST_Node *parse_var() {
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
           if (strcmp(active_token.value, "[") != 0) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
 
           check_next_token();
           if (active_token.type != KEYWORD_TYPE) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
 
           temp_var->nodeData.varData.varListType = type_transfer();
@@ -1064,11 +1068,11 @@ AST_Node *parse_var() {
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
           if (strcmp(active_token.value, "]") != 0) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
         }
 
@@ -1076,18 +1080,18 @@ AST_Node *parse_var() {
         if (active_token.type == SYMBOL_TYPE) {
           if (strcmp(active_token.value, "=") != 0) {
             fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            special_exit(2);
           };
           check_next_token();
           temp_var->nodeData.varData.expression = parse_expression(NULL);
 
         } else {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         };
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        special_exit(2);
       };
       // rovná se znamená že proměnná nemá ještě definovaný typ
     } else if (strcmp(active_token.value, "=") == 0) {
@@ -1096,11 +1100,11 @@ AST_Node *parse_var() {
       temp_var->nodeData.varData.expression = parse_expression(NULL);
     } else {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   return temp_var;
@@ -1111,10 +1115,10 @@ AST_Node *parse_for(int origin_indent) {
   scope_enter(symbol_table);
   stack_push(used_symbols, stack_ctor());
 
-  AST_Node *temp_for = malloc(sizeof(AST_Node));
+  AST_Node *temp_for = special_malloc(sizeof(AST_Node));
   if (temp_for == NULL) {
     fprintf(stderr, "Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   temp_for->type = FOR_N;
@@ -1131,31 +1135,31 @@ AST_Node *parse_for(int origin_indent) {
 
     if (sum_stack(stack_indent) <= origin_indent) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
 
     base_indent = sum_stack(stack_indent);
   }
 
   if (active_token.type == ID_TYPE) {
-    temp_for->nodeData.forData.var_name = strdup(active_token.value);
+    temp_for->nodeData.forData.var_name = special_strdup(active_token.value);
     char *var_name = temp_for->nodeData.forData.var_name;
     allow_symbol_insert(var_name);
     insert_symbol(symbol_table, var_name, temp_for);
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
     if (strcmp(active_token.value, "<-") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   check_next_token();
@@ -1180,24 +1184,24 @@ AST_Node *parse_for(int origin_indent) {
   if (sum_stack(stack_indent) != origin_indent) {
 
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   }
 
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "do") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   temp_for->nodeData.forData.body = parse_fun_body(origin_indent);
 
   if (check_pop() == 1) {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
+    special_exit(3);
   }
   scope_leave(symbol_table);
 
@@ -1209,10 +1213,10 @@ AST_Node *parse_if(int origin_indent) {
   scope_enter(symbol_table);
   stack_push(used_symbols, stack_ctor());
 
-  AST_Node *temp_if = malloc(sizeof(AST_Node));
+  AST_Node *temp_if = special_malloc(sizeof(AST_Node));
   if (temp_if == NULL) {
     fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   temp_if->type = IF_N;
@@ -1225,11 +1229,11 @@ AST_Node *parse_if(int origin_indent) {
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "then") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   temp_if->nodeData.ifData.then_part = parse_fun_body(origin_indent);
@@ -1245,14 +1249,14 @@ AST_Node *parse_if(int origin_indent) {
     temp_if->nodeData.ifData.else_part = NULL;
     if (check_pop() == 1) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(3);
+      special_exit(3);
     }
     scope_leave(symbol_table);
     return temp_if;
   }
   if (check_pop() == 1) {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
+    special_exit(3);
   }
   scope_leave(symbol_table);
   return temp_if;
@@ -1263,10 +1267,10 @@ AST_Node *parse_while(int origin_indent) {
   scope_enter(symbol_table);
   stack_push(used_symbols, stack_ctor());
 
-  AST_Node *temp_while = malloc(sizeof(AST_Node));
+  AST_Node *temp_while = special_malloc(sizeof(AST_Node));
   if (temp_while == NULL) {
     fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   temp_while->type = WHILE_N;
@@ -1280,18 +1284,18 @@ AST_Node *parse_while(int origin_indent) {
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "do") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    special_exit(2);
   };
 
   temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
 
   if (check_pop() == 1) {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
+    special_exit(3);
   }
   scope_leave(symbol_table);
   return temp_while;
@@ -1342,22 +1346,22 @@ AST_Node *exp_in_brackets() {
 
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        special_exit(2);
       };
     } else {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   }
 }
 
 AST_Node *parse_list() {
 
-  AST_Node *temp_list = malloc(sizeof(AST_Node));
+  AST_Node *temp_list = special_malloc(sizeof(AST_Node));
   if (temp_list == NULL) {
 
     fprintf(stderr, "Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   check_next_token();
@@ -1379,18 +1383,18 @@ AST_Node *parse_list() {
 
         } else {
           fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          special_exit(2);
         };
 
         temp_list->type = DOT_ACCESS;
 
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        special_exit(2);
       };
     } else {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      special_exit(2);
     };
   }
 
@@ -1400,12 +1404,12 @@ AST_Node *parse_list() {
 AST_Node *parse_id() {
 
   // uložení jména proměnné, protože ještě nevím o jaký typ výrazu se jedná
-  char *temp_name = strdup(active_token.value);
+  char *temp_name = special_strdup(active_token.value);
 
-  AST_Node *temp_id = malloc(sizeof(AST_Node));
+  AST_Node *temp_id = special_malloc(sizeof(AST_Node));
   if (temp_id == NULL) {
     fprintf(stderr, "Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   temp_id->next = NULL;
@@ -1422,7 +1426,7 @@ AST_Node *parse_id() {
     AST_Node *stored = get_symbol(symbol_table, temp_name);
     if (!stored->nodeData.varData.isvar) { // pokus o redefinici VAL (konstanty)
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(7);
+      special_exit(7);
     }
 
     check_next_token();
@@ -1441,10 +1445,10 @@ AST_Node *parse_id() {
 
 AST_Node *parse_return() {
 
-  AST_Node *temp_return = malloc(sizeof(AST_Node));
+  AST_Node *temp_return = special_malloc(sizeof(AST_Node));
   if (temp_return == NULL) {
     fprintf(stderr, "Memory allocation failed!");
-    exit(99);
+    special_exit(99);
   }
 
   temp_return->type = RETURN;
@@ -1546,9 +1550,13 @@ int check_pop() {
         printf("fun fail\n");
         failed = 1;
       } else {
+        if (found_node->type != FUN_DEF) {
+          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+          special_exit(4);
+        }
         if (count_args(temp->nodeData.callFunData.fun_args) !=
             count_params(found_node->nodeData.funData.param_list->first)) {
-          exit(5);
+          special_exit(5);
         }
         temp->result = found_node->result;
         ListParam *current_param =
@@ -1577,12 +1585,13 @@ int check_pop() {
 void setup_builtins() {
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_UNIT;
     global_func->result = TYPE_UNIT;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "print", global_func);
@@ -1590,42 +1599,46 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    head *params = malloc(sizeof(head));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     insert_symbol(symbol_table, "readLine", global_func);
   }
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    head *params = malloc(sizeof(head));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     insert_symbol(symbol_table, "readInt", global_func);
   }
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    head *params = malloc(sizeof(head));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_DOUBLE;
     global_func->result = TYPE_DOUBLE;
+    global_func->type = FUN_DEF;
     insert_symbol(symbol_table, "readDouble", global_func);
   }
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "toStr", global_func);
@@ -1633,12 +1646,13 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_DOUBLE;
     insert_symbol(symbol_table, "toInt", global_func);
@@ -1646,12 +1660,13 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_STRING;
     insert_symbol(symbol_table, "strLength", global_func);
@@ -1659,14 +1674,15 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param1 = malloc(sizeof(ListParam));
-    ListParam *new_param2 = malloc(sizeof(ListParam));
-    ListParam *new_param3 = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param1 = special_malloc(sizeof(ListParam));
+    ListParam *new_param2 = special_malloc(sizeof(ListParam));
+    ListParam *new_param3 = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param1;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     new_param1->next = new_param2;
     new_param2->next = new_param3;
     new_param3->next = NULL;
@@ -1678,13 +1694,14 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param1 = malloc(sizeof(ListParam));
-    ListParam *new_param2 = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param1 = special_malloc(sizeof(ListParam));
+    ListParam *new_param2 = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param1;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     new_param1->next = new_param2;
     new_param2->next = NULL;
     new_param1->type = TYPE_STRING;
@@ -1694,12 +1711,13 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_INT;
     insert_symbol(symbol_table, "chr", global_func);
@@ -1710,7 +1728,7 @@ void allow_symbol_insert(char *symbol_name) {
   if (tree_get(symbol_table->scopes->top->value, symbol_name) != NULL) {
     fprintf(stderr, "Chyba syntaxe na radku %d\n",
             __LINE__); // nepovolená redefinice funkce nebo proměnné
-    exit(4);
+    special_exit(4);
   }
   char *builtins[] = {"print", "readLine",  "readInt", "readDouble", "toStr",
                       "toInt", "strLength", "subStr",  "ord",        "chr"};
@@ -1718,7 +1736,7 @@ void allow_symbol_insert(char *symbol_name) {
     if (strcmp(builtins[i], symbol_name) == 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n",
               __LINE__); // nepovolená redefinice vestavěné funkce
-      exit(4);
+      special_exit(4);
     }
   }
 }
@@ -1728,12 +1746,12 @@ dataType get_operation_type(AST_Node *expr, bool allow_string) {
   if (type_compatible(right, expr->nodeData.biData.left, true)) {
     if (right == TYPE_STRING && !allow_string) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(6);
+      special_exit(6);
     }
     return right;
   } else {
     fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(6);
+    special_exit(6);
   }
 }
 
@@ -1834,8 +1852,42 @@ void check_assign_types(AST_Node *var, AST_Node *expr) {
   while (current != NULL) {
     if (!type_compatible(var->nodeData.varData.varType, current, true)) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(6);
+      special_exit(6);
     }
     current = current->next;
   }
+}
+
+
+void *special_malloc(size_t size) {
+  void *ptr = malloc(size);
+  if (ptr == NULL) {
+    fprintf(stderr, "Memory allocation failed!");
+    special_exit(99);
+  }
+  stack_push(memory_allocs, ptr);
+  return ptr;
+}
+
+char* special_strdup(char *str) {
+  char *new_str = strdup(str);
+  if (new_str == NULL) {
+    fprintf(stderr, "Memory allocation failed!");
+    special_exit(99);
+  }
+  stack_push(memory_allocs, new_str);
+  return new_str;
+}
+
+void special_exit(int code) {
+  exit_code = code;
+  while (stack_top(memory_allocs) != NULL) {
+    free(stack_top(memory_allocs));
+    stack_pop(memory_allocs);
+  }
+  stack_dtor(stack_indent);
+  symbol_table_dtor(symbol_table);
+  stack_dtor(used_symbols);
+  stack_dtor(memory_allocs);
+  exit(code);
 }
