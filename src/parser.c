@@ -181,6 +181,7 @@ AST_Node *allocate_expression(AST_Node *expression) {
     fprintf(stderr, "ERROR: Memory allocation failed!");
     special_exit(99);
   }
+  expression->next = NULL; // PROSÍM
 
   return expression;
 }
