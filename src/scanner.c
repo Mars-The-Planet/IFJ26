@@ -1327,7 +1327,6 @@ int int_zero(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
  */
 int dot(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
         dynamic_string_ptr tkn_str) {
-  printf("ahoj\n");
   if (isdigit(ch)) {
     // vloží se tečka až zde aby se nekomplikovalo uvolňování paměti
     if (insert_last(tkn_str, '.') == 0 && insert_last(tkn_str, ch) == 0) {
