@@ -425,8 +425,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
           check_stack_pop(node_stack);
 
           if (stack_nodes->type == IDENT) {
-
-            temp_expression = allocate_expression(temp_expression);
+            if (temp_expression == NULL)
+              temp_expression = allocate_expression(temp_expression);
 
             temp_expression->type = FUN_CALL;
             temp_expression->nodeData.callFunData.call_fun_name =
@@ -1508,7 +1508,15 @@ int check_pop() {
       char *temp_name = temp->nodeData.callFunData.call_fun_name;
       AST_Node *found_node = get_symbol(symbol_table, temp_name);
       if (found_node == NULL) {
-        failed = 1;
+        // failed = 1;
+        stack_push(stalled, temp);
+        AST_Node *cur_arg = temp->nodeData.callFunData.fun_args;
+        while (cur_arg != NULL) {
+          if (cur_arg->type == IDENT) {
+            stack_push(saved_args, get_symbol(symbol_table, cur_arg->nodeData.assignData.var_name));
+          }
+          cur_arg = cur_arg->next;
+        }
       } else {
         if (found_node->type != FUN_DEF) {
           fprintf(stderr, REDEF_ATTEMPT);
@@ -1540,6 +1548,14 @@ int check_pop() {
     stack_pop(used_top);
   }
   stack_pop(used_symbols);
+  if (stack_top(stalled) != NULL && used_symbols->top == NULL) {
+    fprintf(stderr, UNKNOWN_ID);
+    special_exit(3);
+  }
+  // while (stack_top(stalled) != NULL) {
+  //   stack_push(stack_top(used_symbols), stack_top(stalled));
+  //   stack_pop(stalled);
+  // }
   return failed;
 }
 

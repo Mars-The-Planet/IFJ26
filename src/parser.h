@@ -326,4 +326,7 @@ extern int exit_code;
 
 extern stackPtr memory_allocs;
 
+extern stackPtr stalled;
+extern stackPtr saved_args;
+
 #endif // PARSER_H

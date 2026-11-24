@@ -30,19 +30,37 @@ int main() {
   stack_indent = stack_ctor();
   symbol_table = symbol_table_ctor();
   used_symbols = stack_ctor();
+  stackPtr global_used_symbols = stack_ctor();
+  stack_push(used_symbols, global_used_symbols);
   has_main = 0; // nesmí mít parametry a výsledkem je unit
   youre_main_node = false;
   main_node = NULL;
   exit_code = 0;
   memory_allocs = stack_ctor();
+  stalled = stack_ctor();
+  saved_args = stack_ctor();
 
   setup_builtins();
 
   code_prolog();
   the_parser();
 
+  while (stack_top(saved_args) != NULL) {
+    AST_Node *node = stack_top(saved_args);
+    insert_symbol(symbol_table, node->nodeData.varData.var_name, node);
+    stack_pop(saved_args);
+  }
+  while (stack_top(stalled) != NULL) {
+    stack_push(stack_top(used_symbols), stack_top(stalled));
+    stack_pop(stalled);
+  }
+  if (check_pop() == 1) {
+    fprintf(stderr, UNKNOWN_ID);
+    special_exit(3);
+  }
+
   if (has_main != 1) {
-    fprintf(stderr, NO_MAIN);
+    fprintf(stderr, NO_MAIN, has_main);
     special_exit(3);
   }
 
