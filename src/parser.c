@@ -1490,6 +1490,10 @@ bool compare_param_arg(ListParam *param, AST_Node *arg) {
     arg = get_symbol(symbol_table,
                      arg->nodeData.assignData.var_name); // fails for params
   }
+  if (arg == NULL) {
+    fprintf(stderr, UNKNOWN_ID);
+    special_exit(3);
+  }
   return type_compatible(param->type, arg, false);
 }
 
