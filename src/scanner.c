@@ -225,7 +225,8 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       break;
 
     default:
-      fprintf(stderr, "Neznamy stav, stav: %d, znak char: %c, znak ascii: %d\n",
+      fprintf(stderr,
+              "ERROR: Neznamy stav, stav: %d, znak char: %c, znak ascii: %d\n",
               state, ch, ch);
       return 1;
     }
@@ -241,8 +242,6 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       return 0;
     } else if (state == ERROR_STATE) {
       destroy_dynamic_string(tkn_str);
-      fprintf(stderr, "Neznamy token, stav: %d, znak: %c, znak ascii: %d\n",
-              state, ch, ch);
       return 1;
     }
   }
@@ -514,7 +513,8 @@ int start_state(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     return START_STATE;
 
   default:
-    fprintf(stderr, "Znak \'%c\', Decimal: %d, neni podporovany vstupni znak\n",
+    fprintf(stderr,
+            "ERROR: Znak \'%c\', Decimal: %d, neni podporovany vstupni znak\n",
             ch, ch);
     return ERROR_STATE;
   }
@@ -721,7 +721,7 @@ int multiline_comment_start(int ch) {
     return MULTILINE_COMMENT_STATE;
   }
   if (ch == EOF) {
-    fprintf(stderr, "EOF pred ukoncenim nekolikaradkoveho komentare\n");
+    fprintf(stderr, "ERROR: EOF pred ukoncenim nekolikaradkoveho komentare\n");
     return ERROR_STATE;
   }
 
@@ -816,8 +816,9 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr,
     return DONE_STATE;
 
   default:
-    fprintf(stderr, "Po nekolika radkovem blokovem komentari mohou nasledovat "
-                    "pouze mezery ukoncene LF nebo EOL\n");
+    fprintf(stderr,
+            "ERROR: Po nekolika radkovem blokovem komentari mohou nasledovat "
+            "pouze mezery ukoncene LF nebo EOL\n");
     return ERROR_STATE;
   }
 }
@@ -847,7 +848,7 @@ int at(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr,
     }
   }
 
-  fprintf(stderr, "Jedina podporovana anotace je @main\n");
+  fprintf(stderr, "ERROR: Jedina podporovana anotace je @main\n");
   return ERROR_STATE;
 }
 
@@ -1003,7 +1004,8 @@ int multiline_string(int ch, dynamic_string_ptr tkn_str) {
     return MULTILINE_STRING_CLOSING_STATE;
   }
   if (ch == EOF) {
-    fprintf(stderr, "EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
+    fprintf(stderr,
+            "ERROR: EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
     return ERROR_STATE;
   }
 
@@ -1027,7 +1029,8 @@ int multiline_string_closing(int ch, dynamic_string_ptr tkn_str) {
     return MULTILINE_STRING_END_STATE;
   }
   if (ch == EOF) {
-    fprintf(stderr, "EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
+    fprintf(stderr,
+            "ERROR: EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
     return ERROR_STATE;
   }
 
@@ -1052,7 +1055,8 @@ int multiline_string_end(int ch, dynamic_string_ptr tkn_str) {
     return MULTILINE_STRING_DONE_STATE;
   }
   if (ch == EOF) {
-    fprintf(stderr, "EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
+    fprintf(stderr,
+            "ERROR: EOF pred ukocnenim viceradkoveho retezcoveho literalu\n");
     return ERROR_STATE;
   }
 
@@ -1196,7 +1200,7 @@ int int_underscore(int ch, dynamic_string_ptr tkn_str) {
     return NON_ZERO_INTEGER_STATE;
   }
 
-  fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
+  fprintf(stderr, "ERROR: Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
   return ERROR_STATE;
 }
 
@@ -1318,7 +1322,7 @@ int radix_underscore(int ch, dynamic_string_ptr tkn_str) {
     return DOUBLE_SIMPLE_STATE;
   }
 
-  fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
+  fprintf(stderr, "ERROR: Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
   return ERROR_STATE;
 }
 
@@ -1350,7 +1354,7 @@ int non_zero(int ch, dynamic_string_ptr tkn_str) {
     return RADIX_POINT_STATE;
   }
 
-  fprintf(stderr, "Cislo zacinajici nulou muze byt nasledovano dalsimi "
+  fprintf(stderr, "ERROR: Cislo zacinajici nulou muze byt nasledovano dalsimi "
                   "cislicemi, pote teckou \'.\' a nebo e ci E znaci exponent, "
                   "a muze mit zaroven cifry rozdelene podrzitkem \'_\'\n");
   return ERROR_STATE;
@@ -1375,7 +1379,7 @@ int zero_underscore(int ch, dynamic_string_ptr tkn_str) {
     return NON_ZERO_STATE;
   }
 
-  fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
+  fprintf(stderr, "ERROR: Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
   return ERROR_STATE;
 }
 
@@ -1422,8 +1426,9 @@ int exponent_sign(int ch, dynamic_string_ptr tkn_str) {
     return DOUBLE_EXPONENT_STATE;
   }
 
-  fprintf(stderr, "Exponent desetinneho literalu muze po znaku plus \'+\' ci "
-                  "minus \'-\' musi obsahovat alespon jednu cislici\n");
+  fprintf(stderr,
+          "ERROR: Exponent desetinneho literalu muze po znaku plus \'+\' ci "
+          "minus \'-\' musi obsahovat alespon jednu cislici\n");
   return ERROR_STATE;
 }
 
@@ -1477,6 +1482,6 @@ int exponent_underscore(int ch, dynamic_string_ptr tkn_str) {
     return DOUBLE_EXPONENT_STATE;
   }
 
-  fprintf(stderr, "Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
+  fprintf(stderr, "ERROR: Zadne cislo nesmi byt ukonceno podrzitkem \'_\'\n");
   return ERROR_STATE;
 }
