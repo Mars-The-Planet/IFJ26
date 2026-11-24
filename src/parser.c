@@ -962,6 +962,10 @@ AST_Node *parse_fun_body(int origin_indent) {
         //       temp_statement); // tohle rozbije symbol table, co se tu
         //       vlastně vůbec děje???
         temp_statement = parse_id();
+        if (temp_statement->type == IDENT && get_symbol(symbol_table, temp_statement->nodeData.idVarData.id_name) == NULL) {
+          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+          special_exit(3);
+        }
         break;
 
       // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem
@@ -1825,7 +1829,7 @@ void check_assign_types(AST_Node *var, AST_Node *expr) {
 }
 
 
-void *special_malloc(size_t size) {
+void *special_malloc(size_t size) { // TODO: přidat strdup
   void *ptr = malloc(size);
   if (ptr == NULL) {
     fprintf(stderr, "Memory allocation failed!");
