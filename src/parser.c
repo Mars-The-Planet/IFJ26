@@ -1731,6 +1731,12 @@ void allow_symbol_insert(char *symbol_name) {
 
 dataType get_operation_type(AST_Node *expr, bool allow_string) {
   dataType right = literal_to_type(expr->nodeData.biData.right);
+  if (expr->type == UMINUS || expr->type == UPLUS) {
+    if (expr->nodeData.biData.left->type == LITERAL_STRING) {
+      fprintf(stderr, TYPE_CONVERSION_FAIL);
+      special_exit(6);
+    }
+  }
   if (type_compatible(right, expr->nodeData.biData.left, true)) {
     if (right == TYPE_STRING && !allow_string) {
       fprintf(stderr, TYPE_CONVERSION_FAIL);
@@ -1744,6 +1750,8 @@ dataType get_operation_type(AST_Node *expr, bool allow_string) {
 }
 
 dataType literal_to_type(AST_Node *expr) {
+  if (expr == NULL)
+    return TYPE_UNDEF;
   NodeType node_type = expr->type;
   switch (node_type) {
   case LITERAL_INT:
@@ -1787,6 +1795,10 @@ dataType literal_to_type(AST_Node *expr) {
   case EQUALS:
     return get_operation_type(expr, false);
   case NOT_EQUAL:
+    return get_operation_type(expr, false);
+  case UMINUS:
+    return get_operation_type(expr, false);
+  case UPLUS:
     return get_operation_type(expr, false);
   default:
     return TYPE_UNDEF;
@@ -1848,7 +1860,7 @@ dataType getVarType(AST_Node *var) {
 void check_assign_types(AST_Node *var, AST_Node *expr) {
   AST_Node *current = expr;
   while (current != NULL) {
-    if (!type_compatible(getVarType(var), current, true)) {
+    if (!type_compatible(getVarType(var), current, false)) {
       fprintf(stderr, ASSIGN_TYPE_FAIL, var->nodeData.varData.var_name);
       special_exit(6);
     }
