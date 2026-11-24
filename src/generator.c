@@ -415,10 +415,8 @@ static void infer_node(AST_Node *node) {
     AST_Node *fun = find_function(name);
     if (fun) {
       node->result = user_function_return_type(fun);
-    } 
     }
-    break;
-  }
+  } break;
 
   case VAR_DEF: {
     AST_Node *expression = node->nodeData.varData.expression;
