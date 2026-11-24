@@ -18,7 +18,7 @@
  * 3. vytváří vždy unikátní návěští pomocí funkce get new label, čímž brání tomu
  * aby se návěští se stejným názvem definovalao dvakrát
  * 4. DEFVAR se vypisuje naráz pomocí collect vars, jelikož kdyby byla definice
- * v cyklu tak by se opakovala, pozn.: ještě jsem nevyřešil scope
+ * v cyklu, tak by se opakovala, pozn.: ještě jsem nevyřešil scope
  *
  * ROZŠÍŘENÍ:
  * FUNEXP, BOOLTHEN, CONTROL, LISTS
@@ -141,7 +141,7 @@ static char *copy_string(const char *source) {
   size_t length = strlen(source) + 1;
   char *copy = malloc(length);
   if (copy == NULL) {
-    fprintf(stderr, "ERROR: Memory allocation failed!\n");
+    fprintf(stderr, "generátor: chyba alokace paměti při copy_string!\n");
     exit(99);
   }
   memcpy(copy, source, length);
@@ -415,8 +415,7 @@ static void infer_node(AST_Node *node) {
     AST_Node *fun = find_function(name);
     if (fun) {
       node->result = user_function_return_type(fun);
-    } else {
-      node->result = TYPE_UNDEF;
+    } 
     }
     break;
   }
