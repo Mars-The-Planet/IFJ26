@@ -14,6 +14,12 @@
 #include "generator.h"
 #include "parser.h"
 
+#define ERROR "[Chyba] "
+#define NO_MAIN ERROR"Programu chybí @main.\n"
+#define MAIN_HAS_PARAMS ERROR"Funkce označená @main nesmí mít parametry.\n"
+#define MAIN_WRONG_RETURN ERROR"Funkce označená @main musí vracet Unit.\n"
+#define MALLOC_FAIL ERROR"Selhalo alokování paměti.\n"
+
 int has_main;
 
 bool youre_main_node;
@@ -25,6 +31,10 @@ token active_token;
 stackPtr stack_indent;
 
 stackPtr used_symbols;
+
+int exit_code;
+
+stackPtr memory_allocs;
 
 char *ignored_funcs[] = {"print", "readLine", "readInt", "readDouble", "toStr", "toInt", "strLength", "subStr", "ord", "chr", NULL};
 

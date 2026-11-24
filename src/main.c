@@ -33,6 +33,8 @@ int main() {
   has_main = 0; // nesmí mít parametry a výsledkem je unit
   youre_main_node = false;
   main_node = NULL;
+  exit_code = 0;
+  memory_allocs = stack_ctor();
 
   setup_builtins();
 
@@ -40,18 +42,18 @@ int main() {
   the_parser();
 
   if (has_main != 1) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
+    fprintf(stderr, NO_MAIN);
+    special_exit(3);
   }
 
   if (count_params(main_node->nodeData.funData.param_list->first) != 0) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(5);
+    fprintf(stderr, MAIN_HAS_PARAMS);
+    special_exit(5);
   }
 
   if (main_node->nodeData.funData.return_type != TYPE_UNIT) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(10);
+    fprintf(stderr, MAIN_WRONG_RETURN);
+    special_exit(10);
   }
 
   stackPtr func_stack = stack_ctor();
@@ -60,8 +62,7 @@ int main() {
 
   generate_program(func_stack, main_node->nodeData.funData.fun_name);
 
-  stack_dtor(stack_indent);
-  symbol_table_dtor(symbol_table);
-  stack_dtor(used_symbols);
-  return 0;
+  stack_dtor(func_stack);
+
+  special_exit(0);
 }

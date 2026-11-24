@@ -8,15 +8,32 @@
 
 #include "parser.h"
 
+void syntax_error(char *errmsg, int line) {
+
+  fprintf(stderr, "ERROR: Syntaxe (radek %d): %s | token: '%s'\n", line, errmsg,
+          active_token.value, active_token.type);
+  special_exit(2);
+}
+
 /**
  *
  * @brief funckce zavolá a zároveň zkontroluje next_token
  */
 void check_next_token() {
 
-  if (next_token(&active_token, stack_indent) == 1) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(1);
+  int err = next_token(&active_token, stack_indent);
+
+  if (err != 0) {
+
+    if (err == 99) {
+
+      fprintf(stderr, "ERROR: Memory allocation failed!");
+      special_exit(99);
+    } else {
+
+      fprintf(stderr, "Chyba scanneru %d\n", __LINE__);
+      special_exit(1);
+    }
   }
 }
 
@@ -34,8 +51,7 @@ void check_stack_pop(stackPtr stack) {
     return;
   } else {
 
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Popnuti prazdného zásobníku", __LINE__);
   }
 }
 
@@ -53,12 +69,9 @@ dataType type_transfer() {
     return TYPE_BOOL;
   if (strcmp(active_token.value, "List") == 0)
     return TYPE_LIST;
-  {
-      /*
+
   fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-     exit(3);
-  */
-  };
+  special_exit(3);
 }
 
 /**
@@ -73,53 +86,46 @@ void code_prolog() {
 
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "import") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekávano 'import'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+
+    syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
   };
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
     if (strcmp(active_token.value, "ifj26") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekávano 'ifj26'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno ID", __LINE__);
   };
 
   check_next_token();
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, ".") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      syntax_error("Špatná hodnota tokenu, očekávano '.'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
   };
 
   check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
     if (strcmp(active_token.value, "*") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      syntax_error("Špatná hodnota tokenu, očekávano '*'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno OPERATOR", __LINE__);
   };
 
   return;
 }
 
 void the_parser() {
-
-  int indent;
 
   check_next_token();
 
@@ -135,6 +141,7 @@ void the_parser() {
         has_main++;
         youre_main_node = true;
         check_next_token();
+        check_for_eol();
 
         if (active_token.type == KEYWORD_TYPE &&
             strcmp(active_token.value, "def") == 0) {
@@ -142,12 +149,11 @@ void the_parser() {
           break;
 
         } else {
-          fprintf(stderr, "Špatně definovaný main %d\n", __LINE__);
-          exit(2);
+          syntax_error("Špatně typ tokenu, očekáván KEYWORD", __LINE__);
         }
       } else {
         fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        syntax_error("Špatná hodnota tokenu, očekáváno '@main'", __LINE__);
       };
 
     case SYMBOL_TYPE:
@@ -159,8 +165,7 @@ void the_parser() {
         return;
 
     default: {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      syntax_error("Žádná hlavička funkce", __LINE__);
     };
     }
   }
@@ -170,41 +175,35 @@ void the_parser() {
 
 AST_Node *allocate_expression(AST_Node *expression) {
 
-  expression = malloc(sizeof(AST_Node));
-  if (expression == NULL) {
-    fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
-  }
-
+  expression = special_malloc(sizeof(AST_Node));
   expression->next = NULL; // PROSÍM
 
   return expression;
 }
 
 char precedence_table[11][11] = {
-    '<', '>', '>', '>', '>', '>',
-    '>', '>', '<', '>', '>', // 0. unární operátory
-    '<', '>', '>', '>', '>', '>',
-    '>', '>', '<', '>', '>', // 1. násobení a dělení
-    '<', '<', '>', '>', '>', '>',
-    '>', '>', '<', '>', '>', // 2. sčítání, odčítání, konkatenace
-    '<', '<', '<', 'E', '>', '>',
-    '>', '>', '<', '>', '>', // 3. relační operátory
-    '<', '<', '<', '<', 'E', '>',
-    '>', '>', '<', '>', '>', // 4. '==' a '!='
-    '<', '<', '<', '<', '<', '>',
-    '>', '>', '<', '>', '>', // 5. AND (&&)
-    '<', '<', '<', '<', '<', '<',
-    '>', '>', '<', '>', '>', // 6. OR (||)
-    '<', '<', '<', '<', '<', '<',
-    '<', '>', '<', '>', '>', // 7. to, until, by (for cyklus)
-    '<', '<', '<', '<', '<', '<',
-    '<', '<', '<', '=', 'E', // 8. otevírací závorka
-    '<', '>', '>', '>', '>', '>',
-    '>', '>', '<', '=', '>', // 9. uzavírací závorka
-    '<', '<', '<', '<', '<', '<',
-    '<', '<', '<', 'E', 'E' // 10. dno zásobníku
-};
+    // 0. unární operátory
+    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '>', '>'},
+    // 1. násobení a dělení
+    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '>', '>'},
+    // 2. sčítání, odčítání, konkatenace
+    {'<', '<', '>', '>', '>', '>', '>', '>', '<', '>', '>'},
+    // 3. relační operátory
+    {'<', '<', '<', 'E', '>', '>', '>', '>', '<', '>', '>'},
+    // 4. '==' a '!='
+    {'<', '<', '<', '<', 'E', '>', '>', '>', '<', '>', '>'},
+    // 5. AND (&&)
+    {'<', '<', '<', '<', '<', '>', '>', '>', '<', '>', '>'},
+    // 6. OR (||)
+    {'<', '<', '<', '<', '<', '<', '>', '>', '<', '>', '>'},
+    // 7. to, until, by (for cyklus)
+    {'<', '<', '<', '<', '<', '<', '<', '>', '<', '>', '>'},
+    // 8. otevírací závorka
+    {'<', '<', '<', '<', '<', '<', '<', '<', '<', '=', 'E'},
+    // 9. uzavírací závorka
+    {'<', '>', '>', '>', '>', '>', '>', '>', '<', '=', '>'},
+    // 10. dno zásobníku
+    {'<', '<', '<', '<', '<', '<', '<', '<', '<', 'E', 'E'}};
 
 int get_table_index(NodeType type) {
 
@@ -278,11 +277,13 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
   while (1) {
 
-    temp_expression = allocate_expression(temp_expression);
     // režim pro čtení nodes
     if (stack_switch == 1) {
 
       if (active_token.type == INT_TYPE) {
+
+        temp_expression = allocate_expression(temp_expression);
+
         temp_expression->type = LITERAL_INT;
         temp_expression->nodeData.elemData.valueType.int_value =
             atoi(active_token.value);
@@ -292,6 +293,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
         check_next_token();
 
       } else if (active_token.type == DOUBLE_TYPE) {
+
+        temp_expression = allocate_expression(temp_expression);
+
         temp_expression->type = LITERAL_DOUBLE;
         temp_expression->nodeData.elemData.valueType.double_value =
             atof(active_token.value);
@@ -301,15 +305,21 @@ AST_Node *parse_expression(AST_Node *past_node) {
         check_next_token();
 
       } else if (active_token.type == STRING_TYPE) {
+
+        temp_expression = allocate_expression(temp_expression);
+
         temp_expression->type = LITERAL_STRING;
         temp_expression->nodeData.elemData.valueType.string_value =
-            strdup(active_token.value);
+            special_strdup(active_token.value);
 
         stack_switch = 0;
         stack_push(node_stack, temp_expression);
         check_next_token();
 
       } else if (active_token.type == ID_TYPE) {
+
+        temp_expression = allocate_expression(temp_expression);
+
         if (strcmp(active_token.value, "true") == 0) {
           temp_expression->type = LITERAL_BOOL;
           temp_expression->nodeData.elemData.valueType.bool_value = 1;
@@ -329,7 +339,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
         } else {
           temp_expression->type = IDENT;
           temp_expression->nodeData.idVarData.id_name =
-              strdup(active_token.value);
+              special_strdup(active_token.value);
 
           stack_switch = 0;
           stack_push(node_stack, temp_expression);
@@ -356,11 +366,10 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
           stack_switch = 0;
           stack_push(node_stack, temp_expression);
-          check_next_token();
 
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          syntax_error("Špatná hondota tokenu, očekáváno 'if' nebo 'List'",
+                       __LINE__);
         };
 
       } else if (active_token.type == OPERATOR_TYPE) {
@@ -380,8 +389,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
           check_next_token();
 
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          syntax_error("Špatná hodnota tokenu, očekáván unární operátor",
+                       __LINE__);
         };
       } else if (active_token.type == SYMBOL_TYPE &&
                  strcmp(active_token.value, "(") == 0) {
@@ -390,6 +399,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
         // pokud je závorka prázdná nastavím ho na UNIT
         if (active_token.type == SYMBOL_TYPE &&
             strcmp(active_token.value, ")") == 0) {
+
+          temp_expression = allocate_expression(temp_expression);
+
           temp_expression->type = LITERAL_UNIT;
 
           stack_switch = 0;
@@ -400,8 +412,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
           stack_push(operator_stack, (void *)(uintptr_t)BRACK_START);
       } else {
 
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        syntax_error("Špatná hodnota tokonu, očekáváno '('", __LINE__);
       }
       // Režim pro čtení operátorů
     } else if (stack_switch == 0) {
@@ -412,18 +423,24 @@ AST_Node *parse_expression(AST_Node *past_node) {
           check_stack_pop(node_stack);
 
           if (stack_nodes->type == IDENT) {
+
+            temp_expression = allocate_expression(temp_expression);
+
             temp_expression->type = FUN_CALL;
             temp_expression->nodeData.callFunData.call_fun_name =
                 stack_nodes->nodeData.idVarData.id_name;
 
             temp_expression->nodeData.callFunData.fun_args = exp_in_brackets();
-            stack_switch = 1;
+            stack_switch = 0;
 
             stack_push(stack_top(used_symbols), temp_expression);
 
-            return temp_expression;
+            stack_push(node_stack, temp_expression);
+            continue;
           }
         } else if (strcmp(active_token.value, ".") == 0) {
+
+          temp_expression = allocate_expression(temp_expression);
 
           temp_expression->type = DOT_ACCESS;
 
@@ -434,27 +451,20 @@ AST_Node *parse_expression(AST_Node *past_node) {
             check_stack_pop(node_stack);
 
             temp_expression->nodeData.accessDotData.name_after_dot =
-                strdup(active_token.value);
+                special_strdup(active_token.value);
 
             check_next_token();
-            if (active_token.type == SYMBOL_TYPE) {
-              if (strcmp(active_token.value, "(") == 0) {
+            if (active_token.type == SYMBOL_TYPE &&
+                strcmp(active_token.value, "(") == 0) {
+              temp_expression->nodeData.accessDotData.dot_args =
+                  exp_in_brackets();
+            } else
+              temp_expression->nodeData.accessDotData.dot_args = NULL;
 
-                temp_expression->nodeData.accessDotData.dot_args =
-                    exp_in_brackets();
-
-              } else if (strcmp(active_token.value, "EOL") == 0) {
-                temp_expression->nodeData.accessDotData.dot_args = NULL;
-
-                stack_push(node_stack, temp_expression);
-                stack_switch = 0;
-
-              } else {
-                stack_push(node_stack, temp_expression);
-                stack_switch = 0;
-              }
-            }
+            stack_push(node_stack, temp_expression);
+            stack_switch = 0;
           }
+          continue;
 
         } else if (strcmp(active_token.value, ")") == 0) {
           operator_type = BRACK_END;
@@ -467,6 +477,11 @@ AST_Node *parse_expression(AST_Node *past_node) {
         if (strcmp(active_token.value, "+") == 0) {
 
           operator_type = ADD;
+          index_horizontal = get_table_index(operator_type);
+
+        } else if (strcmp(active_token.value, "++") == 0) {
+
+          operator_type = CON_SEZNAM;
           index_horizontal = get_table_index(operator_type);
 
         } else if (strcmp(active_token.value, "-") == 0) {
@@ -570,6 +585,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
         check_stack_pop(operator_stack);
 
+        temp_expression = allocate_expression(temp_expression);
+
         temp_expression->type = stack_operators;
 
         if (get_table_index(stack_operators) == 0) {
@@ -605,34 +622,23 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
           expression = (AST_Node *)stack_top(node_stack);
 
-          if (temp_expression != NULL)
-            free(temp_expression);
+          stack_dtor(operator_stack);
+          stack_dtor(node_stack);
 
           return expression;
 
         } else {
 
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          syntax_error("Očekáván konec zásobníku", __LINE__);
         }
       }
-    } else {
-      fprintf(stderr, "ERROR: Memory allocation failed!");
-      exit(99);
     }
   }
-
-  return NULL;
 }
 
 head *parse_param() {
 
-  head *params = malloc(sizeof(head));
-  if (params == NULL) {
-
-    fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
-  }
+  head *params = special_malloc(sizeof(head));
 
   ListParam *list_end = NULL;
 
@@ -650,15 +656,10 @@ head *parse_param() {
 
     } else if (active_token.type == ID_TYPE) {
 
-      ListParam *new_param = malloc(sizeof(ListParam));
-      if (new_param == NULL) {
-
-        fprintf(stderr, "ERROR: Memory allocation failed!");
-        exit(99);
-      }
+      ListParam *new_param = special_malloc(sizeof(ListParam));
 
       new_param->next = NULL;
-      new_param->param_name = strdup(active_token.value);
+      new_param->param_name = special_strdup(active_token.value);
 
       if (params->first == NULL) {
         params->first = new_param;
@@ -673,15 +674,15 @@ head *parse_param() {
 
       if (active_token.type == SYMBOL_TYPE) {
         if (strcmp(active_token.value, ":") != 0) {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+
+          syntax_error("Špatná hodnota tokenu, očekáváno ':'", __LINE__);
         };
 
         check_next_token();
         check_for_eol();
         if (active_token.type != KEYWORD_TYPE) {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+
+          syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
         };
         list_end->type = type_transfer();
 
@@ -689,38 +690,35 @@ head *parse_param() {
           check_next_token();
           check_for_eol();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "[") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '['", __LINE__);
           };
 
           check_next_token();
           check_for_eol();
           if (active_token.type != KEYWORD_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
           };
           list_end->list_type = type_transfer();
 
           check_next_token();
           check_for_eol();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "]") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+            syntax_error("Špatná hodnota tokenu, očekáváno ']'", __LINE__);
           };
         }
         check_next_token();
         check_for_eol();
         if (active_token.type != SYMBOL_TYPE) {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
         };
         if (strcmp(active_token.value, ")") == 0)
           return params;
@@ -728,8 +726,7 @@ head *parse_param() {
           continue;
 
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
       };
     }
   }
@@ -739,11 +736,7 @@ void parse_fun() {
 
   int indent = sum_stack(stack_indent);
 
-  AST_Node *new_fun = malloc(sizeof(AST_Node));
-  if (new_fun == NULL) {
-    fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
-  }
+  AST_Node *new_fun = special_malloc(sizeof(AST_Node));
 
   new_fun->type = FUN_DEF;
   new_fun->next = NULL;
@@ -755,10 +748,9 @@ void parse_fun() {
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
-    new_fun->nodeData.funData.fun_name = strdup(active_token.value);
+    new_fun->nodeData.funData.fun_name = special_strdup(active_token.value);
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno ID", __LINE__);
   };
 
   // může být redefinovaný print, pokud není v global scope???
@@ -772,13 +764,11 @@ void parse_fun() {
   if (active_token.type == SYMBOL_TYPE) {
     if (strcmp(active_token.value, "(") != 0) {
       {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        syntax_error("Špatná hodnota tokenu, očekáváno '('", __LINE__);
       };
     }
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
   };
 
   new_fun->nodeData.funData.param_list = parse_param();
@@ -805,30 +795,30 @@ void parse_fun() {
 
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "[") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '[' ", __LINE__);
           };
 
           check_next_token();
           if (active_token.type != KEYWORD_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
           };
           // Uložení hodnoty které bude mít vracený list v sobě uložené
           new_fun->nodeData.funData.return_list = type_transfer();
 
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "]") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno ']'", __LINE__);
           };
         }
 
@@ -837,31 +827,29 @@ void parse_fun() {
           if (strcmp(active_token.value, "=") == 0) {
             new_fun->nodeData.funData.body = parse_fun_body(indent);
           } else {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '='", __LINE__);
           };
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+
+          syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
         };
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
       };
     } else if (strcmp(active_token.value, "=") == 0) {
       new_fun->nodeData.funData.body = parse_fun_body(indent);
     } else {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekáváno '='", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
   };
 
   if (check_pop() == 1) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
+    fprintf(stderr, UNKNOWN_ID);
+    special_exit(3);
   }
 
   scope_leave(symbol_table);
@@ -883,18 +871,26 @@ AST_Node *parse_fun_body(int origin_indent) {
 
     if (active_token.type == SYMBOL_TYPE &&
         strcmp(active_token.value, "EOF") == 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+
+      syntax_error("Nečekená konec souboru", __LINE__);
     };
-    // tady může mít stack_indent mít hodnotu 0
+    // stack_indent můžu mít hodnotu 0
     if (sum_stack(stack_indent) <= origin_indent) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+
+      syntax_error("Chyba odsazení", __LINE__);
     };
     origin_indent = sum_stack(stack_indent);
 
     while (1) {
-      check_for_eol();
+
+      // jakoby vylepšení check for eol který přeskakuje aji středníky
+      while (active_token.type == SYMBOL_TYPE &&
+             (strcmp(active_token.value, "EOL") == 0 ||
+              strcmp(active_token.value, ";") == 0)) {
+
+        check_next_token();
+      }
+
       if (active_token.type == SYMBOL_TYPE &&
           strcmp(active_token.value, "EOF") == 0)
         return statements;
@@ -902,41 +898,58 @@ AST_Node *parse_fun_body(int origin_indent) {
         return statements;
       // odsazení se nesmí jen tak zvětšit
       if (sum_stack(stack_indent) > origin_indent) {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+
+        syntax_error("Chyba odsazení", __LINE__);
       };
 
       switch (active_token.type) {
 
       case KEYWORD_TYPE:
+
         // var(1) a val(0) se rozlišuje podle bool
         if (strcmp(active_token.value, "val") == 0 ||
             strcmp(active_token.value, "var") == 0) {
+
           temp_statement = parse_var();
-          char* var_name = temp_statement->nodeData.varData.var_name;
+
+          char *var_name = temp_statement->nodeData.varData.var_name;
+
           allow_symbol_insert(var_name);
           insert_symbol(symbol_table, var_name, temp_statement);
-          check_assign_types(temp_statement, temp_statement->nodeData.varData.expression);
+          check_assign_types(temp_statement,
+                             temp_statement->nodeData.varData.expression);
+
         } else if (strcmp(active_token.value, "while") == 0)
           temp_statement = parse_while(origin_indent);
+
         else if (strcmp(active_token.value, "if") == 0)
           temp_statement = parse_if(origin_indent);
+
         else if (strcmp(active_token.value, "for") == 0)
           temp_statement = parse_for(origin_indent);
+
         else if (strcmp(active_token.value, "return") == 0)
           temp_statement = parse_return();
+
         else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          syntax_error("Špatná hodnota tokenu, očekáváno 'while', 'if', 'for' "
+                       "nebo 'return'",
+                       __LINE__);
         };
         break;
 
       case ID_TYPE:
         // funkce která už bude rozhodovat co s id vlastně dělat
-        // update_symbol(symbol_table, strdup(active_token.value),
+        // update_symbol(symbol_table, special_strdup(active_token.value),
         //       temp_statement); // tohle rozbije symbol table, co se tu
         //       vlastně vůbec děje???
         temp_statement = parse_id();
+        if (temp_statement->type == IDENT &&
+            get_symbol(symbol_table,
+                       temp_statement->nodeData.idVarData.id_name) == NULL) {
+          fprintf(stderr, UNKNOWN_ID);
+          special_exit(3);
+        }
         break;
 
       // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem
@@ -971,11 +984,7 @@ AST_Node *parse_fun_body(int origin_indent) {
 
 AST_Node *parse_var() {
 
-  AST_Node *temp_var = malloc(sizeof(AST_Node));
-  if (temp_var == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(99);
-  }
+  AST_Node *temp_var = special_malloc(sizeof(AST_Node));
 
   temp_var->type = VAR_DEF;
   temp_var->next = NULL;
@@ -987,10 +996,9 @@ AST_Node *parse_var() {
 
   check_next_token();
   if (active_token.type == ID_TYPE) {
-    temp_var->nodeData.varData.var_name = strdup(active_token.value);
+    temp_var->nodeData.varData.var_name = special_strdup(active_token.value);
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno ID", __LINE__);
   };
 
   check_next_token();
@@ -1005,50 +1013,48 @@ AST_Node *parse_var() {
 
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "[") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '['", __LINE__);
           };
 
           check_next_token();
           if (active_token.type != KEYWORD_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
           };
 
-          check_next_token();
           temp_var->nodeData.varData.varListType = type_transfer();
 
           check_next_token();
           if (active_token.type != SYMBOL_TYPE) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
           };
           if (strcmp(active_token.value, "]") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno ']'", __LINE__);
           };
         }
 
         check_next_token();
         if (active_token.type == SYMBOL_TYPE) {
           if (strcmp(active_token.value, "=") != 0) {
-            fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-            exit(2);
+
+            syntax_error("Špatná hodnota tokenu, očekáváno '='", __LINE__);
           };
           check_next_token();
           temp_var->nodeData.varData.expression = parse_expression(NULL);
 
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
         };
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+
+        syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
       };
       // rovná se znamená že proměnná nemá ještě definovaný typ
     } else if (strcmp(active_token.value, "=") == 0) {
@@ -1056,12 +1062,12 @@ AST_Node *parse_var() {
       check_next_token();
       temp_var->nodeData.varData.expression = parse_expression(NULL);
     } else {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekáváno '='", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+
+    syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
   };
 
   return temp_var;
@@ -1072,11 +1078,7 @@ AST_Node *parse_for(int origin_indent) {
   scope_enter(symbol_table);
   stack_push(used_symbols, stack_ctor());
 
-  AST_Node *temp_for = malloc(sizeof(AST_Node));
-  if (temp_for == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(99);
-  }
+  AST_Node *temp_for = special_malloc(sizeof(AST_Node));
 
   temp_for->type = FOR_N;
   temp_for->next = NULL;
@@ -1091,32 +1093,29 @@ AST_Node *parse_for(int origin_indent) {
     check_for_eol();
 
     if (sum_stack(stack_indent) <= origin_indent) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+
+      syntax_error("Chyba odsazení", __LINE__);
     };
 
     base_indent = sum_stack(stack_indent);
   }
 
   if (active_token.type == ID_TYPE) {
-    temp_for->nodeData.forData.var_name = strdup(active_token.value);
+    temp_for->nodeData.forData.var_name = special_strdup(active_token.value);
     char *var_name = temp_for->nodeData.forData.var_name;
     allow_symbol_insert(var_name);
     insert_symbol(symbol_table, var_name, temp_for);
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno ID", __LINE__);
   };
 
   check_next_token();
   if (active_token.type == OPERATOR_TYPE) {
     if (strcmp(active_token.value, "<-") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      syntax_error("Špatná hodnota tokenu, očekáváno '<-'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno OPERATOR", __LINE__);
   };
 
   check_next_token();
@@ -1140,25 +1139,23 @@ AST_Node *parse_for(int origin_indent) {
   // odsazení pro do musí být stejné jako pro for
   if (sum_stack(stack_indent) != origin_indent) {
 
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Chyba odsazení", __LINE__);
   }
 
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "do") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      syntax_error("Špatná hodnota tokenu, očekáváno 'do'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
   };
 
   temp_for->nodeData.forData.body = parse_fun_body(origin_indent);
 
   if (check_pop() == 1) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
+    fprintf(stderr, UNKNOWN_ID);
+    special_exit(3);
   }
   scope_leave(symbol_table);
 
@@ -1170,11 +1167,7 @@ AST_Node *parse_if(int origin_indent) {
   scope_enter(symbol_table);
   stack_push(used_symbols, stack_ctor());
 
-  AST_Node *temp_if = malloc(sizeof(AST_Node));
-  if (temp_if == NULL) {
-    fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
-  }
+  AST_Node *temp_if = special_malloc(sizeof(AST_Node));
 
   temp_if->type = IF_N;
   temp_if->next = NULL;
@@ -1185,12 +1178,12 @@ AST_Node *parse_if(int origin_indent) {
 
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "then") != 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+
+      syntax_error("Špatná hodnota tokenu, očekáváno 'then'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+
+    syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
   };
 
   temp_if->nodeData.ifData.then_part = parse_fun_body(origin_indent);
@@ -1205,15 +1198,15 @@ AST_Node *parse_if(int origin_indent) {
   } else {
     temp_if->nodeData.ifData.else_part = NULL;
     if (check_pop() == 1) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(3);
+      fprintf(stderr, UNKNOWN_ID);
+      special_exit(3);
     }
     scope_leave(symbol_table);
     return temp_if;
   }
   if (check_pop() == 1) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
+    fprintf(stderr, UNKNOWN_ID);
+    special_exit(3);
   }
   scope_leave(symbol_table);
   return temp_if;
@@ -1224,11 +1217,7 @@ AST_Node *parse_while(int origin_indent) {
   scope_enter(symbol_table);
   stack_push(used_symbols, stack_ctor());
 
-  AST_Node *temp_while = malloc(sizeof(AST_Node));
-  if (temp_while == NULL) {
-    fprintf(stderr, "ERROR: Memory allocation failed!");
-    exit(99);
-  }
+  AST_Node *temp_while = special_malloc(sizeof(AST_Node));
 
   temp_while->type = WHILE_N;
   temp_while->next = NULL;
@@ -1241,18 +1230,17 @@ AST_Node *parse_while(int origin_indent) {
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "do") != 0) {
       fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      syntax_error("Špatná hodnota tokenu, očekáváno 'do'", __LINE__);
     };
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(2);
+    syntax_error("Špatný typ tokenu, očekáváno KEYWORD", __LINE__);
   };
 
   temp_while->nodeData.whileData.body = parse_fun_body(origin_indent);
 
   if (check_pop() == 1) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(3);
+    fprintf(stderr, UNKNOWN_ID);
+    special_exit(3);
   }
   scope_leave(symbol_table);
   return temp_while;
@@ -1288,33 +1276,31 @@ AST_Node *exp_in_brackets() {
     if (active_token.type == SYMBOL_TYPE) {
       if (strcmp(active_token.value, ",") == 0) {
         check_next_token();
+        check_for_eol();
+        if (active_token.type == SYMBOL_TYPE &&
+            strcmp(active_token.value, ")") == 0) {
+
+          check_next_token();
+          return expression_list;
+        }
+
         continue;
       } else if (strcmp(active_token.value, ")") == 0) {
-
         check_next_token();
         return expression_list;
 
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        syntax_error("Špatná hodnota tokenu, očekáváno ')'", __LINE__);
       };
     } else {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
     };
   }
-
-  return expression_list;
 }
 
 AST_Node *parse_list() {
 
-  AST_Node *temp_list = malloc(sizeof(AST_Node));
-  if (temp_list == NULL) {
-
-    fprintf(stderr, "Memory allocation failed!");
-    exit(99);
-  }
+  AST_Node *temp_list = special_malloc(sizeof(AST_Node));
 
   check_next_token();
 
@@ -1334,19 +1320,17 @@ AST_Node *parse_list() {
           temp_list->nodeData.listData.list_var = exp_in_brackets();
 
         } else {
-          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-          exit(2);
+          syntax_error("Špatná hodnota tokenu, očekáváno '('", __LINE__);
         };
 
         temp_list->type = DOT_ACCESS;
 
       } else {
-        fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-        exit(2);
+        syntax_error("Špatná hodnota tokenu, očekáváno 'range'", __LINE__);
       };
     } else {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(2);
+      syntax_error("Špatná hodnota tokenu, očekáváno '.'", __LINE__);
+      ;
     };
   }
 
@@ -1356,13 +1340,9 @@ AST_Node *parse_list() {
 AST_Node *parse_id() {
 
   // uložení jména proměnné, protože ještě nevím o jaký typ výrazu se jedná
-  char *temp_name = strdup(active_token.value);
+  char *temp_name = special_strdup(active_token.value);
 
-  AST_Node *temp_id = malloc(sizeof(AST_Node));
-  if (temp_id == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(99);
-  }
+  AST_Node *temp_id = special_malloc(sizeof(AST_Node));
 
   temp_id->next = NULL;
 
@@ -1377,13 +1357,14 @@ AST_Node *parse_id() {
 
     AST_Node *stored = get_symbol(symbol_table, temp_name);
     if (!stored->nodeData.varData.isvar) { // pokus o redefinici VAL (konstanty)
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(7);
+      fprintf(stderr, CONST_REDEF_ATTEMPT);
+      special_exit(7);
     }
 
     check_next_token();
     temp_id->nodeData.assignData.equal = parse_expression(NULL);
-    AST_Node* var = get_symbol(symbol_table, temp_id->nodeData.assignData.var_name);
+    AST_Node *var =
+        get_symbol(symbol_table, temp_id->nodeData.assignData.var_name);
     check_assign_types(var, temp_id->nodeData.assignData.equal);
 
     return temp_id;
@@ -1396,11 +1377,7 @@ AST_Node *parse_id() {
 
 AST_Node *parse_return() {
 
-  AST_Node *temp_return = malloc(sizeof(AST_Node));
-  if (temp_return == NULL) {
-    fprintf(stderr, "Memory allocation failed!");
-    exit(99);
-  }
+  AST_Node *temp_return = special_malloc(sizeof(AST_Node));
 
   temp_return->type = RETURN;
   temp_return->next = NULL;
@@ -1444,24 +1421,27 @@ int count_args(AST_Node *node) {
       count++;
     } else if (node->type == ADD) {
       count++;
-    }
-    else if (node->type == SUB) {
+    } else if (node->type == SUB) {
       count++;
-    } else if (node->type ==  MUL) {
+    } else if (node->type == MUL) {
       count++;
-    } else if (node->type ==  DIV) {
+    } else if (node->type == DIV) {
       count++;
-    } else if (node->type ==  LESS) {
+    } else if (node->type == LESS) {
       count++;
-    } else if (node->type ==  LESS_EQUAL) {
+    } else if (node->type == LESS_EQUAL) {
       count++;
-    } else if (node->type ==  GREATER) {
+    } else if (node->type == GREATER) {
       count++;
-    } else if (node->type ==  GREATER_EQUAL) {
+    } else if (node->type == GREATER_EQUAL) {
       count++;
-    } else if (node->type ==  EQUALS) {
+    } else if (node->type == EQUALS) {
       count++;
-    } else if (node->type ==  NOT_EQUAL) {
+    } else if (node->type == NOT_EQUAL) {
+      count++;
+    } else if (node->type == UMINUS) {
+      count++;
+    } else if (node->type == UPLUS) {
       count++;
     }
     node = node->next;
@@ -1481,7 +1461,12 @@ int count_params(ListParam *list) {
 
 bool compare_param_arg(ListParam *param, AST_Node *arg) {
   if (arg->type == IDENT) {
-    arg = get_symbol(symbol_table, arg->nodeData.assignData.var_name); // fails for params
+    arg = get_symbol(symbol_table,
+                     arg->nodeData.assignData.var_name); // fails for params
+  }
+  if (arg == NULL) {
+    fprintf(stderr, UNKNOWN_ID);
+    special_exit(3);
   }
   return type_compatible(param->type, arg, false);
 }
@@ -1492,31 +1477,34 @@ int check_pop() {
   while (stack_top(used_top) != NULL) {
     AST_Node *temp = stack_top(used_top);
     if (temp->type == IDENT) {
-      printf("ident fail\n");
       failed = 1;
     } else if (temp->type == FUN_CALL) {
       char *temp_name = temp->nodeData.callFunData.call_fun_name;
       AST_Node *found_node = get_symbol(symbol_table, temp_name);
       if (found_node == NULL) {
-        printf("fun fail\n");
         failed = 1;
       } else {
+        if (found_node->type != FUN_DEF) {
+          fprintf(stderr, REDEF_ATTEMPT);
+          special_exit(4);
+        }
         if (count_args(temp->nodeData.callFunData.fun_args) !=
             count_params(found_node->nodeData.funData.param_list->first)) {
-          exit(5);
+          fprintf(stderr, INVALID_ARG_AMOUNT, found_node->nodeData.funData.fun_name);
+          special_exit(5);
         }
         temp->result = found_node->result;
-        ListParam *current_param = found_node->nodeData.funData.param_list->first;
+        ListParam *current_param =
+            found_node->nodeData.funData.param_list->first;
         AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
         while (current_param != NULL) {
           if (!compare_param_arg(current_param, current_arg)) {
-            printf("fun call fail\n");
-            failed = 1;
+            fprintf(stderr, INVALID_ARG_TYPE, found_node->nodeData.funData.fun_name);
+            special_exit(5);
           }
           current_param = current_param->next;
           current_arg = current_arg->next;
         }
-
       }
     } else {
       // printf("Somehow stored a value that isn't IDENT or FUN_CALL. Type is
@@ -1532,12 +1520,13 @@ int check_pop() {
 void setup_builtins() {
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_UNIT;
     global_func->result = TYPE_UNIT;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "print", global_func);
@@ -1545,42 +1534,46 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    head *params = malloc(sizeof(head));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     insert_symbol(symbol_table, "readLine", global_func);
   }
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    head *params = malloc(sizeof(head));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     insert_symbol(symbol_table, "readInt", global_func);
   }
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    head *params = malloc(sizeof(head));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_DOUBLE;
     global_func->result = TYPE_DOUBLE;
+    global_func->type = FUN_DEF;
     insert_symbol(symbol_table, "readDouble", global_func);
   }
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "toStr", global_func);
@@ -1588,12 +1581,13 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_DOUBLE;
     insert_symbol(symbol_table, "toInt", global_func);
@@ -1601,12 +1595,13 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_STRING;
     insert_symbol(symbol_table, "strLength", global_func);
@@ -1614,14 +1609,15 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param1 = malloc(sizeof(ListParam));
-    ListParam *new_param2 = malloc(sizeof(ListParam));
-    ListParam *new_param3 = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param1 = special_malloc(sizeof(ListParam));
+    ListParam *new_param2 = special_malloc(sizeof(ListParam));
+    ListParam *new_param3 = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param1;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     new_param1->next = new_param2;
     new_param2->next = new_param3;
     new_param3->next = NULL;
@@ -1633,13 +1629,14 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param1 = malloc(sizeof(ListParam));
-    ListParam *new_param2 = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param1 = special_malloc(sizeof(ListParam));
+    ListParam *new_param2 = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param1;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     new_param1->next = new_param2;
     new_param2->next = NULL;
     new_param1->type = TYPE_STRING;
@@ -1649,12 +1646,13 @@ void setup_builtins() {
 
   {
     AST_Node *global_func = allocate_expression(NULL);
-    ListParam *new_param = malloc(sizeof(ListParam));
-    head *params = malloc(sizeof(head));
+    ListParam *new_param = special_malloc(sizeof(ListParam));
+    head *params = special_malloc(sizeof(head));
     global_func->nodeData.funData.param_list = params;
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_INT;
     insert_symbol(symbol_table, "chr", global_func);
@@ -1663,14 +1661,17 @@ void setup_builtins() {
 
 void allow_symbol_insert(char *symbol_name) {
   if (tree_get(symbol_table->scopes->top->value, symbol_name) != NULL) {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__); // nepovolená redefinice funkce nebo proměnné
-    exit(4);
+    fprintf(stderr,
+            REDEF_ATTEMPT); // nepovolená redefinice funkce nebo proměnné
+    special_exit(4);
   }
-  char* builtins[] = {"print", "readLine", "readInt", "readDouble", "toStr", "toInt", "strLength", "subStr", "ord", "chr"};
+  char *builtins[] = {"print", "readLine",  "readInt", "readDouble", "toStr",
+                      "toInt", "strLength", "subStr",  "ord",        "chr"};
   for (int i = 0; i < 10; i++) {
     if (strcmp(builtins[i], symbol_name) == 0) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__); // nepovolená redefinice vestavěné funkce
-      exit(4);
+      fprintf(stderr,
+              BUILTIN_REDEF_ATTEMPT); // nepovolená redefinice vestavěné funkce
+      special_exit(4);
     }
   }
 }
@@ -1679,13 +1680,13 @@ dataType get_operation_type(AST_Node *expr, bool allow_string) {
   dataType right = literal_to_type(expr->nodeData.biData.right);
   if (type_compatible(right, expr->nodeData.biData.left, true)) {
     if (right == TYPE_STRING && !allow_string) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(6);
+      fprintf(stderr, TYPE_CONVERSION_FAIL);
+      special_exit(6);
     }
     return right;
   } else {
-    fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-    exit(6);
+    fprintf(stderr, TYPE_CONVERSION_FAIL);
+    special_exit(6);
   }
 }
 
@@ -1704,13 +1705,16 @@ dataType literal_to_type(AST_Node *expr) {
     return TYPE_UNIT;
   case VAR_DEF:
     return expr->nodeData.varData.varType;
-  case IDENT:
-    {
-      AST_Node *ident = get_symbol(symbol_table, expr->nodeData.assignData.var_name);
-      return literal_to_type(ident);
-    }
-  case FUN_CALL:
-    return expr->nodeData.funData.return_type;
+  case IDENT: {
+    AST_Node *ident =
+        get_symbol(symbol_table, expr->nodeData.assignData.var_name);
+    return literal_to_type(ident);
+  }
+  case FUN_CALL: {
+    AST_Node *func_def =
+    get_symbol(symbol_table, expr->nodeData.funData.fun_name);
+    return func_def->nodeData.funData.return_type;
+  }
   case ADD:
     return get_operation_type(expr, true);
   case SUB:
@@ -1734,23 +1738,22 @@ dataType literal_to_type(AST_Node *expr) {
   default:
     return TYPE_UNDEF;
   }
-
 }
 
 NodeType type_to_literal(dataType data_type) {
   switch (data_type) {
-    case TYPE_INT:
-      return LITERAL_INT;
-    case TYPE_DOUBLE:
-      return LITERAL_DOUBLE;
-    case TYPE_STRING:
-      return LITERAL_STRING;
-    case TYPE_BOOL:
-      return LITERAL_BOOL;
-    case TYPE_UNIT:
-      return LITERAL_UNIT;
-    default:
-      return LITERAL_STRING;
+  case TYPE_INT:
+    return LITERAL_INT;
+  case TYPE_DOUBLE:
+    return LITERAL_DOUBLE;
+  case TYPE_STRING:
+    return LITERAL_STRING;
+  case TYPE_BOOL:
+    return LITERAL_BOOL;
+  case TYPE_UNIT:
+    return LITERAL_UNIT;
+  default:
+    return LITERAL_STRING;
   }
 }
 
@@ -1758,26 +1761,78 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   NodeType nodeType = expr->type;
   dataType b;
   if (nodeType == IDENT) {
-    AST_Node *ident = get_symbol(symbol_table, expr->nodeData.assignData.var_name);
+    AST_Node *ident =
+        get_symbol(symbol_table, expr->nodeData.assignData.var_name);
     b = literal_to_type(ident);
+  } else if (nodeType == FUN_CALL) {
+    AST_Node *b_node =
+        get_symbol(symbol_table, expr->nodeData.callFunData.call_fun_name);
+    b = b_node->nodeData.funData.return_type;
   } else {
     b = literal_to_type(expr);
   }
-  if (a == b) return true;
-  if (imp_double_int && ((a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT))) return true;
-  if (a == TYPE_UNDEF) return true;
-  if (b == TYPE_UNDEF) return true;
-  if (a == TYPE_ANY) return true;
+  if (a == b)
+    return true;
+  if ((imp_double_int && a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT))
+    return true;
+  if (a == TYPE_UNDEF)
+    return true;
+  if (b == TYPE_UNDEF)
+    return true;
+  if (a == TYPE_ANY)
+    return true;
   return false;
 }
+
+
+dataType getVarType(AST_Node *var) {
+  if (var->nodeData.varData.varType == TYPE_UNDEF) {
+    return literal_to_type(var->nodeData.varData.expression);
+  } else
+    return var->nodeData.varData.varType;
+}
+
 
 void check_assign_types(AST_Node *var, AST_Node *expr) {
   AST_Node *current = expr;
   while (current != NULL) {
-    if (!type_compatible(var->nodeData.varData.varType, current, true)) {
-      fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
-      exit(6);
+    if (!type_compatible(getVarType(var), current, true)) {
+      fprintf(stderr, ASSIGN_TYPE_FAIL, var->nodeData.varData.var_name);
+      special_exit(6);
     }
     current = current->next;
   }
+}
+
+void *special_malloc(size_t size) {
+  void *ptr = calloc(1, size);
+  if (ptr == NULL) {
+    fprintf(stderr, MALLOC_FAIL);
+    special_exit(99);
+  }
+  stack_push(memory_allocs, ptr);
+  return ptr;
+}
+
+char *special_strdup(char *str) {
+  char *new_str = strdup(str);
+  if (new_str == NULL) {
+    fprintf(stderr, MALLOC_FAIL);
+    special_exit(99);
+  }
+  stack_push(memory_allocs, new_str);
+  return new_str;
+}
+
+void special_exit(int code) {
+  exit_code = code;
+  while (stack_top(memory_allocs) != NULL) {
+    free(stack_top(memory_allocs));
+    stack_pop(memory_allocs);
+  }
+  stack_dtor(stack_indent);
+  symbol_table_dtor(symbol_table);
+  stack_dtor(used_symbols);
+  stack_dtor(memory_allocs);
+  exit(code);
 }

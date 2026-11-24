@@ -10,21 +10,32 @@
 #define PARSER_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 #include "scanner.h"
 #include "stack.h"
 #include "symtable.h"
+
+#define ERROR "[Chyba] "
+#define MALLOC_FAIL ERROR"Selhalo alokování paměti.\n"
+#define ASSIGN_TYPE_FAIL ERROR"Proměnné '%s' byla přiřazena hodnota se špatným typem.\n"
+#define TYPE_CONVERSION_FAIL ERROR"Chyba typové kompatibility.\n"
+#define BUILTIN_REDEF_ATTEMPT ERROR"Pokus o nepovolenou redefinici vestavěné funkce.\n"
+#define REDEF_ATTEMPT ERROR"Pokus o nepovolenou redefinici proměnné nebo funkce.\n"
+#define CONST_REDEF_ATTEMPT ERROR"Pokud o nepovolenou redefinici konstanty.\n"
+#define UNKNOWN_ID ERROR"Pokus o použití neznámé proměnné nebo funkce.\n"
+#define INVALID_ARG_TYPE ERROR"Funkce '%s' je volána s nesprávným typem argumentů.\n"
+#define INVALID_ARG_AMOUNT ERROR"Funkce '%s' je volána s nesprávným počtem argumentů.\n"
 
 /**
  *
  * @brief Výčet datových typů
  */
 typedef enum dataType {
-
+  TYPE_UNASSIGNED,
   TYPE_INT,
   TYPE_DOUBLE,
   TYPE_STRING,
@@ -291,6 +302,14 @@ NodeType type_to_literal(dataType data_type);
 
 int count_params(ListParam *list);
 
+void* special_malloc(size_t size);
+
+char* special_strdup(char *str);
+
+void special_exit(int code);
+
+dataType getVarType(AST_Node *var);
+
 extern int has_main;
 
 extern bool youre_main_node;
@@ -302,5 +321,9 @@ extern token active_token;
 extern stackPtr stack_indent;
 
 extern stackPtr used_symbols;
+
+extern int exit_code;
+
+extern stackPtr memory_allocs;
 
 #endif // PARSER_H
