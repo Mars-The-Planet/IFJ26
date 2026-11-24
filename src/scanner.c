@@ -20,6 +20,11 @@ int indentTotalCount = 0;
 int indentLineCount = 0;
 
 /**
+ * @brief Počítadlo vnořených několikařádkových komentářů
+ */
+int nestedCommentsCount = 0;
+
+/**
  * @brief Sleduje zda poslední token byl EOL pro výpočet odsazení
  */
 bool lastTokenWasEOL = false;
@@ -118,8 +123,16 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       state = simple_multiline_comment_end(ch);
       break;
 
+    case SIMPLE_MULTILINE_COMMENT_START_NESTED_STATE:
+      state = simple_multiline_comment_nested_start(ch);
+      break;
+
     case MULTILINE_COMMENT_STATE:
       state = multiline_comment(ch);
+      break;
+
+    case MULTILINE_COMMENT_NESTED_STATE:
+      state = multiline_comment_nested(ch);
       break;
 
     case MULTILINE_COMMENT_END_STATE:
@@ -675,6 +688,7 @@ int slash(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
     return SINGLELINE_COMMENT_STATE;
 
   case '*':
+    nestedCommentsCount++;
     return MULTILINE_COMMENT_START_STATE;
 
   default:
@@ -715,8 +729,34 @@ int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
 int multiline_comment_start(int ch) {
+  if (ch == '/') {
+    return SIMPLE_MULTILINE_COMMENT_START_NESTED_STATE;
+  }
   if (ch == '*') {
     return SIMPLE_MULTILINE_COMMENT_END_STATE;
+  } else if (ch == '\n') {
+    return MULTILINE_COMMENT_STATE;
+  }
+  if (ch == EOF) {
+    fprintf(stderr, "ERROR: EOF pred ukoncenim nekolikaradkoveho komentare\n");
+    return ERROR_STATE;
+  }
+
+  return MULTILINE_COMMENT_START_STATE;
+}
+
+/**
+ * @brief Funkce reprezentující stav začátku několikařádkového komentáře kde
+ * znak '\' značí začátek vnořeného komentáře LF značí že se bude jednat o
+ * několikařádkový komentář, který bude doopravdy na několik řádků obsah
+ * komentáře konzumujeme
+ * @param ch načtený znak do automatu
+ * @return vrací int reprezntující stav KA. LA. scannerState
+ */
+int simple_multiline_comment_nested_start(int ch) {
+  if (ch == '*') {
+    nestedCommentsCount++;
+    return MULTILINE_COMMENT_START_STATE;
   } else if (ch == '\n') {
     return MULTILINE_COMMENT_STATE;
   }
@@ -743,6 +783,10 @@ int simple_multiline_comment_end(int ch) {
   switch (ch) {
 
   case '/':
+    nestedCommentsCount--;
+    if (nestedCommentsCount > 0) {
+      return MULTILINE_COMMENT_START_STATE;
+    }
     return START_STATE;
 
   case '*':
@@ -767,6 +811,26 @@ int multiline_comment(int ch) {
   if (ch == '*') {
     return MULTILINE_COMMENT_END_STATE;
   }
+  if (ch == '/') {
+    return MULTILINE_COMMENT_NESTED_STATE;
+  }
+
+  return MULTILINE_COMMENT_STATE;
+}
+
+/**
+ * @brief Funkce reprezentující stav obsha několikařádkového komentáře s
+ * možností vzniku zanořeného komentáře
+ * * nás připraví na případné ukočnení komentáře
+ * LF a tisknutelné znaky konzumujeme
+ * @param ch načtený znak do automatu
+ * @return vrací int reprezntující stav KA. LA. scannerState
+ */
+int multiline_comment_nested(int ch) {
+  if (ch == '*') {
+    nestedCommentsCount++;
+    return MULTILINE_COMMENT_END_STATE;
+  }
 
   return MULTILINE_COMMENT_STATE;
 }
@@ -781,6 +845,10 @@ int multiline_comment(int ch) {
  */
 int multiline_comment_end(int ch) {
   if (ch == '/') {
+    nestedCommentsCount--;
+    if (nestedCommentsCount > 0) {
+      return MULTILINE_COMMENT_STATE;
+    }
     return MULTILINE_COMMENT_TAIL_STATE;
   } else if (ch == '*') {
     return MULTILINE_COMMENT_END_STATE;

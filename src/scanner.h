@@ -54,8 +54,10 @@ typedef enum EScannerState {
   SLASH_STATE,
   SINGLELINE_COMMENT_STATE,
   MULTILINE_COMMENT_START_STATE,
+  SIMPLE_MULTILINE_COMMENT_START_NESTED_STATE,
   SIMPLE_MULTILINE_COMMENT_END_STATE,
   MULTILINE_COMMENT_STATE,
+  MULTILINE_COMMENT_NESTED_STATE,
   MULTILINE_COMMENT_END_STATE,
   MULTILINE_COMMENT_TAIL_STATE,
 
@@ -253,13 +255,23 @@ int singleline_comment(int ch, tokenPtr tkn_ptr, stackPtr indent_stack_ptr);
 
 /**
  * @brief Funkce reprezentující stav začátku několikařádkového komentáře
- * * přejdeme do stavu ukočnování jednoduchého několikařádkového komentáře
+ * '*' přejdeme do stavu ukočnování jednoduchého několikařádkového komentáře
  * LF značí že se bude jednat o několikařádkový komentář, který bude doopravdy
- * na několik řádků tisknutelný znak konzumujeme
+ * na několik řádků obsah komentáře konzumujeme
  * @param ch načtený znak do automatu
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
 int multiline_comment_start(int ch);
+
+/**
+ * @brief Funkce reprezentující stav začátku několikařádkového komentáře kde
+ * znak '\' značí začátek vnořeného komentáře LF značí že se bude jednat o
+ * několikařádkový komentář, který bude doopravdy na několik řádků obsah
+ * komentáře konzumujeme
+ * @param ch načtený znak do automatu
+ * @return vrací int reprezntující stav KA. LA. scannerState
+ */
+int simple_multiline_comment_nested_start(int ch);
 
 /**
  * @brief Funkce reprezentující stav KA připraveného ukončit jednoduchý
@@ -282,6 +294,16 @@ int simple_multiline_comment_end(int ch);
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
 int multiline_comment(int ch);
+
+/**
+ * @brief Funkce reprezentující stav obsha několikařádkového komentáře s
+ * možností vzniku zanořeného komentáře
+ * * nás připraví na případné ukočnení komentáře
+ * LF a tisknutelné znaky konzumujeme
+ * @param ch načtený znak do automatu
+ * @return vrací int reprezntující stav KA. LA. scannerState
+ */
+int multiline_comment_nested(int ch);
 
 /**
  * @brief Funkce reprezentující stav těsně před ukončením několikařádkového
