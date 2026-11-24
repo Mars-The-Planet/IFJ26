@@ -10,8 +10,8 @@
 
 void syntax_error(char *errmsg, int line) {
 
-  fprintf(stderr, "ERROR: Syntaxe (radek %d): %s | token: '%s'\n", line, errmsg,
-          active_token.value, active_token.type);
+  fprintf(stderr, "ERROR: Syntaxe (radek %d): %s | token: '%s' (typ %d)\n",
+          line, errmsg, active_token.value, active_token.type);
   special_exit(2);
 }
 
@@ -189,9 +189,9 @@ char precedence_table[11][11] = {
     // 2. sčítání, odčítání, konkatenace
     {'<', '<', '>', '>', '>', '>', '>', '>', '<', '>', '>'},
     // 3. relační operátory
-    {'<', '<', '<', 'E', '>', '>', '>', '>', '<', '>', '>'},
+    {'<', '<', '<', '>', '>', '>', '>', '>', '<', '>', '>'},
     // 4. '==' a '!='
-    {'<', '<', '<', '<', 'E', '>', '>', '>', '<', '>', '>'},
+    {'<', '<', '<', '<', '>', '>', '>', '>', '<', '>', '>'},
     // 5. AND (&&)
     {'<', '<', '<', '<', '<', '>', '>', '>', '<', '>', '>'},
     // 6. OR (||)
@@ -412,7 +412,7 @@ AST_Node *parse_expression(AST_Node *past_node) {
           stack_push(operator_stack, (void *)(uintptr_t)BRACK_START);
       } else {
 
-        syntax_error("Špatná hodnota tokonu, očekáváno '('", __LINE__);
+        syntax_error("Špatná hodnota tokenu, očekáváno '('", __LINE__);
       }
       // Režim pro čtení operátorů
     } else if (stack_switch == 0) {
@@ -644,17 +644,31 @@ head *parse_param() {
 
   params->first = NULL;
 
+  // existuje čárka
+  bool after_comma = false;
+  // je za čárkou EOL
+  bool had_eol = false;
+
   while (1) {
     check_next_token();
 
     if (active_token.type == SYMBOL_TYPE) {
 
-      if (strcmp(active_token.value, "EOL") == 0)
+      if (strcmp(active_token.value, "EOL") == 0) {
+        had_eol = true;
         continue;
-      if (strcmp(active_token.value, ")") == 0)
-        return params;
+      }
+      if (strcmp(active_token.value, ")") == 0) {
+        if (after_comma && !had_eol) {
+          syntax_error("Špatná hodnota tokenu, očekáváno 'EOL'", __LINE__);
+        }
 
+        return params;
+      }
     } else if (active_token.type == ID_TYPE) {
+
+      after_comma = false;
+      had_eol = false;
 
       ListParam *new_param = special_malloc(sizeof(ListParam));
 
@@ -722,12 +736,19 @@ head *parse_param() {
         };
         if (strcmp(active_token.value, ")") == 0)
           return params;
-        if (strcmp(active_token.value, ",") == 0)
+        if (strcmp(active_token.value, ",") == 0) {
+          after_comma = true;
+          had_eol = false;
           continue;
+        }
+
+        syntax_error("Špatná hodnota tokenu, očekáváno ',' nebo ')'", __LINE__);
 
       } else {
         syntax_error("Špatný typ tokenu, očekáváno SYMBOL", __LINE__);
-      };
+      }
+    } else {
+      syntax_error("Ocekavan parametr nebo ')'", __LINE__);
     }
   }
 }
@@ -1253,6 +1274,7 @@ AST_Node *exp_in_brackets() {
   AST_Node *expression_list_end = NULL;
 
   check_next_token();
+  check_for_eol();
   if (active_token.type == SYMBOL_TYPE &&
       strcmp(active_token.value, ")") == 0) {
     check_next_token();
@@ -1262,6 +1284,7 @@ AST_Node *exp_in_brackets() {
   while (1) {
 
     temp_expression_list = parse_expression(NULL);
+    check_for_eol();
 
     if (expression_list == NULL) {
       expression_list = temp_expression_list;
@@ -1276,9 +1299,21 @@ AST_Node *exp_in_brackets() {
     if (active_token.type == SYMBOL_TYPE) {
       if (strcmp(active_token.value, ",") == 0) {
         check_next_token();
+
+        bool had_eol = false;
+        if (active_token.type == SYMBOL_TYPE &&
+            strcmp(active_token.value, "EOL") == 0) {
+
+          had_eol = true;
+        }
         check_for_eol();
+
         if (active_token.type == SYMBOL_TYPE &&
             strcmp(active_token.value, ")") == 0) {
+
+          if (!had_eol) {
+            syntax_error("Špatná hodnota tokenu, očekáváno 'EOL'", __LINE__);
+          }
 
           check_next_token();
           return expression_list;
@@ -1490,7 +1525,8 @@ int check_pop() {
         }
         if (count_args(temp->nodeData.callFunData.fun_args) !=
             count_params(found_node->nodeData.funData.param_list->first)) {
-          fprintf(stderr, INVALID_ARG_AMOUNT, found_node->nodeData.funData.fun_name);
+          fprintf(stderr, INVALID_ARG_AMOUNT,
+                  found_node->nodeData.funData.fun_name);
           special_exit(5);
         }
         temp->result = found_node->result;
@@ -1499,7 +1535,8 @@ int check_pop() {
         AST_Node *current_arg = temp->nodeData.callFunData.fun_args;
         while (current_param != NULL) {
           if (!compare_param_arg(current_param, current_arg)) {
-            fprintf(stderr, INVALID_ARG_TYPE, found_node->nodeData.funData.fun_name);
+            fprintf(stderr, INVALID_ARG_TYPE,
+                    found_node->nodeData.funData.fun_name);
             special_exit(5);
           }
           current_param = current_param->next;
@@ -1712,7 +1749,7 @@ dataType literal_to_type(AST_Node *expr) {
   }
   case FUN_CALL: {
     AST_Node *func_def =
-    get_symbol(symbol_table, expr->nodeData.funData.fun_name);
+        get_symbol(symbol_table, expr->nodeData.funData.fun_name);
     return func_def->nodeData.funData.return_type;
   }
   case ADD:
@@ -1773,7 +1810,8 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   }
   if (a == b)
     return true;
-  if ((imp_double_int && a == TYPE_INT && b == TYPE_DOUBLE) || (a == TYPE_DOUBLE && b == TYPE_INT))
+  if ((imp_double_int && a == TYPE_INT && b == TYPE_DOUBLE) ||
+      (a == TYPE_DOUBLE && b == TYPE_INT))
     return true;
   if (a == TYPE_UNDEF)
     return true;
@@ -1784,14 +1822,12 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   return false;
 }
 
-
 dataType getVarType(AST_Node *var) {
   if (var->nodeData.varData.varType == TYPE_UNDEF) {
     return literal_to_type(var->nodeData.varData.expression);
   } else
     return var->nodeData.varData.varType;
 }
-
 
 void check_assign_types(AST_Node *var, AST_Node *expr) {
   AST_Node *current = expr;
