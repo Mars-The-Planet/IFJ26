@@ -1082,6 +1082,7 @@ AST_Node *parse_var() {
       temp_var->nodeData.varData.varType = TYPE_UNDEF;
       check_next_token();
       temp_var->nodeData.varData.expression = parse_expression(NULL);
+      temp_var->nodeData.varData.varType = literal_to_type(temp_var->nodeData.varData.expression);
     } else {
 
       syntax_error("Špatná hodnota tokenu, očekáváno '='", __LINE__);
@@ -1196,6 +1197,7 @@ AST_Node *parse_if(int origin_indent) {
   // zavoláme token pro podmínku
   check_next_token();
   temp_if->nodeData.ifData.condition = parse_expression(NULL);
+  literal_to_type(temp_if->nodeData.ifData.condition);
 
   if (active_token.type == KEYWORD_TYPE) {
     if (strcmp(active_token.value, "then") != 0) {
