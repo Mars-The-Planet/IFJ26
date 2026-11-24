@@ -176,13 +176,11 @@ void the_parser() {
 
 AST_Node *allocate_expression(AST_Node *expression) {
 
-  expression = malloc(sizeof(AST_Node));
+  expression = calloc(1, sizeof(AST_Node));
   if (expression == NULL) {
     fprintf(stderr, "ERROR: Memory allocation failed!");
     exit(99);
   }
-
-  expression->next = NULL; // PROSÍM
 
   return expression;
 }
@@ -283,11 +281,13 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
   while (1) {
 
-    temp_expression = allocate_expression(temp_expression);
     // režim pro čtení nodes
     if (stack_switch == 1) {
 
       if (active_token.type == INT_TYPE) {
+
+        temp_expression = allocate_expression(temp_expression);
+
         temp_expression->type = LITERAL_INT;
         temp_expression->nodeData.elemData.valueType.int_value =
             atoi(active_token.value);
@@ -297,6 +297,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
         check_next_token();
 
       } else if (active_token.type == DOUBLE_TYPE) {
+
+        temp_expression = allocate_expression(temp_expression);
+
         temp_expression->type = LITERAL_DOUBLE;
         temp_expression->nodeData.elemData.valueType.double_value =
             atof(active_token.value);
@@ -306,6 +309,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
         check_next_token();
 
       } else if (active_token.type == STRING_TYPE) {
+
+        temp_expression = allocate_expression(temp_expression);
+
         temp_expression->type = LITERAL_STRING;
         temp_expression->nodeData.elemData.valueType.string_value =
             strdup(active_token.value);
@@ -315,6 +321,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
         check_next_token();
 
       } else if (active_token.type == ID_TYPE) {
+
+        temp_expression = allocate_expression(temp_expression);
+
         if (strcmp(active_token.value, "true") == 0) {
           temp_expression->type = LITERAL_BOOL;
           temp_expression->nodeData.elemData.valueType.bool_value = 1;
@@ -394,6 +403,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
         // pokud je závorka prázdná nastavím ho na UNIT
         if (active_token.type == SYMBOL_TYPE &&
             strcmp(active_token.value, ")") == 0) {
+
+          temp_expression = allocate_expression(temp_expression);
+
           temp_expression->type = LITERAL_UNIT;
 
           stack_switch = 0;
@@ -416,6 +428,9 @@ AST_Node *parse_expression(AST_Node *past_node) {
           check_stack_pop(node_stack);
 
           if (stack_nodes->type == IDENT) {
+
+            temp_expression = allocate_expression(temp_expression);
+
             temp_expression->type = FUN_CALL;
             temp_expression->nodeData.callFunData.call_fun_name =
                 stack_nodes->nodeData.idVarData.id_name;
@@ -429,6 +444,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
             continue;
           }
         } else if (strcmp(active_token.value, ".") == 0) {
+
+          temp_expression = allocate_expression(temp_expression);
 
           temp_expression->type = DOT_ACCESS;
 
@@ -573,6 +590,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
         check_stack_pop(operator_stack);
 
+        temp_expression = allocate_expression(temp_expression);
+
         temp_expression->type = stack_operators;
 
         if (get_table_index(stack_operators) == 0) {
@@ -608,8 +627,8 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
           expression = (AST_Node *)stack_top(node_stack);
 
-          if (temp_expression != NULL)
-            free(temp_expression);
+          stack_dtor(operator_stack);
+          stack_dtor(node_stack);
 
           return expression;
 
@@ -1790,7 +1809,8 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
         get_symbol(symbol_table, expr->nodeData.assignData.var_name);
     b = literal_to_type(ident);
   } else if (nodeType == FUN_CALL) {
-    AST_Node *b_node = get_symbol(symbol_table, expr->nodeData.callFunData.call_fun_name);
+    AST_Node *b_node =
+        get_symbol(symbol_table, expr->nodeData.callFunData.call_fun_name);
     b = b_node->nodeData.funData.return_type;
   } else {
     b = literal_to_type(expr);
