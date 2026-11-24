@@ -1535,6 +1535,10 @@ int check_pop() {
         printf("fun fail\n");
         failed = 1;
       } else {
+        if (found_node->type != FUN_DEF) {
+          fprintf(stderr, "Chyba syntaxe na radku %d\n", __LINE__);
+          special_exit(4);
+        }
         if (count_args(temp->nodeData.callFunData.fun_args) !=
             count_params(found_node->nodeData.funData.param_list->first)) {
           special_exit(5);
@@ -1572,6 +1576,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_UNIT;
     global_func->result = TYPE_UNIT;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "print", global_func);
@@ -1584,6 +1589,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     insert_symbol(symbol_table, "readLine", global_func);
   }
 
@@ -1594,6 +1600,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     insert_symbol(symbol_table, "readInt", global_func);
   }
 
@@ -1604,6 +1611,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = NULL;
     global_func->nodeData.funData.return_type = TYPE_DOUBLE;
     global_func->result = TYPE_DOUBLE;
+    global_func->type = FUN_DEF;
     insert_symbol(symbol_table, "readDouble", global_func);
   }
 
@@ -1615,6 +1623,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_ANY;
     insert_symbol(symbol_table, "toStr", global_func);
@@ -1628,6 +1637,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_DOUBLE;
     insert_symbol(symbol_table, "toInt", global_func);
@@ -1641,6 +1651,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_STRING;
     insert_symbol(symbol_table, "strLength", global_func);
@@ -1656,6 +1667,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = new_param1;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     new_param1->next = new_param2;
     new_param2->next = new_param3;
     new_param3->next = NULL;
@@ -1674,6 +1686,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = new_param1;
     global_func->nodeData.funData.return_type = TYPE_INT;
     global_func->result = TYPE_INT;
+    global_func->type = FUN_DEF;
     new_param1->next = new_param2;
     new_param2->next = NULL;
     new_param1->type = TYPE_STRING;
@@ -1689,6 +1702,7 @@ void setup_builtins() {
     global_func->nodeData.funData.param_list->first = new_param;
     global_func->nodeData.funData.return_type = TYPE_STRING;
     global_func->result = TYPE_STRING;
+    global_func->type = FUN_DEF;
     new_param->next = NULL;
     new_param->type = TYPE_INT;
     insert_symbol(symbol_table, "chr", global_func);
