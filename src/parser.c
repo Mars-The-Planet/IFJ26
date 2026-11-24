@@ -608,8 +608,12 @@ AST_Node *parse_expression(AST_Node *past_node) {
 
           expression = (AST_Node *)stack_top(node_stack);
 
-          if (temp_expression != NULL)
-            free(temp_expression);
+          if (temp_expression != NULL) {
+            if (stack_top(memory_allocs) == temp_expression) {
+              stack_pop(memory_allocs);
+            }
+            free(temp_expression); // možná bude dělat chyby?
+          }
 
           return expression;
 
@@ -1837,5 +1841,6 @@ void special_exit(int code) {
     free(stack_top(memory_allocs));
     stack_pop(memory_allocs);
   }
+  free(memory_allocs);
   exit(code);
 }
