@@ -264,7 +264,11 @@ char precedence_table[11][11] = {
 
 /**
  *
- *
+ * @brief Nastaví prioritu operátoru, čím menší číslo tím větší priorita
+ * 
+ * @return Prioritu operátoru
+ * 
+ * @warning Pokud neznámý operátor okamžitě ukončí program exit(2)
  */
 
 int get_table_index(NodeType type) {
@@ -698,6 +702,17 @@ AST_Node *parse_expression(AST_Node *past_node) {
   }
 }
 
+/**
+ * 
+ * @brief Zpracovává parametry funcke jako spojový seznam
+ * 
+ * 
+ * @return Ukazatel na začátek spojového seznamu
+ * 
+ * 
+ * @warning Jakmile nastane jakákoliv chyba zápisu argumentů okamžitě ukončí program exit(2)
+ */
+
 head *parse_param() {
 
   head *params = special_malloc(sizeof(head));
@@ -813,6 +828,14 @@ head *parse_param() {
   }
 }
 
+/**
+ * 
+ * @brief Volá funcki na zpracování parametrů funkce nebo těla funkce, zpracovává co funcke vrací
+ * 
+ * 
+ * @warning Při špatném zápisu návratových hodnot funkce okamžite ukončí průběch programu exit(2)
+ */
+
 void parse_fun() {
 
   int indent = sum_stack(stack_indent);
@@ -853,12 +876,19 @@ void parse_fun() {
   };
 
   new_fun->nodeData.funData.param_list = parse_param();
+  
   ListParam *current_param = new_fun->nodeData.funData.param_list->first;
+  
   while (current_param != NULL) {
+    
     allow_symbol_insert(current_param->param_name);
+    
     AST_Node *param_node = allocate_expression(NULL);
+    
     param_node->type = type_to_literal(current_param->type);
+    
     insert_symbol(symbol_table, current_param->param_name, param_node);
+    
     current_param = current_param->next;
   }
 
@@ -937,6 +967,14 @@ void parse_fun() {
   return;
 }
 
+/**
+ * 
+ * @brief Zpracovává tělo funcke
+ * 
+ * @param origin_indent Odsazení těla funkce
+ * 
+ * @warning Pokud je v tělo funkce špatně zapsané okamžitě pozastaví průběch programu exit(2)
+ */
 AST_Node *parse_fun_body(int origin_indent) {
 
   AST_Node *statements = NULL;
@@ -1063,6 +1101,15 @@ AST_Node *parse_fun_body(int origin_indent) {
   }
 }
 
+/**
+ * 
+ * @brief Zpracovává proměnné, statické i dynamické
+ * 
+ * @return Vrací uzel zpracované proměnné
+ *  
+ * @warning Při špatně napsané proměnné okamžitě zastaví průběh programu exit(2)
+ */
+
 AST_Node *parse_var() {
 
   AST_Node *temp_var = special_malloc(sizeof(AST_Node));
@@ -1156,6 +1203,17 @@ AST_Node *parse_var() {
   return temp_var;
 }
 
+/**
+ * 
+ * @brief Zpracuje for loop
+ * 
+ * @param origin_indent odsazení cyklu
+ * 
+ * @return Vrací uzel zpracovaného for cyklu
+ * 
+ * @warning Pokud je cyklus špatně napsaný okamžitě ukončý průběh programu exit(2)
+ */
+
 AST_Node *parse_for(int origin_indent) {
 
   scope_enter(symbol_table);
@@ -1247,6 +1305,18 @@ AST_Node *parse_for(int origin_indent) {
   return temp_for;
 }
 
+/**
+ * 
+ * @brief Zpracuje if podmínku
+ * 
+ * @param origin_indent odsazení podmínky
+ * 
+ * @return Uzel se zpracovanou if podmínkou
+ * 
+ * @warning Pokud je podmínka špatně napsaná okamžitě ukončí průběh programu exit(2)
+ */
+
+
 AST_Node *parse_if(int origin_indent) {
 
   scope_enter(symbol_table);
@@ -1298,6 +1368,17 @@ AST_Node *parse_if(int origin_indent) {
   return temp_if;
 }
 
+/**
+ * 
+ * @brief Zpacuje while cyklus
+ * 
+ * @param origin_indent Odsazení cyklu
+ * 
+ * @return Uzel zpracovaného cyklu
+ * 
+ * @warning Pokud je cyklus špatně napsaný okamžitě ukončí průběch programu exit(2)
+ */
+
 AST_Node *parse_while(int origin_indent) {
 
   scope_enter(symbol_table);
@@ -1332,6 +1413,15 @@ AST_Node *parse_while(int origin_indent) {
   scope_leave(symbol_table);
   return temp_while;
 }
+
+/**
+ * 
+ * @brief Zpracuje hodnoty v závorce u listů nebo volání funkce jako spojový seznam
+ * 
+ * @return Ukazatel na začátek spojového seznamu
+ * 
+ * @warning Pokud jsou výrazy uvnitř funkce špatně zapsané okamžitě ukončí průběch programu exit(2)
+ */
 
 AST_Node *exp_in_brackets() {
 
@@ -1399,6 +1489,14 @@ AST_Node *exp_in_brackets() {
   }
 }
 
+/**
+ * 
+ * @brief Zpracuje list hodnot
+ * 
+ * @return Uzel zpracovaného listu 
+ * 
+ * @warning Pokud je list špatně zapsaný okamžitě ukončý průběch programu exit(2)
+ */
 AST_Node *parse_list() {
 
   AST_Node *temp_list = special_malloc(sizeof(AST_Node));
@@ -1438,6 +1536,14 @@ AST_Node *parse_list() {
   return temp_list;
 }
 
+/**
+ * 
+ * @brief Zpracuje identifikátor, ten můžu být ještě nedefinovaný
+ * 
+ * @return Uzel zpracovaného identifikátoru
+ * 
+ * @warning Pokud je identifikátor špatně definovaný okamžitě ukončí průběch programu exit(2)
+ */
 AST_Node *parse_id() {
 
   // uložení jména proměnné, protože ještě nevím o jaký typ výrazu se jedná
@@ -1476,6 +1582,14 @@ AST_Node *parse_id() {
   return parse_expression(temp_id);
 }
 
+/**
+ * 
+ * @brief Zpracuje return
+ * 
+ * @return Uzel na zpracovaný return 
+ * 
+ * @warning Pokud je return špatně napsaný okamžitě ukončí průběch programu exit(2)
+ */
 AST_Node *parse_return() {
 
   AST_Node *temp_return = special_malloc(sizeof(AST_Node));
