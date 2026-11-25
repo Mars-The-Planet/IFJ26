@@ -257,10 +257,100 @@ struct AST_Node {
 
 AST_Node *allocate_expression(AST_Node *expression);
 
+/**
+ *
+ * @brief Mapování chyb v kódu
+ *
+ * @param errmsg Zpráva popisující důvod chyby
+ * @param line Řádek na kterém se chyba stala
+ *
+ * @note Funkce nic nevrací - vždy končí proces voláním exit(2)
+ *
+ * */
+void syntax_error(char *errsmg, int line);
+
+/**
+ *
+ * @brief Zavolá a rovnou zkontroluje next_token
+ *
+ *
+ * @warning Při selhání alokace okamžitě ukončí program exit(99)
+ * @warning Při špatně načteném tokenu okamžitě ukončí program exit(1)
+ */
+void check_next_token();
+
+/**
+ *
+ * @brief Prochází prázdné řádky
+ */
+void check_for_eol();
+
+/**
+ *
+ * @brief Kontroluje vršek zásobníku
+ *
+ * @param stack Ukazatel na zásobník co se má zkontrolovat
+ *
+ * @warning Pokud na vrcholu zásboníku nic není okamžitě ukončí program exit(2)
+ */
+void check_stack_pop(stackPtr stack);
+
+/**
+ *
+ * @brief Nastavuje základní datové typy pro uzel
+ *
+ *
+ * @return Základní datový typ
+ * @warning Při špatném datovém typu okamžitě ukončí program exit(3)
+ */
+dataType type_transfer();
+
+/**
+ *
+ * @brief Zpracovává prolog funkce
+ *
+ * @warning Pokud je prolog špatně zapsaná okamžitě ukončí program exit(2)
+ */
 void code_prolog();
 
-void the_parser();
+/**
+ *
+ * @brief Zpracovává hlavičky funkcí a volá zpracování jejich argumentů
+ *
+ * @warning Pokud je hlavička špatně zapsaná okamžitě ukončí program exit(2)
+ */
+void parse_fun_headers();
 
+/**
+ *
+ * @brief Alokuje paměť pro výraz
+ *
+ * @param expression Ukazatel na alokovaný výraz
+ *
+ * @return Alokovaný výraz
+ */
+
+AST_Node *allocate_expression(AST_Node *expression);
+
+/**
+ *
+ * @brief Nastaví prioritu operátoru, čím menší číslo tím větší priorita
+ *
+ * @return Prioritu operátoru
+ *
+ * @warning Pokud neznámý operátor okamžitě ukončí program exit(2)
+ */
+int get_table_index(NodeType type);
+
+/**
+ *
+ * @brief Volá funcki na zpracování parametrů funkce nebo těla funkce,
+ * zpracovává co funcke vrací
+ *
+ *
+ * @warning Při špatném zápisu návratových hodnot funkce okamžite ukončí průběch
+ * programu exit(2)
+ */
 void parse_fun();
 
 AST_Node *parse_return();
@@ -283,22 +373,112 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int);
 
 dataType literal_to_type(AST_Node *expr);
 
+/**
+ *
+ * @brief Zpracuje výraz pomocí precedenční syntaktické analýzy
+ *
+ * @param past_node Volitelný již načtený uzel identifikátoru (z parse id)
+ *
+ * @return Ukazatel uzel zpracovanéhou výrazu
+ *
+ * @warning Při syntaktické chybě ve výrazu okamžite ukončí program exit(2)
+ */
 AST_Node *parse_expression(AST_Node *past_node);
 
+/**
+ *
+ * @brief Zpracovává parametry funcke jako spojový seznam
+ *
+ *
+ * @return Ukazatel na začátek spojového seznamu
+ *
+ *
+ * @warning Jakmile nastane jakákoliv chyba zápisu argumentů okamžitě ukončí
+ * program exit(2)
+ */
 head *parse_param();
 
+/**
+ *
+ * @brief Zpracuje hodnoty v závorce u listů nebo volání funkce jako spojový
+ * seznam
+ *
+ * @return Ukazatel na začátek spojového seznamu
+ *
+ * @warning Pokud jsou výrazy uvnitř funkce špatně zapsané okamžitě ukončí
+ * průběch programu exit(2)
+ */
 AST_Node *exp_in_brackets();
 
+/**
+ *
+ * @brief Zpracovává tělo funcke
+ *
+ * @param origin_indent Odsazení těla funkce
+ *
+ * @warning Pokud je v tělo funkce špatně zapsané okamžitě pozastaví průběch
+ * programu exit(2)
+ */
 AST_Node *parse_fun_body(int origin_indent);
 
+/**
+ *
+ * @brief Zpracovává proměnné, statické i dynamické
+ *
+ * @return  Ukazatel na uzel zpracované proměnné
+ *
+ * @warning Při špatně napsané proměnné okamžitě zastaví průběh programu exit(2)
+ */
 AST_Node *parse_var();
 
+/**
+ *
+ * @brief Zpacuje while cyklus
+ *
+ * @param origin_indent Odsazení cyklu
+ *
+ * @return Ukazatel na uzel zpracovaného cyklu
+ *
+ * @warning Pokud je cyklus špatně napsaný okamžitě ukončí průběch programu
+ * exit(2)
+ */
 AST_Node *parse_while(int origing_indent);
 
+/**
+ *
+ * @brief Zpracuje if podmínku
+ *
+ * @param origin_indent odsazení podmínky
+ *
+ * @return Ukazatel na uzel se zpracovanou if podmínkou
+ *
+ * @warning Pokud je podmínka špatně napsaná okamžitě ukončí průběh programu
+ * exit(2)
+ */
 AST_Node *parse_if(int origin_indent);
 
+/**
+ *
+ * @brief Zpracuje for loop
+ *
+ * @param origin_indent odsazení cyklu
+ *
+ * @return Ukazatel na uzel zpracovaného for cyklu
+ *
+ * @warning Pokud je cyklus špatně napsaný okamžitě ukončý průběh programu
+ * exit(2)
+ */
 AST_Node *parse_for(int origin_indent);
 
+/**
+ *
+ * @brief Zpracuje list hodnot
+ *
+ * @return Ukazatel na uzel zpracovaného listu
+ *
+ * @warning Pokud je list špatně zapsaný okamžitě ukončý průběch programu
+ * exit(2)
+ */
 AST_Node *parse_list();
 
 AST_Node *parse_id();
