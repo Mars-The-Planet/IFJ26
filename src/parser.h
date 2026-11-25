@@ -1,9 +1,11 @@
 /**
+ * IFJ26 - Implementace překladače imperativního jazyka IFJ26
  * @file parser.h
  * @author Jonáš Vávra (x273960)
  * @author Radek Večeřa (281687)
  *
  * @brief Imlementace syntaktického analyzátoru
+ * @date 25.11.2026
  */
 
 #ifndef PARSER_H
@@ -20,15 +22,20 @@
 #include "symtable.h"
 
 #define ERROR "[Chyba] "
-#define MALLOC_FAIL ERROR"Selhalo alokování paměti.\n"
-#define ASSIGN_TYPE_FAIL ERROR"Proměnné '%s' byla přiřazena hodnota se špatným typem.\n"
-#define TYPE_CONVERSION_FAIL ERROR"Chyba typové kompatibility.\n"
-#define BUILTIN_REDEF_ATTEMPT ERROR"Pokus o nepovolenou redefinici vestavěné funkce.\n"
-#define REDEF_ATTEMPT ERROR"Pokus o nepovolenou redefinici proměnné nebo funkce.\n"
-#define CONST_REDEF_ATTEMPT ERROR"Pokud o nepovolenou redefinici konstanty.\n"
-#define UNKNOWN_ID ERROR"Pokus o použití neznámé proměnné nebo funkce.\n"
-#define INVALID_ARG_TYPE ERROR"Funkce '%s' je volána s nesprávným typem argumentů.\n"
-#define INVALID_ARG_AMOUNT ERROR"Funkce '%s' je volána s nesprávným počtem argumentů.\n"
+#define MALLOC_FAIL ERROR "Selhalo alokování paměti.\n"
+#define ASSIGN_TYPE_FAIL                                                       \
+  ERROR "Proměnné '%s' byla přiřazena hodnota se špatným typem.\n"
+#define TYPE_CONVERSION_FAIL ERROR "Chyba typové kompatibility.\n"
+#define BUILTIN_REDEF_ATTEMPT                                                  \
+  ERROR "Pokus o nepovolenou redefinici vestavěné funkce.\n"
+#define REDEF_ATTEMPT                                                          \
+  ERROR "Pokus o nepovolenou redefinici proměnné nebo funkce.\n"
+#define CONST_REDEF_ATTEMPT ERROR "Pokud o nepovolenou redefinici konstanty.\n"
+#define UNKNOWN_ID ERROR "Pokus o použití neznámé proměnné nebo funkce.\n"
+#define INVALID_ARG_TYPE                                                       \
+  ERROR "Funkce '%s' je volána s nesprávným typem argumentů.\n"
+#define INVALID_ARG_AMOUNT                                                     \
+  ERROR "Funkce '%s' je volána s nesprávným počtem argumentů.\n"
 
 /**
  *
@@ -49,7 +56,7 @@ typedef enum dataType {
 
 /**
  *
- * @brief Výčet všech uzlů které můžou nastat
+ * @brief Výčet všech uzlů pro abstraktní syntaktický strom
  */
 typedef enum ASTNodeType {
 
@@ -68,7 +75,7 @@ typedef enum ASTNodeType {
   UMINUS,
   UPLUS,
   NOT_N,
-  CON_SEZNAM, // funkce pro konkatenanci seznamů
+  CON_SEZNAM,
   TO_N,
   UNTIL_N,
   BY_N,
@@ -119,7 +126,7 @@ typedef struct SHead {
 /**
  *
  * @brief struktura abstraktního derivačního stromu
- * @param isvar bool rozeznávající proměnou (1) a konstantu (0)
+ *
  */
 typedef struct AST_Node AST_Node;
 struct AST_Node {
@@ -302,9 +309,9 @@ NodeType type_to_literal(dataType data_type);
 
 int count_params(ListParam *list);
 
-void* special_malloc(size_t size);
+void *special_malloc(size_t size);
 
-char* special_strdup(char *str);
+char *special_strdup(char *str);
 
 void special_exit(int code);
 

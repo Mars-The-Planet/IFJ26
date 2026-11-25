@@ -1,13 +1,25 @@
 /**
+ * IFJ26 - Implementace překladače imperativního jazyka IFJ26
  * @file parser.c
  * @author Jonáš Vávra (x273960)
  * @author Radek Večeřa (281687)
  *
  * @brief Imlementace syntaxtického analyzátoru
+ * @date 25.11.2026
  */
 
 #include "parser.h"
 
+/**
+ *
+ * @brief Mapování chyb v kódu
+ *
+ * @param errmsg Zpráva popisující důvod chyby
+ * @param line Řádek na kterém se chyba stala
+ *
+ * @note Funkce nic nevrací - vždy končí proces voláním exit(2)
+ *
+ * */
 void syntax_error(char *errmsg, int line) {
 
   fprintf(stderr, "ERROR: Syntaxe (radek %d): %s | token: '%s'\n", line, errmsg,
@@ -17,7 +29,11 @@ void syntax_error(char *errmsg, int line) {
 
 /**
  *
- * @brief funckce zavolá a zároveň zkontroluje next_token
+ * @brief Zavolá a rovnou zkontroluje next_token
+ *
+ *
+ * @warning Při selhání alokace okamžitě ukončí program exit(99)
+ * @warning Při špatně načteném tokenu okamžitě ukončí program exit(1)
  */
 void check_next_token() {
 
@@ -37,6 +53,11 @@ void check_next_token() {
   }
 }
 
+/**
+ *
+ * @brief Prochází prázdné řádky
+ */
+
 void check_for_eol() {
 
   while (active_token.type == SYMBOL_TYPE &&
@@ -45,6 +66,14 @@ void check_for_eol() {
   }
 }
 
+/**
+ *
+ * @brief Kontroluje vršek zásobníku
+ *
+ * @param stack Ukazatel na zásobník co se má zkontrolovat
+ *
+ * @warning Pokud na vrcholu zásboníku nic není okamžitě ukončí program exit(2)
+ */
 void check_stack_pop(stackPtr stack) {
   if (stack_top(stack) != NULL) {
     stack_pop(stack);
@@ -54,6 +83,15 @@ void check_stack_pop(stackPtr stack) {
     syntax_error("Popnuti prazdneho zasobniku", __LINE__);
   }
 }
+
+/**
+ *
+ * @brief Nastavuje základní datové typy pro uzel
+ *
+ *
+ * @return Základní datový typ
+ * @warning Při špatném datovém typu okamžitě ukončí program exit(3)
+ */
 
 dataType type_transfer() {
 
@@ -76,7 +114,9 @@ dataType type_transfer() {
 
 /**
  *
- * @brief funkce pro zpravování prologu kodu
+ * @brief Zpracovává prolog funkce
+ *
+ * @warning Pokud je prolog špatně zapsaná okamžitě ukončí program exit(2)
  */
 void code_prolog() {
 
@@ -121,11 +161,16 @@ void code_prolog() {
   } else {
     syntax_error("Spatny typ tokenu, ocekavano OPERATOR", __LINE__);
   };
-
-  return;
 }
 
-void the_parser() {
+/**
+ *
+ * @brief Zpracovává hlavičky funkcí a volá zpracování jejich argumentů
+ *
+ * @warning Pokud je hlavička špatně zapsaná okamžitě ukončí program exit(2)
+ */
+
+void parse_fun_headers() {
 
   check_next_token();
 
@@ -169,9 +214,16 @@ void the_parser() {
     };
     }
   }
-
-  return;
 }
+
+/**
+ *
+ * @brief Alokuje paměť pro výraz
+ *
+ * @param expression Ukazatel na alokovaný výraz
+ *
+ * @return Alokovaný výraz
+ */
 
 AST_Node *allocate_expression(AST_Node *expression) {
 
@@ -180,6 +232,11 @@ AST_Node *allocate_expression(AST_Node *expression) {
 
   return expression;
 }
+
+/**
+ *
+ * @brief Precedenční tabulka pro syntaktickou analýzu výrazů
+ */
 
 char precedence_table[11][11] = {
     // 0. unární operátory
@@ -204,6 +261,11 @@ char precedence_table[11][11] = {
     {'<', '>', '>', '>', '>', '>', '>', '>', '<', '=', '>'},
     // 10. dno zásobníku
     {'<', '<', '<', '<', '<', '<', '<', '<', '<', 'E', 'E'}};
+
+/**
+ *
+ *
+ */
 
 int get_table_index(NodeType type) {
 
@@ -241,7 +303,7 @@ int get_table_index(NodeType type) {
   if (type == STACK_END)
     return 10;
 
-  return 11;
+  syntax_error("Neznámý operátor", __LINE__);
 }
 
 // přidání parametru abych neztratil jméno identifikátoru z funkce parse_id
@@ -1080,7 +1142,8 @@ AST_Node *parse_var() {
       temp_var->nodeData.varData.varType = TYPE_UNDEF;
       check_next_token();
       temp_var->nodeData.varData.expression = parse_expression(NULL);
-      temp_var->nodeData.varData.varType = literal_to_type(temp_var->nodeData.varData.expression);
+      temp_var->nodeData.varData.varType =
+          literal_to_type(temp_var->nodeData.varData.expression);
     } else {
 
       syntax_error("Spatna hodnota tokenu, ocekavano '='", __LINE__);
@@ -1525,7 +1588,9 @@ int check_pop() {
         AST_Node *cur_arg = temp->nodeData.callFunData.fun_args;
         while (cur_arg != NULL) {
           if (cur_arg->type == IDENT) {
-            stack_push(saved_args, get_symbol(symbol_table, cur_arg->nodeData.assignData.var_name));
+            stack_push(saved_args,
+                       get_symbol(symbol_table,
+                                  cur_arg->nodeData.assignData.var_name));
           }
           cur_arg = cur_arg->next;
         }
