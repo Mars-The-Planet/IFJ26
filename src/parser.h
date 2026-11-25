@@ -481,8 +481,26 @@ AST_Node *parse_for(int origin_indent);
  */
 AST_Node *parse_list();
 
+/**
+ *
+ * @brief Zpracuje identifikátor, ten můžu být ještě nedefinovaný
+ *
+ * @return Ukazatel na uzel zpracovaného identifikátoru
+ *
+ * @warning Pokud je identifikátor špatně definovaný okamžitě ukončí průběch
+ * programu exit(2)
+ */
 AST_Node *parse_id();
 
+/**
+ *
+ * @brief Zpracuje return
+ *
+ * @return Ukazatel na uzel na zpracovaný return
+ *
+ * @warning Pokud je return špatně napsaný okamžitě ukončí průběch programu
+ * exit(2)
+ */
 AST_Node *parse_return();
 
 NodeType type_to_literal(dataType data_type);
