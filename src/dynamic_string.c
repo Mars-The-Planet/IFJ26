@@ -4,7 +4,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Implementace nafukovacího řetězce s vkládáním pouze na konec
- * @date 13.11.2026
+ * @date 7.11.2026
  */
 
 #include "dynamic_string.h"

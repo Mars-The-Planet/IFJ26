@@ -4,7 +4,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Implementace lexikálního analyzátoru
- * @date 13.11.2026
+ * @date 2.11.2026
  */
 
 #include "scanner.h"
