@@ -38,6 +38,8 @@ stackPtr memory_allocs;
 stackPtr stalled;
 stackPtr saved_args;
 
+dataType fun_ret_type;
+
 char *ignored_funcs[] = {"print", "readLine", "readInt", "readDouble", "toStr", "toInt", "strLength", "subStr", "ord", "chr", NULL};
 
 #endif // MAIN_H

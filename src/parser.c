@@ -911,6 +911,7 @@ void parse_fun() {
       if (active_token.type == KEYWORD_TYPE) {
 
         new_fun->nodeData.funData.return_type = type_transfer();
+        fun_ret_type = new_fun->nodeData.funData.return_type;
 
         // případ kde by vrácená hodnota byl list
         if (strcmp(active_token.value, "List") == 0) {
@@ -1059,8 +1060,13 @@ AST_Node *parse_fun_body(int origin_indent) {
         else if (strcmp(active_token.value, "for") == 0)
           temp_statement = parse_for(origin_indent);
 
-        else if (strcmp(active_token.value, "return") == 0)
+        else if (strcmp(active_token.value, "return") == 0) {
           temp_statement = parse_return();
+          if (!type_compatible(fun_ret_type, temp_statement->nodeData.returnData.expression, true) && fun_ret_type != TYPE_UNASSIGNED) {
+            fprintf(stderr, RETURN_TYPE_FAIL);
+            special_exit(6);
+          }
+        }
 
         else {
           syntax_error("Spatna hodnota tokenu, ocekavano 'while', 'if', 'for' "
@@ -1081,13 +1087,32 @@ AST_Node *parse_fun_body(int origin_indent) {
           fprintf(stderr, UNKNOWN_ID);
           special_exit(3);
         }
+        if (!type_compatible(fun_ret_type, temp_statement, true) && fun_ret_type != TYPE_UNASSIGNED) {
+          fprintf(stderr, RETURN_TYPE_FAIL);
+          special_exit(6);
+        }
         break;
 
       // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem
       // case featuru propadnutí
-      case INT_TYPE:
-      case DOUBLE_TYPE:
-      case STRING_TYPE:
+      case INT_TYPE: {
+        if (fun_ret_type == TYPE_INT && fun_ret_type != TYPE_UNASSIGNED) {
+          fprintf(stderr, RETURN_TYPE_FAIL);
+          special_exit(6);
+        }
+      }
+      case DOUBLE_TYPE: {
+        if (fun_ret_type == TYPE_DOUBLE && fun_ret_type != TYPE_UNASSIGNED) {
+          fprintf(stderr, RETURN_TYPE_FAIL);
+          special_exit(6);
+        }
+      }
+      case STRING_TYPE: {
+        if (fun_ret_type == TYPE_STRING && fun_ret_type != TYPE_UNASSIGNED) {
+          fprintf(stderr, RETURN_TYPE_FAIL);
+          special_exit(6);
+        }
+      }
       case SYMBOL_TYPE:
       case OPERATOR_TYPE:
         temp_statement = parse_expression(NULL);

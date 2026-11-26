@@ -36,6 +36,7 @@
   ERROR "Funkce '%s' je volána s nesprávným typem argumentů.\n"
 #define INVALID_ARG_AMOUNT                                                     \
   ERROR "Funkce '%s' je volána s nesprávným počtem argumentů.\n"
+#define RETURN_TYPE_FAIL ERROR"Funkce vrátila špatný typ.\n"
 
 /**
  *
@@ -630,5 +631,7 @@ extern stackPtr memory_allocs;
 
 extern stackPtr stalled;
 extern stackPtr saved_args;
+
+extern dataType fun_ret_type;
 
 #endif // PARSER_H

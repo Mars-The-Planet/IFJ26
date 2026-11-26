@@ -39,6 +39,7 @@ int main() {
   memory_allocs = stack_ctor();
   stalled = stack_ctor();
   saved_args = stack_ctor();
+  fun_ret_type = TYPE_UNASSIGNED;
 
   setup_builtins();
 
