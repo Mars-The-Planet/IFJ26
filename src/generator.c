@@ -5,13 +5,48 @@
  *
  * @brief generátor kódu pro projekt IFJ26
  *
- * POUŽITÍ AI -
+ * POUŽITÍ AI - použité ai: claude sonnet 5.5 medium
+ *
  * Ai jsem použil pro "debatu" o implementaci některých funkcí,
  * promty vypadali tak, že jsem poslal funkci co jsem napsal a nebyl jsem si u
  * ní jistý zda je správně, popsal jsem svůj způsob uvažování a pokus o
  * implementaci a jak by to mělo fungovat, více u jednotlivých funkcí.
  *
- * MYŠLENKY FUNGOVÁNÍ GNERÁTORU:
+ * Ai jsem použil pro návrh logiky systému pro určení scopů, sám jsem předtím
+ * udělal nekolik pokusů, které nefungovaly, snažil jsem se původně zjistit
+ * scope pomocí tabulky symbolů zhruba takto:
+ *
+ * char *unique_scoped_name(scoped_symtablePtr symtable, char *var_name) {
+ *   unsigned int scope_id = get_scope_id(symtable);
+ *   int size =
+ *       snprintf(NULL, 0, "$scope%u_%s", scope_id,
+ *                var_name); // sprintf v tomto případě vrátí jen velikost pole
+ *   char *scoped_name = malloc(size + 1);
+ *   if (scoped_name == NULL) {
+ *       fprintf(stderr, "generator: neúspěšná alokace paměti pro scope");
+ *       exit(99);
+ *   } else
+ *       snprintf(scoped_name, size + 1, "$scope%u_%s", scope_id, var_name);
+ *   return scoped_name;
+ * }
+ *
+ * to nefungovalo protože Get_scope, pokaždé vrátí global_scope,
+ * další pokus byl pomocí jednoduché konkatenace, funkce si měla při každém
+ * if/while/atd... zvýšit scope, jenže pak byl problém s voláním proměnných a
+ * dostat scope zpět.
+ *
+ * claude mi i rovnou napsal kód jelikož jsem to nespecifikoval..., každopádně
+ * jsem ho prošel a opravil co se mi nelíbilo, jelikož z předchozích zkušeností
+ * vím že ai dělá často zbytečně robustní kód, který ani není potřeba.
+ *
+ * Problémy byly následující, co přesně chci aby udělal (tzn.: popsat co je za
+ * problém, jaká data jsem dostal od parseru), a časová náročnost, jelikož jsem
+ * mu pro jistotu poslal specifikace ifc26 a ifjcode26 a strukturury, které musí
+ * procházet a došly tokeny při pouhém čtení a přemýšlení, jinak si samozřejmě
+ * také "vyhalucinoval" nepotřebné řádky kódu. Další problém byl, že mi delší
+ * dobu trvalo se zorientovat v kódu.
+ *
+ * MYŠLENKY FUNGOVÁNÍ GENERÁTORU:
  * 1. prochází strom pomocí generate_node rekurzivně
  * 2. pracuje hlavně se zásobníkem, pravidlo: každý uzel nechá po sobě na
  * zásobníku právě jednu hodnotu
@@ -24,8 +59,9 @@
  * FUNEXP, BOOLTHEN, CONTROL, LISTS
  *
  *
- * @date 31.10.2026
+ * @date 26.11.2026
  */
+
 
 #include <stdbool.h>
 #include <stdio.h>
