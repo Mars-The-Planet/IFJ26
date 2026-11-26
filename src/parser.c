@@ -1062,7 +1062,7 @@ AST_Node *parse_fun_body(int origin_indent) {
 
         else if (strcmp(active_token.value, "return") == 0) {
           temp_statement = parse_return();
-          if (!type_compatible(fun_ret_type, temp_statement->nodeData.returnData.expression, true) && fun_ret_type != TYPE_UNASSIGNED) {
+          if (!type_compatible(fun_ret_type, temp_statement->nodeData.returnData.expression, true, true) && fun_ret_type != TYPE_UNASSIGNED) {
             fprintf(stderr, RETURN_TYPE_FAIL);
             special_exit(6);
           }
@@ -1087,7 +1087,7 @@ AST_Node *parse_fun_body(int origin_indent) {
           fprintf(stderr, UNKNOWN_ID);
           special_exit(3);
         }
-        if (!type_compatible(fun_ret_type, temp_statement, true) && fun_ret_type != TYPE_UNASSIGNED) {
+        if (!type_compatible(fun_ret_type, temp_statement, true, true) && fun_ret_type != TYPE_UNASSIGNED) {
           fprintf(stderr, RETURN_TYPE_FAIL);
           special_exit(6);
         }
@@ -1744,7 +1744,7 @@ bool compare_param_arg(ListParam *param, AST_Node *arg) {
     fprintf(stderr, UNKNOWN_ID);
     special_exit(3);
   }
-  return type_compatible(param->type, arg, false);
+  return type_compatible(param->type, arg, false, false);
 }
 
 /**
@@ -2002,7 +2002,7 @@ dataType get_operation_type(AST_Node *expr, bool allow_string) {
       special_exit(6);
     }
   }
-  if (type_compatible(right, expr->nodeData.biData.left, true)) {
+  if (type_compatible(right, expr->nodeData.biData.left, true, false)) {
     if (right == TYPE_STRING && !allow_string) {
       fprintf(stderr, TYPE_CONVERSION_FAIL);
       special_exit(6);
@@ -2107,7 +2107,7 @@ NodeType type_to_literal(dataType data_type) {
  * @return Vrátí TRUE pokud je operace povolená
  * @warning Skončí s exit(6) u některých nekompatibilních typů
  */
-bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
+bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int, bool pass_unit) {
   NodeType nodeType = expr->type;
   dataType b;
   if (nodeType == IDENT) {
@@ -2131,6 +2131,8 @@ bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int) {
   if (b == TYPE_UNDEF)
     return true;
   if (a == TYPE_ANY)
+    return true;
+  if (pass_unit && b == TYPE_UNIT)
     return true;
   return false;
 }
@@ -2157,7 +2159,7 @@ dataType getVarType(AST_Node *var) {
 void check_assign_types(AST_Node *var, AST_Node *expr) {
   AST_Node *current = expr;
   while (current != NULL) {
-    if (!type_compatible(getVarType(var), current, false)) {
+    if (!type_compatible(getVarType(var), current, false, false)) {
       fprintf(stderr, ASSIGN_TYPE_FAIL, var->nodeData.varData.var_name);
       special_exit(6);
     }

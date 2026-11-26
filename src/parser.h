@@ -421,7 +421,7 @@ dataType get_operation_type(AST_Node *expr, bool allow_string);
  * @return Vrátí TRUE pokud je operace povolená
  * @warning Skončí s exit(6) u některých nekompatibilních typů
  */
-bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int);
+bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int, bool pass_unit);
 
 
 /**
