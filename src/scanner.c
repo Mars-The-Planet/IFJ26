@@ -272,25 +272,17 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
  */
 int sum_stack(stackPtr stack_ptr) {
   int sum = 0;
-  stackPtr tempStackPtr = stack_ctor();
 
-  while (stack_ptr->top != NULL) {
-    void *val_ptr = stack_top(stack_ptr);
-    int val = (int)(intptr_t)val_ptr;
-
-    sum += val;
-
-    stack_push(tempStackPtr, val_ptr);
-    stack_pop(stack_ptr);
+  if (stack_ptr == NULL) {
+    return sum;
   }
 
-  while (tempStackPtr->top != NULL) {
-    void *val_ptr = stack_top(tempStackPtr);
-    stack_push(stack_ptr, val_ptr);
-    stack_pop(tempStackPtr);
-  }
+  s_nodePtr current_node = stack_ptr->top;
 
-  stack_dtor(tempStackPtr);
+  while (current_node != NULL) {
+    sum += (int)(intptr_t)current_node->value;
+    current_node = current_node->next;
+  }
 
   return sum;
 }
