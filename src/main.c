@@ -43,7 +43,7 @@ int main() {
   setup_builtins();
 
   code_prolog();
-  the_parser();
+  parse_fun_headers();
 
   while (stack_top(saved_args) != NULL) {
     AST_Node *node = stack_top(saved_args);
@@ -80,6 +80,7 @@ int main() {
 
   generate_program(func_stack, main_node->nodeData.funData.fun_name);
 
+  stack_dtor(global_used_symbols);
   stack_dtor(func_stack);
 
   special_exit(0);

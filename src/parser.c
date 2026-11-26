@@ -2195,5 +2195,7 @@ void special_exit(int code) {
   symbol_table_dtor(symbol_table);
   stack_dtor(used_symbols);
   stack_dtor(memory_allocs);
+  stack_dtor(stalled);
+  stack_dtor(saved_args);
   exit(code);
 }
