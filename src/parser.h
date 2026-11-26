@@ -353,24 +353,82 @@ int get_table_index(NodeType type);
  */
 void parse_fun();
 
-AST_Node *parse_return();
 
+
+/**
+ * @brief Funkce pro počítání argumentů při volání funkcí
+ * @param node První argument
+ * @return Vrátí počet argumentů ve funkci
+ */
 int count_args(AST_Node *node);
 
+
+/**
+ * @brief Funkce pro kontrolu existence symbolů
+ * @return Vrátí 1 pokud hledaný symbol je identifikátor, značí soft-fail
+ * @warning Pokud je hledaná funkce chybně volaná může volat exit(4), nebo exit(5)
+ */
 int check_pop();
 
+
+/**
+ * @brief Funkce pro porovnání typů argumentů a parametrů
+ * @param param Porovnávaný parametr
+ * @param arg Porovnávaný argument
+ * @return Vrátí TRUE pokud jsou typy shodné nebo mezi nimi existuje implicitní
+ * konverze
+ */
 bool compare_param_arg(ListParam *param, AST_Node *arg);
 
+/**
+ * @brief Funkce vsune do tabulky symbolů funkce definované jazykem
+ */
 void setup_builtins();
 
+
+/**
+ * @brief Funkce zkontroluje, zda se do tabulky symbolů nevkládá již existující funkce
+ * @param symbol_name Jméno vkládané funkce
+ * @warning může zavolat exit(4) pokud nastane pokus o redefinici
+ */
 void allow_symbol_insert(char *symbol_name);
 
+/**
+ * @brief Funkce pro zjištění, zda je povolné uložit hodnotu do proměnné
+ * @param var Uzel typu IDENT
+ * @param expr Uzel, který se ukládá do var
+ * @warning Skončí s exit(6) u některých nekompatibilních typů
+ */
 void check_assign_types(AST_Node *var, AST_Node *expr);
 
+
+/**
+ * @brief Funkce pro získání datového typu u komplikovanějších operací
+ * @param expr Uzel s operací
+ * @param allow_string Určuje jestli je operace povolená nad řetězcem
+ * @return Datový typ operace
+ * @warning Skončí s exit(6) u nekompatibilních typů
+ */
 dataType get_operation_type(AST_Node *expr, bool allow_string);
 
+
+/**
+ * @brief Funkce pro určení kompatibility mezi typy
+ * @param a datový typ TYPE
+ * @param expr Uzel s porovnávaným typem
+ * @param imp_double_int Povoluje implicitní konverzi z INT na DOUBLE
+ * @return Vrátí TRUE pokud je operace povolená
+ * @warning Skončí s exit(6) u některých nekompatibilních typů
+ */
 bool type_compatible(dataType a, AST_Node *expr, bool imp_double_int);
 
+
+/**
+ * @brief Funkce pro interní převod mezi datovými typy
+ * @param expr Uzel s datovým typem LITERAL
+ * @return Datový typ TYPE
+ * @warning Skončí s exit(6) u nekompatibilních typů
+ */
 dataType literal_to_type(AST_Node *expr);
 
 /**
@@ -503,16 +561,55 @@ AST_Node *parse_id();
  */
 AST_Node *parse_return();
 
+
+/**
+ * @brief Funkce pro interní převod mezi datovými typy
+ * @param data_type Datový typ TYPE
+ * @return Datový typ LITERAL
+ */
 NodeType type_to_literal(dataType data_type);
 
+
+/**
+ * @brief Funkce pro počítání parametrů definice při volání funkcí
+ * @param list Seznam parametrů
+ * @return Vrátí počet parametrů funkce
+ */
 int count_params(ListParam *list);
 
+
+/**
+ * @brief Speciálně upravený malloc, který interně volá calloc a ukládá
+ * alokované místo do zásobníku
+ * @param size Velikost požadovaného místa
+ * @return Vrátí ukazatel na alokované místo
+ * @warning Skončí s exit(99) pokud selže alokace
+ */
 void *special_malloc(size_t size);
 
+
+/**
+ * @brief Speciálně upravený strdup, alokované místo ukládá do zásobníku
+ * @param str Řetězec, který bude duplikován
+ * @return Vrátí řetězec
+ * @warning Skončí s exit(99) pokud selže alokace
+ */
 char *special_strdup(char *str);
 
+
+/**
+ * @brief Speciálně upravený exit, uklízí alokované místo v zásobníku
+ * @param code Číslo, s kterým volá exit()
+ */
 void special_exit(int code);
 
+
+/**
+ * @brief Funkce pro získání typu u proměnné
+ * @param var Uzel typu IDENT
+ * @return Vrátí TYPE uzlu var
+ * @warning Skončí s exit(6) u některých nekompatibilních typů
+ */
 dataType getVarType(AST_Node *var);
 
 extern int has_main;
