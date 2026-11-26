@@ -867,9 +867,6 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr,
   switch (ch) {
 
   // kontrolujeme zda za komentarem neni dalsi token
-  case ' ':
-    return MULTILINE_COMMENT_TAIL_STATE;
-
   case '\n':
     create_token(tkn_ptr, indent_stack_ptr, SYMBOL_TYPE, "EOL");
     return DONE_STATE;
@@ -880,6 +877,9 @@ int multiline_comment_tail(int ch, tokenPtr tkn_ptr,
     return DONE_STATE;
 
   default:
+    if (isspace(ch)) {
+      return MULTILINE_COMMENT_TAIL_STATE;
+    }
     fprintf(stderr,
             "[Chyba] Po nekolika radkovem blokovem komentari mohou nasledovat "
             "pouze mezery ukoncene LF nebo EOL\n");
