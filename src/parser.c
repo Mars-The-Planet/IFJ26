@@ -1097,22 +1097,28 @@ AST_Node *parse_fun_body(int origin_indent) {
       // Jelikož pro všechny case se bude volat stejná funkce, použíl jsem
       // case featuru propadnutí
       case INT_TYPE: {
-        if (fun_ret_type == TYPE_INT && fun_ret_type != TYPE_UNASSIGNED) {
+        if (fun_ret_type != TYPE_INT && fun_ret_type != TYPE_UNASSIGNED) {
           fprintf(stderr, RETURN_TYPE_FAIL);
           special_exit(6);
         }
+        temp_statement = parse_expression(NULL);
+        break;
       }
       case DOUBLE_TYPE: {
-        if (fun_ret_type == TYPE_DOUBLE && fun_ret_type != TYPE_UNASSIGNED) {
+        if (fun_ret_type != TYPE_DOUBLE && fun_ret_type != TYPE_UNASSIGNED) {
           fprintf(stderr, RETURN_TYPE_FAIL);
           special_exit(6);
         }
+        temp_statement = parse_expression(NULL);
+        break;
       }
       case STRING_TYPE: {
-        if (fun_ret_type == TYPE_STRING && fun_ret_type != TYPE_UNASSIGNED) {
+        if (fun_ret_type != TYPE_STRING && fun_ret_type != TYPE_UNASSIGNED) {
           fprintf(stderr, RETURN_TYPE_FAIL);
           special_exit(6);
         }
+        temp_statement = parse_expression(NULL);
+        break;
       }
       case SYMBOL_TYPE:
       case OPERATOR_TYPE:
