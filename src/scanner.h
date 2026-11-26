@@ -4,7 +4,7 @@
  * @author Matěj Růžička (xruzicm00)
  *
  * @brief Hlavičkový soubor lexikálního analyzátoru
- * @date 13.11.2026
+ * @date 2.11.2026
  */
 
 #ifndef SCANNER_H
@@ -272,7 +272,7 @@ int multiline_comment_start(int ch);
  * @param ch načtený znak do automatu
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
-int simple_multiline_comment_nested_start(int ch);
+int simple_multiline_comment_start_nested(int ch);
 
 /**
  * @brief Funkce reprezentující stav KA připraveného ukončit jednoduchý
