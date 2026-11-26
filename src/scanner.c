@@ -124,7 +124,7 @@ int next_token(tokenPtr tkn_ptr, stackPtr indent_stack_ptr) {
       break;
 
     case SIMPLE_MULTILINE_COMMENT_START_NESTED_STATE:
-      state = simple_multiline_comment_nested_start(ch);
+      state = simple_multiline_comment_start_nested(ch);
       break;
 
     case MULTILINE_COMMENT_STATE:
@@ -749,7 +749,7 @@ int multiline_comment_start(int ch) {
  * @param ch načtený znak do automatu
  * @return vrací int reprezntující stav KA. LA. scannerState
  */
-int simple_multiline_comment_nested_start(int ch) {
+int simple_multiline_comment_start_nested(int ch) {
   if (ch == '*') {
     nestedCommentsCount++;
     return MULTILINE_COMMENT_START_STATE;
