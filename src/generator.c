@@ -36,7 +36,7 @@
  * dostat scope zpět.
  *
  * claude mi i rovnou napsal kód jelikož jsem to nespecifikoval..., každopádně
- * jsem ho prošel a opravil co se mi nelíbilo, jelikož z předchozích zkušeností
+ * jsem ho prošel a opravil na svou verzi, jelikož z předchozích zkušeností
  * vím že ai dělá často zbytečně robustní kód, který ani není potřeba.
  *
  * Problémy byly následující, co přesně chci aby udělal (tzn.: popsat co je za
