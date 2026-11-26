@@ -5,13 +5,48 @@
  *
  * @brief generátor kódu pro projekt IFJ26
  *
- * POUŽITÍ AI -
+ * POUŽITÍ AI - použité ai: claude sonnet 5.5 medium
+ *
  * Ai jsem použil pro "debatu" o implementaci některých funkcí,
  * promty vypadali tak, že jsem poslal funkci co jsem napsal a nebyl jsem si u
  * ní jistý zda je správně, popsal jsem svůj způsob uvažování a pokus o
  * implementaci a jak by to mělo fungovat, více u jednotlivých funkcí.
  *
- * MYŠLENKY FUNGOVÁNÍ GNERÁTORU:
+ * Ai jsem použil pro návrh logiky systému pro určení scopů, sám jsem předtím
+ * udělal nekolik pokusů, které nefungovaly, snažil jsem se původně zjistit
+ * scope pomocí tabulky symbolů zhruba takto:
+ *
+ * char *unique_scoped_name(scoped_symtablePtr symtable, char *var_name) {
+ *   unsigned int scope_id = get_scope_id(symtable);
+ *   int size =
+ *       snprintf(NULL, 0, "$scope%u_%s", scope_id,
+ *                var_name); // sprintf v tomto případě vrátí jen velikost pole
+ *   char *scoped_name = malloc(size + 1);
+ *   if (scoped_name == NULL) {
+ *       fprintf(stderr, "generator: neúspěšná alokace paměti pro scope");
+ *       exit(99);
+ *   } else
+ *       snprintf(scoped_name, size + 1, "$scope%u_%s", scope_id, var_name);
+ *   return scoped_name;
+ * }
+ *
+ * to nefungovalo protože Get_scope, pokaždé vrátí global_scope,
+ * další pokus byl pomocí jednoduché konkatenace, funkce si měla při každém
+ * if/while/atd... zvýšit scope, jenže pak byl problém s voláním proměnných a
+ * dostat scope zpět.
+ *
+ * claude mi i rovnou napsal kód jelikož jsem to nespecifikoval..., každopádně
+ * jsem ho prošel a opravil na svou verzi, jelikož z předchozích zkušeností
+ * vím že ai dělá často zbytečně robustní kód, který ani není potřeba.
+ *
+ * Problémy byly následující, co přesně chci aby udělal (tzn.: popsat co je za
+ * problém, jaká data jsem dostal od parseru), a časová náročnost, jelikož jsem
+ * mu pro jistotu poslal specifikace ifc26 a ifjcode26 a strukturury, které musí
+ * procházet a došly tokeny při pouhém čtení a přemýšlení, jinak si samozřejmě
+ * také "vyhalucinoval" nepotřebné řádky kódu. Další problém byl, že mi delší
+ * dobu trvalo se zorientovat v kódu.
+ *
+ * MYŠLENKY FUNGOVÁNÍ GENERÁTORU:
  * 1. prochází strom pomocí generate_node rekurzivně
  * 2. pracuje hlavně se zásobníkem, pravidlo: každý uzel nechá po sobě na
  * zásobníku právě jednu hodnotu
@@ -27,6 +62,7 @@
  * @date 31.10.2026
  */
 
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,8 +71,12 @@
 #include "generator.h"
 #include "symtable.h"
 
-/**list funkcí */
+// list funkcí
 static AST_Node *function_list = NULL;
+
+// návratová hodnota funkce, inicializuje se na unit a volání funkce ji vždy
+// přepíše a pak "vynuluje"
+static dataType function_return_type = TYPE_UNIT;
 
 /**
  * @brief funkce pro určení posledního uzlu, používal jsem často tak jsem
@@ -83,7 +123,8 @@ static int leaves_value(AST_Node *node) {
  * @return typ parametru, nebo TYPE_UNDEF (funkce neexistuje / vestavěná)
  */
 dataType get_param_type(const char *func_name, int index) {
-  for (AST_Node *fun = function_list; fun; fun = fun->next) {
+  for (AST_Node *fun = function_list; fun;
+       fun = fun->next) { // projde seznam funkcí
     if (fun->type == FUN_DEF &&
         strcmp(fun->nodeData.funData.fun_name, func_name) == 0) {
 
@@ -137,6 +178,8 @@ static int function_count = 0;
 
 /**
  * @brief kopie řetězce
+ * @param source zdrojový řetězec
+ * @return nově alokovaný řetězec, při chybě alokace exit 99
  */
 static char *copy_string(const char *source) {
   size_t length = strlen(source) + 1;
@@ -183,11 +226,14 @@ static void scope_close(void) {
 
 /**
  * @brief je jméno už použité jako unikátní jméno v aktuální funkci?
+ * @return když je jméno už použité vrátí true, jinak false
  */
 static bool unique_name_in_use(const char *name) {
-  for (int i = 0; i < all_variables_count; i++) {
+  for (int i = 0; i < all_variables_count;
+       i++) { // prochází dokud neprojde všechny proměnné ve funkci
     if (all_variables[i].function_id == current_function_id &&
-        strcmp(all_variables[i].unique_name, name) == 0) {
+        strcmp(all_variables[i].unique_name, name) ==
+            0) { // jméno funkce už existuje
       return true;
     }
   }
@@ -195,7 +241,10 @@ static bool unique_name_in_use(const char *name) {
 }
 
 /**
- * @brief vytvoří jméno, které se v aktuální funkci ještě nepoužilo
+ * @brief vytvoří jméno, které se v aktuální funkci ještě nepoužilo, pokud
+ * původně byla nějaká duplicitní jména
+ *
+ *@return vrátí unikátní jméno
  */
 static char *make_unique_name(const char *original_name) {
   if (!unique_name_in_use(original_name)) {
@@ -208,10 +257,13 @@ static char *make_unique_name(const char *original_name) {
     int written =
         snprintf(candidate, sizeof(candidate), "%s$%d", original_name, suffix);
     (void)written;
-    if (!unique_name_in_use(candidate)) {
+    if (!unique_name_in_use(
+            candidate)) { // pokud už vytvořil unikátní jméno, vrátí ho,
+                          // jestliže stále není unikátní zváší suffix a zkouší
+                          // to dál
       return copy_string(candidate);
     }
-    suffix++;
+    suffix++; // zvýší suffix
   }
 }
 
@@ -305,6 +357,7 @@ static dataType user_function_return_type(AST_Node *fun) {
 /**
  * @brief projde posloupnost příkazů a vrátí typ hodnoty bloku: typ posledního
  * příkazu, nebo Unit, pokud po sobě poslední příkaz hodnotu nenechává
+ * @return 
  */
 static dataType infer_block(AST_Node *first) {
   dataType block_type = TYPE_UNIT;
@@ -578,10 +631,6 @@ static void infer_function(AST_Node *fun) {
 
 static int actual_label_number = 0;
 
-// návratová hodnota funkce, inicializuje se na unit a volání funkce ji vždy
-// přepíše a pak "vynuluje"
-static dataType function_return_type = TYPE_UNIT;
-
 /**
  * @brief funkce pro různé jumpy,
  */
@@ -602,18 +651,23 @@ void literal_double(double value) { printf("PUSHS float@%a\n", value); }
 // opravit
 
 /**
- * @brief string
+ * @brief funkce pro string, funguje tak že nejdříve vypíše PUSHS string@,
+ * pak postupně dotiskává další znaky, až skončí tak vytiskne nový řádek.
+ * když narazá na speciální znak, převede ho do speciálního formátu např "\032"
+ * pro mezeru
  *
  * pužití ai, zeptal jsem se jak udělat funkci na string která bere všechny
- * znaky, přečetl jsem si jak to funguje a při druhém odevzdání doplním
- * komentáře
+ * znaky požadované v zadání, přečetl jsem si jak to funguje a při druhém
+ * odevzdání doplním komentáře
  *
  * @param string string
  */
 void literal_string(char *string) {
   printf("PUSHS string@");
   for (unsigned char *c = (unsigned char *)string; *c; c++) {
-    if (*c <= 32 || *c == 35 || *c == 92) {
+    if (*c <= 32 || *c == 35 ||
+        *c == 92) { // převede na escape sekvece, jelikož znaky neumí nomálně
+                    // tisknout
       printf("\\%03d", *c);
     } else {
       putchar(*c);
@@ -1269,7 +1323,7 @@ void pop_params(ListParam *params) {
 }
 
 /**
- * @brief funkce pro vytvoření spouštění funkcí
+ * @brief funkce pro vytvoření funkcí
  *
  * @param node ukazatel na uzel ast
  */
@@ -1385,112 +1439,157 @@ void read_double() {
  * @brief vestavěná funkce readLine, při EOF vrací prázdný řetězec
  */
 void read_line() {
-  int label_number = get_new_label();
-  printf("CREATEFRAME\n"
-         "PUSHFRAME\n"
-         "DEFVAR LF@$$input\n" // proměnná s načtenou hodnotou
-         "READ LF@$$input string\n"
-         "JUMPIFNEQ $readLine%d_end LF@$$input nil@nil\n"
-         "MOVE LF@$$input string@\n"
-         "LABEL $readLine%d_end\n"
-         "PUSHS LF@$$input\n"
-         "POPFRAME\n",
-         label_number, label_number);
+  int label_number = get_new_label(); // vytvoří návěští
+  printf(
+      "CREATEFRAME\n"            // nový dočasný rámec
+      "PUSHFRAME\n"              // dočasný rámec se stane lokálním
+      "DEFVAR LF@$$input\n"      // proměnná s načtenou hodnotou
+      "READ LF@$$input string\n" // načte rádek, nill pokud řádek nebyl string
+      "JUMPIFNEQ $readLine%d_end LF@$$input nil@nil\n" // kontrola zda načtení
+                                                       // proběhlo ok
+      "MOVE LF@$$input string@\n" // když načtení neproběhlo správně výsledkem
+                                  // je prázdný řetězec
+      "LABEL $readLine%d_end\n"   // sem skočí když načtení proběhlo dobře
+      "PUSHS LF@$$input\n"        // vloží na zásobník input
+      "POPFRAME\n",               // zahodí rámec
+      label_number, label_number);
 }
 
 /**
  * @brief vestavěná funkce readBoolean, při chybě vrací false
  */
 void read_boolean() {
-  int label_number = get_new_label();
-  printf("CREATEFRAME\n"
-         "PUSHFRAME\n"
-         "DEFVAR LF@$$input\n"
-         "READ LF@$$input bool\n"
-         "JUMPIFNEQ $readBoolean%d_end LF@$$input nil@nil\n"
-         "MOVE LF@$$input bool@false\n"
-         "LABEL $readBoolean%d_end\n"
-         "PUSHS LF@$$input\n"
-         "POPFRAME\n",
+  int label_number = get_new_label(); // nové návěští
+  printf("CREATEFRAME\n"              // nový dočasný rámec
+         "PUSHFRAME\n"                // rámec se stane lokálním
+         "DEFVAR LF@$$input\n"        // proměnná pro vstup
+         "READ LF@$$input bool\n"     // načte bool, když nejde o bool vrátí nil
+         "JUMPIFNEQ $readBoolean%d_end LF@$$input nil@nil\n" // pokud byl načten
+                                                             // nil
+         "MOVE LF@$$input bool@false\n" // chybný vstup výsledek false
+         "LABEL $readBoolean%d_end\n"   // sem skočí při platném vstupu
+         "PUSHS LF@$$input\n"           // vloží na zásobník inpout
+         "POPFRAME\n",                  // zahodí rámec
          label_number, label_number);
 }
 
 /**
  * @brief vestavěná funkce ord(string, index), argumenty už jsou na
- * zásobníku, vrací kód znaku, při indexu mimo rozsah -1
+ * zásobníku, vrací kód znaku na indexu, při indexu mimo rozsah -1
+ * vstupy string a index
+ *
  */
 void ord() {
   int label_number = get_new_label();
-  printf("CREATEFRAME\n"
-         "PUSHFRAME\n"
-         "DEFVAR LF@$$string\n"
-         "DEFVAR LF@$$index\n"
-         "DEFVAR LF@$$len\n"
-         "DEFVAR LF@$$comparator\n"
-         "DEFVAR LF@$$result\n"
-         "POPS LF@$$index\n"
-         "POPS LF@$$string\n"
-         "STRLEN LF@$$len LF@$$string\n"
-         "LT LF@$$comparator LF@$$index int@0\n"
-         "JUMPIFEQ $ord%d_wrong LF@$$comparator bool@true\n"
-         "LT LF@$$comparator LF@$$index LF@$$len\n"
-         "JUMPIFEQ $ord%d_wrong LF@$$comparator bool@false\n"
-         "STRI2INT LF@$$result LF@$$string LF@$$index\n"
-         "JUMP $ord%d_end\n"
-         "LABEL $ord%d_wrong\n"
-         "MOVE LF@$$result int@-1\n"
-         "LABEL $ord%d_end\n"
-         "PUSHS LF@$$result\n"
-         "POPFRAME\n",
-         label_number, label_number, label_number, label_number, label_number);
+  printf(
+      "CREATEFRAME\n"            // nové návěští
+      "PUSHFRAME\n"              // nový dočasný rámec
+      "DEFVAR LF@$$string\n"     // vstupní řetězec
+      "DEFVAR LF@$$index\n"      // index ze kterého chceme znak
+      "DEFVAR LF@$$len\n"        // délka řetězce
+      "DEFVAR LF@$$comparator\n" // pomocný bool pro porovnávání
+      "DEFVAR LF@$$result\n"     // výsledný znak
+      "POPS LF@$$index\n"  // vytáhne index ze zásobníku a dá ho do proměnné,
+                           // index je na vrchu jelikož zásobník funguje na
+                           // principu LIFO a index byl pushnutý jako poslední
+      "POPS LF@$$string\n" // nyní dá do proměnné string
+      "STRLEN LF@$$len LF@$$string\n" // zjistí délku řetězce, uoží na zásobník
+      "LT LF@$$comparator LF@$$index int@0\n" // porovná s nulou, záporný index
+                                              // by byl mimo to co funkce
+                                              // přijímá, výsledek do
+                                              // proměnné comparator
+      "JUMPIFEQ $ord%d_wrong LF@$$comparator bool@true\n" // pokud byl výsledek
+                                                          // porovnání že je
+                                                          // index menší než
+                                                          // nula skočí na wrong
+      "LT LF@$$comparator LF@$$index LF@$$len\n" // nyní stejným způsobem
+                                                 // porovná index ještě s délkou
+                                                 // řetězce, opět kontroluje
+                                                 // rozsah
+      "JUMPIFEQ $ord%d_wrong LF@$$comparator bool@false\n" // skok na wrong
+                                                           // pokud mimo rozsah
+      "STRI2INT LF@$$result LF@$$string LF@$$index\n" // převede na kód znaku a
+                                                      // uloží do result
+      "JUMP $ord%d_end\n"                             // přeskočí opravu chyby
+      "LABEL $ord%d_wrong\n"                          // začátek opravy
+      "MOVE LF@$$result int@-1\n" // když byl index mimo rozsah vrátí -1
+      "LABEL $ord%d_end\n"        // konec
+      "PUSHS LF@$$result\n"       // uloží result na zásobník
+      "POPFRAME\n",               // zahodí rámec
+      label_number, label_number, label_number, label_number, label_number);
 }
 
 /**
- * @brief vestavěná funkce subStr(string, start, end), argumenty už jsou na
- * zásobníku, neplatné meze = chyba 40
+ * @brief vestavěná funkce subStr(string, int start,int end), argumenty už jsou
+ * na zásobníku, neplatné meze = chyba 40
  */
 void sub_str() {
-  int label_number = get_new_label();
-  printf("CREATEFRAME\n"
-         "PUSHFRAME\n"
-         "DEFVAR LF@$$string\n"
-         "DEFVAR LF@$$start\n"
-         "DEFVAR LF@$$end\n"
-         "DEFVAR LF@$$len\n"
-         "DEFVAR LF@$$comparator\n"
-         "DEFVAR LF@$$result\n"
-         "DEFVAR LF@$$char\n"
-         "POPS LF@$$end\n"
-         "POPS LF@$$start\n"
-         "POPS LF@$$string\n"
-         "STRLEN LF@$$len LF@$$string\n"
-         "LT LF@$$comparator LF@$$start int@0\n"
-         "JUMPIFEQ $subStr%d_error LF@$$comparator bool@true\n"
-         "LT LF@$$comparator LF@$$end int@0\n"
-         "JUMPIFEQ $subStr%d_error LF@$$comparator bool@true\n"
-         "GT LF@$$comparator LF@$$start LF@$$end\n"
-         "JUMPIFEQ $subStr%d_error LF@$$comparator bool@true\n"
-         "LT LF@$$comparator LF@$$start LF@$$len\n"
-         "JUMPIFEQ $subStr%d_error LF@$$comparator bool@false\n"
-         "GT LF@$$comparator LF@$$end LF@$$len\n"
-         "JUMPIFEQ $subStr%d_error LF@$$comparator bool@true\n"
-         "MOVE LF@$$result string@\n"
-         "LABEL $subStr%d_loop\n"
-         "JUMPIFEQ $subStr%d_done LF@$$start LF@$$end\n"
-         "GETCHAR LF@$$char LF@$$string LF@$$start\n"
-         "CONCAT LF@$$result LF@$$result LF@$$char\n"
-         "ADD LF@$$start LF@$$start int@1\n"
-         "JUMP $subStr%d_loop\n"
-         "LABEL $subStr%d_done\n"
-         "PUSHS LF@$$result\n"
-         "POPFRAME\n"
-         "JUMP $subStr%d_after\n"
-         "LABEL $subStr%d_error\n"
-         "EXIT int@40\n"
-         "LABEL $subStr%d_after\n",
-         label_number, label_number, label_number, label_number, label_number,
-         label_number, label_number, label_number, label_number, label_number,
-         label_number, label_number);
+  int label_number = get_new_label(); // návěští
+  printf(
+      "CREATEFRAME\n"                 // nový dočasný rámec
+      "PUSHFRAME\n"                   // rámec se stane lokálním
+      "DEFVAR LF@$$string\n"          // vstupní řetězec
+      "DEFVAR LF@$$start\n"           // idex zařátku
+      "DEFVAR LF@$$end\n"             // index konce
+      "DEFVAR LF@$$len\n"             // délka řetězce
+      "DEFVAR LF@$$comparator\n"      // pomocná proměnná pro porovnávání
+      "DEFVAR LF@$$result\n"          // výsledek operace
+      "DEFVAR LF@$$char\n"            // pro každý načtený znak
+      "POPS LF@$$end\n"               // ze zásobníku předá do proměnné end
+      "POPS LF@$$start\n"             // do proměnné start
+      "POPS LF@$$string\n"            // do proměnné string
+      "STRLEN LF@$$len LF@$$string\n" // zjistí délu řetězce uloží do len
+      "LT LF@$$comparator LF@$$start int@0\n" // zjistí jestli zařátek není
+                                              // na indexu menším než nula
+                                              // což by bylo mimo rozsah
+      "JUMPIFEQ $subStr%d_error LF@$$comparator bool@true\n" // skočí error
+                                                             // jestliže je
+                                                             // mimo rozsah
+      "LT LF@$$comparator LF@$$end int@0\n" // zjistí zda se konec nenachází
+                                            // na indexu menším než nula což
+                                            // by bylo mimo rozsah
+      "JUMPIFEQ $subStr%d_error LF@$$comparator bool@true\n" // skočí error
+                                                             // jestliže je
+                                                             // mimo rozsah
+      "GT LF@$$comparator LF@$$start LF@$$end\n" // start musí také být před
+                                                 // koncem
+      "JUMPIFEQ $subStr%d_error LF@$$comparator bool@true\n" // skočí error
+                                                             // jestliže je
+                                                             // mimo rozsah
+      "LT LF@$$comparator LF@$$start LF@$$len\n" // start musí být menší než
+                                                 // délka řetězce
+      "JUMPIFEQ $subStr%d_error LF@$$comparator bool@false\n" // skočí error
+                                                              // jestliže je
+                                                              // mimo rozsah
+      "GT LF@$$comparator LF@$$end LF@$$len\n" // konec musí být také menší
+                                               // než délka
+      "JUMPIFEQ $subStr%d_error LF@$$comparator bool@true\n" // skočí error
+                                                             // jestliže je
+                                                             // mimo rozsah
+      "MOVE LF@$$result string@\n" // jestliže vše bylo v pořádku uloží do
+                                   // výsledku prázdný řetězec
+      "LABEL $subStr%d_loop\n"     // nyní už ví že začátek i konec jsou v
+                                   // povolených mezích a spustí smyčku která
+                                   // vypíše daný podřetězec
+      "JUMPIFEQ $subStr%d_done LF@$$start LF@$$end\n" // podmínka když start ==
+                                                      // end, konec
+      "GETCHAR LF@$$char LF@$$string LF@$$start\n" // vezme znak z pozice start
+                                                   // a uloží ho do char
+      "CONCAT LF@$$result LF@$$result LF@$$char\n" // konkatenuje char ke
+                                                   // stávajícímu výsledku
+      "ADD LF@$$start LF@$$start int@1\n" // zvýší start o jedna, aby mohl opsat
+                                          // další prvek
+      "JUMP $subStr%d_loop\n"             // opakuje dokud start != end
+      "LABEL $subStr%d_done\n"            // konec smyčky
+      "PUSHS LF@$$result\n"               // vloží výsledek na zásobník
+      "POPFRAME\n"                        // zruší rámec
+      "JUMP $subStr%d_after\n"            // přeskoří oprabu chyb
+      "LABEL $subStr%d_error\n"           // oprava chyb
+      "EXIT int@40\n"                     // vrátí 40 pokud došlo k chybě
+      "LABEL $subStr%d_after\n",          // úplný konec
+      label_number, label_number, label_number, label_number, label_number,
+      label_number, label_number, label_number, label_number, label_number,
+      label_number, label_number);
 }
 
 /**
@@ -1508,9 +1607,10 @@ void call_user_function(AST_Node *node, char *name, AST_Node *arguments) {
   int index = 0;
   while (arguments) {
     generate_node(arguments);
-    dataType param_type = get_param_type(name, index);
+    dataType param_type = get_param_type(name, index); // získá typ parametru
 
-    if (!leaves_value(arguments)) {
+    if (!leaves_value(
+            arguments)) { // pokud nemá vracet hodnotu vloží nil na zásobník
 
       printf("PUSHS nil@nil\n");
     } else if (param_type == TYPE_DOUBLE && arguments->result == TYPE_INT) {
@@ -1559,29 +1659,6 @@ void str_length(AST_Node *arguments) {
 }
 
 /**
- * @brief vestavěná funkce floor , argument už je na zásobníku.
- * FLOAT2INT usekává k nule, u záporných necelých čísel se musí odečíst 1
- */
-void builtin_floor() {
-  int label_number = get_new_label();
-  printf("CREATEFRAME\n"
-         "PUSHFRAME\n"
-         "DEFVAR LF@$$value\n"
-         "DEFVAR LF@$$truncated_int\n"
-         "DEFVAR LF@$$truncated_float\n"
-         "DEFVAR LF@$$comparator\n"
-         "POPS LF@$$value\n"
-         "FLOAT2INT LF@$$truncated_int LF@$$value\n"
-         "INT2FLOAT LF@$$truncated_float LF@$$truncated_int\n"
-         "GT LF@$$comparator LF@$$truncated_float LF@$$value\n"
-         "JUMPIFEQ $floor%d_end LF@$$comparator bool@false\n"
-         "SUB LF@$$truncated_float LF@$$truncated_float float@%a\n"
-         "LABEL $floor%d_end\n"
-         "PUSHS LF@$$truncated_float\n"
-         "POPFRAME\n",
-         label_number, 1.0, label_number);
-}
-/**
  * @brief vestavěná funkce toString, převede řetězec na string
  * @param type typ vstupního řetězce
  * @param arguments převáděný řetězec, neboli argument vestavěnné funkce
@@ -1622,7 +1699,8 @@ void to_string(dataType type, AST_Node *arguments) {
 }
 
 /**
- * @brief pro volání funkcí
+ * @brief pro volání funkcí, pokud narazí na nějakou vestavěnou funkci,
+ * nezpracovává ji jako ostatní, ale má pro ně vlastní volání
  * @param node ukazatel na funkci kterou budeme volat
  */
 void call_fun(AST_Node *node) {
@@ -1682,7 +1760,7 @@ void call_fun(AST_Node *node) {
 
 /**
  * @brief generátor kódu pro jednotlivé uzly AST
- *  používá switch a prokaždý uzel podle jeho typu zavolá funkci která
+ * rozhdouje se podle typu uzlu, který dostane od parseru
  * vygeneruje kód pro daný uzel
  * @param node ukazatel na uzel AST
  */
@@ -1804,8 +1882,6 @@ void generate_node(AST_Node *node) {
     generate_return(node);
     break;
 
-    // todo: doplnit další uzly AST
-
   case FOR_N:
     generate_for(node);
     break;
@@ -1824,8 +1900,17 @@ void generate_node(AST_Node *node) {
 
 /**
  * @brief hlavní funkce, spouští celý program
+ *
+ * dostane stack na kterém jsou funkce, přičemž každá funkce je kořen jednoho
+ * ast, zásobník si převede na seznam, to sice obrátí pořadí, ale to ve funkcích
+ * nevadí jelikož se pak stejně volají přes main. Do seznamu se převádí, protože
+ * stack by se dal projít jen jednou protože pop hodnoty zahodí, ale generátor
+ * potřebuje více průchodů
+ *
  * @param functions linked list který dodá parser
  * @param main_name jméno mainu
+ * @warning pokud se mu nepovede alokovat pole, vrací exit(99)
+ * @return tiskne na stdout ifjcode26
  */
 void generate_program(stackPtr functions, const char *main_name) {
 
@@ -1843,13 +1928,16 @@ void generate_program(stackPtr functions, const char *main_name) {
   for (AST_Node *fun = function_list; fun; fun = fun->next) {
     function_count++;
   }
-  function_states = calloc((size_t)function_count + 1, 1);
+  function_states = calloc((size_t)function_count + 1,
+                           1); // pole kam se uloží stavy funkcí, 0 znamená že
+                               // ještě nebyly zpracovány
   if (function_states == NULL) {
-    fprintf(stderr, "generator: chyba pri alokaci pameti v generate_program!\n");
+    fprintf(stderr,
+            "generator: chyba pri alokaci pameti v generate_program!\n");
     exit(99);
   }
   for (AST_Node *fun = function_list; fun; fun = fun->next) {
-    infer_function(fun);
+    infer_function(fun); // dopočítá typy a unikátní jména proměnných
   }
 
   printf(".IFJcode26\n");
