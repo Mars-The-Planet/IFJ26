@@ -23,7 +23,7 @@
 void syntax_error(char *errmsg, int line) {
 
   fprintf(stderr, "Chyba: Syntaxe (radek %d): %s | token: '%s'\n", line, errmsg,
-          active_token.value, active_token.type);
+          active_token.value);
   special_exit(2);
 }
 
@@ -307,6 +307,7 @@ int get_table_index(NodeType type) {
     return 10;
 
   syntax_error("Neznámý operátor", __LINE__);
+  return -1; // nikdy se nestane
 }
 
 /**
@@ -2104,6 +2105,7 @@ NodeType type_to_literal(dataType data_type) {
  * @param a datový typ TYPE
  * @param expr Uzel s porovnávaným typem
  * @param imp_double_int Povoluje implicitní konverzi z INT na DOUBLE
+ * @param pass_unit Povoluje UNIT místo skutečného typu při návratu z funkce
  * @return Vrátí TRUE pokud je operace povolená
  * @warning Skončí s exit(6) u některých nekompatibilních typů
  */

@@ -418,6 +418,7 @@ dataType get_operation_type(AST_Node *expr, bool allow_string);
  * @param a datový typ TYPE
  * @param expr Uzel s porovnávaným typem
  * @param imp_double_int Povoluje implicitní konverzi z INT na DOUBLE
+ * @param pass_unit Povoluje UNIT místo skutečného typu při návratu z funkce
  * @return Vrátí TRUE pokud je operace povolená
  * @warning Skončí s exit(6) u některých nekompatibilních typů
  */
