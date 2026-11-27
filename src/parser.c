@@ -1081,6 +1081,7 @@ AST_Node *parse_fun_body(int origin_indent) {
                        "nebo 'return'",
                        __LINE__);
         };
+        last_expr_type_fail = false;
         break;
 
       case ID_TYPE:
@@ -1109,6 +1110,7 @@ AST_Node *parse_fun_body(int origin_indent) {
           fprintf(stderr, RETURN_TYPE_FAIL);
           special_exit(6);
         }
+        last_expr_type_fail = false;
         temp_statement = parse_expression(NULL);
         break;
       }
@@ -1117,6 +1119,7 @@ AST_Node *parse_fun_body(int origin_indent) {
           fprintf(stderr, RETURN_TYPE_FAIL);
           special_exit(6);
         }
+        last_expr_type_fail = false;
         temp_statement = parse_expression(NULL);
         break;
       }
@@ -1125,11 +1128,13 @@ AST_Node *parse_fun_body(int origin_indent) {
           fprintf(stderr, RETURN_TYPE_FAIL);
           special_exit(6);
         }
+        last_expr_type_fail = false;
         temp_statement = parse_expression(NULL);
         break;
       }
       case SYMBOL_TYPE:
       case OPERATOR_TYPE:
+        last_expr_type_fail = false;
         temp_statement = parse_expression(NULL);
         break;
       }
@@ -1149,10 +1154,6 @@ AST_Node *parse_fun_body(int origin_indent) {
       }
     }
 
-    if (last_expr_type_fail) {
-      fprintf(stderr, RETURN_TYPE_FAIL);
-      special_exit(6);
-    }
     return parse_expression(NULL);
   }
 }
