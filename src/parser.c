@@ -1029,8 +1029,13 @@ AST_Node *parse_fun_body(int origin_indent) {
       if (active_token.type == SYMBOL_TYPE &&
           strcmp(active_token.value, "EOF") == 0)
         return statements;
-      if (sum_stack(stack_indent) < origin_indent)
+      if (sum_stack(stack_indent) < origin_indent) {
+        if (last_expr_type_fail) {
+          fprintf(stderr, RETURN_TYPE_FAIL);
+          special_exit(6);
+        }
         return statements;
+      }
       // odsazení se nesmí jen tak zvětšit
       if (sum_stack(stack_indent) > origin_indent) {
 
