@@ -995,6 +995,8 @@ AST_Node *parse_fun_body(int origin_indent) {
   AST_Node *temp_statement = NULL;
   AST_Node *last_statement = NULL;
 
+  bool last_expr_type_fail = false;
+
   check_next_token();
   // pokud je tam odsazení jedná se o tělo funkce, jinak je to výraz
   if (active_token.type == SYMBOL_TYPE &&
@@ -1089,8 +1091,9 @@ AST_Node *parse_fun_body(int origin_indent) {
           special_exit(3);
         }
         if (!type_compatible(fun_ret_type, temp_statement, true, true) && fun_ret_type != TYPE_UNASSIGNED) {
-          fprintf(stderr, RETURN_TYPE_FAIL);
-          special_exit(6);
+          last_expr_type_fail = true;
+        } else {
+          last_expr_type_fail = false;
         }
         break;
 
@@ -1141,6 +1144,10 @@ AST_Node *parse_fun_body(int origin_indent) {
       }
     }
 
+    if (last_expr_type_fail) {
+      fprintf(stderr, RETURN_TYPE_FAIL);
+      special_exit(6);
+    }
     return parse_expression(NULL);
   }
 }
